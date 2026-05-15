@@ -1,0 +1,296 @@
+/* Strandgut — Theme Switching & Accessibility */
+/* Light/dark themes, a11y media queries, print styles */
+
+/* ─── Smooth Transitions ─── */
+html {
+  transition: background-color 0.4s ease;
+}
+
+body {
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* ─── Default Background (Dark) ───
+     Dark is the default theme. The beach photo is darkened with a semi-transparent
+     overlay so text remains legible. */
+html {
+  background-color: #1a1a2e;
+  background-image: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55));
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-attachment: fixed;
+  background-size: cover;
+}
+
+/* ─── Dark Theme via OS Preference ───
+     Applies when no data-theme attribute is present and OS prefers dark. */
+@media (prefers-color-scheme: dark) {
+  html {
+    background-color: #1a1a2e;
+    background-image: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55));
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    opacity: 0.03;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+}
+
+/* ─── Dark Theme via Manual Override ───
+     Same as above but with higher specificity than the media query,
+     so manually selecting dark mode overrides the OS preference. */
+[data-theme="dark"] {
+  /* Dark tokens are already the default in :root (tokens.css) — no redefinition needed */
+}
+
+[data-theme="dark"] html {
+  background-color: #1a1a2e;
+  background-image: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55));
+}
+
+[data-theme="dark"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.03;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* ─── Light Theme via Manual Override ───
+     Lighter gradient overlay lets the beach colors show through.
+     Noise is hidden in light mode. */
+[data-theme="light"] {
+  /* Semantic token overrides for light mode */
+  --color-surface-canvas: #f5f0e8;
+  --color-surface: rgba(245, 240, 232, 0.8);
+  --color-text-primary: #2c2420;
+  --color-text-secondary: #8a7e76;
+  --color-accent: #d4862c;
+  --color-success: #5a9a7a;
+  --color-danger: #b05a54;
+  --color-border: rgba(44, 36, 32, 0.12);
+  --color-glass-bg: rgba(255, 255, 255, 0.5);
+  --color-glass-border: rgba(255, 255, 255, 0.3);
+  --color-glass-shadow: rgba(44, 36, 32, 0.08);
+
+  /* Legacy tokens for backward compatibility with style.css */
+  --color-bg: #f5f0e8;
+  --color-text: #2c2420;
+  --color-text-secondary: #8a7e76;
+
+  /* Component-specific */
+  --color-header-bg:     rgba(255, 255, 255, 0.7);
+  --color-surface-hover: rgba(0, 0, 0, 0.08);
+  --color-surface-raised: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="light"] html {
+  background-color: #e8ddd0;
+  background-image: linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.25));
+}
+
+[data-theme="light"] body::before {
+  display: none;
+}
+
+/* ─── Theme Toggle Icon Visibility ───
+     .theme-icon-sun  → visible in dark mode (click to switch to light)
+     .theme-icon-moon → visible in light mode (click to switch to dark) */
+.theme-icon-sun {
+  display: inline-block;
+}
+
+.theme-icon-moon {
+  display: none;
+}
+
+[data-theme="dark"] .theme-icon-sun {
+  display: inline-block;
+}
+
+[data-theme="dark"] .theme-icon-moon {
+  display: none;
+}
+
+[data-theme="light"] .theme-icon-sun {
+  display: none;
+}
+
+[data-theme="light"] .theme-icon-moon {
+  display: inline-block;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .pill-switch__track {
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+/* ─── Background Classes ───
+     Separated from html so JS can toggle between static and dynamic backgrounds. */
+.static-background {
+  background-image: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url('/assets/img/background.webp');
+}
+
+[data-theme="light"] .static-background {
+  background-image: linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.25)), url('/assets/img/background.webp');
+}
+
+.dynamic-background {
+  background-image: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), var(--bg-photo-url, url('/assets/img/background.webp'));
+}
+
+[data-theme="light"] .dynamic-background {
+  background-image: linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.25)), var(--bg-photo-url, url('/assets/img/background.webp'));
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  html {
+    background-image: none !important;
+    background-color: var(--color-surface-canvas, #1a1a2e) !important;
+  }
+
+  body {
+    background-color: var(--color-surface-canvas, #1a1a2e) !important;
+  }
+
+  body::before {
+    display: none !important;
+  }
+
+  .app-header,
+  .tile,
+  .scan-dialog-overlay,
+  .scan-dialog,
+  .edit-panel-overlay,
+  .edit-panel {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .app-header {
+    background: var(--color-surface-canvas, #1a1a2e) !important;
+  }
+
+  .tile,
+  .scan-dialog,
+  .edit-panel {
+    background: var(--color-surface, rgba(180, 210, 200, 0.12)) !important;
+  }
+
+  .scan-dialog-overlay,
+  .edit-panel-overlay {
+    background: rgba(0, 0, 0, 0.7) !important;
+  }
+
+  .pill-switch__track {
+    background: var(--color-surface) !important;
+  }
+}
+
+/* ─── Forced Colors (High Contrast) ───
+     System colors, no glass effects, no background image. */
+@media (forced-colors: active) {
+  html {
+    background-image: none !important;
+    background-color: Canvas !important;
+  }
+
+  body {
+    background-color: Canvas !important;
+    color: CanvasText !important;
+  }
+
+  body::before {
+    display: none !important;
+  }
+
+  .app-header,
+  .tile,
+  .scan-dialog,
+  .scan-dialog-overlay,
+  .edit-panel,
+  .edit-panel-overlay,
+  .pill-switch,
+  .pill-switch__thumb {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: Canvas !important;
+    border-color: CanvasText !important;
+  }
+
+  .btn {
+    border: 1px solid ButtonText !important;
+  }
+}
+
+@media print {
+  html {
+    background-image: none !important;
+    background-color: white !important;
+  }
+
+  body {
+    color: black !important;
+    background: white !important;
+  }
+
+  body::before {
+    display: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .tile,
+  .app-header,
+  .app-footer,
+  .scan-dialog,
+  .edit-panel {
+    background: white !important;
+    border: 1px solid #ccc !important;
+  }
+
+  .theme-toggle,
+  [class*="theme-icon"],
+  .btn,
+  .edit-controls,
+  .pill-switch {
+    display: none !important;
+  }
+
+  .tile.dragging,
+  .tile.drag-over {
+    opacity: 1 !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  a {
+    color: #0000ee !important;
+    text-decoration: underline !important;
+  }
+
+  .tile {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

@@ -1,0 +1,15 @@
+services:
+  strandgut:
+    image: ghcr.io/rouhim/strandgut
+    build:
+      dockerfile: Containerfile.local
+      context: .
+    user: "1000:1000"
+    volumes:
+      - ./data:/data
+    environment:
+      - STRANDGUT_CONFIG=/data/config.toml
+    ports:
+      - "13569:13569"
+    sysctls:
+      - net.ipv4.ping_group_range=0 2147483647

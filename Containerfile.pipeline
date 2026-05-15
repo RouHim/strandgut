@@ -1,0 +1,21 @@
+FROM docker.io/alpine AS prep
+
+# Create an empty directory that will be used in the final image
+RUN mkdir "/empty_dir"
+
+FROM scratch
+
+ENV DATA_FOLDER="/data"
+ENV RUST_LOG="info"  # Controls log level (env_logger)
+
+VOLUME /data
+WORKDIR /data
+
+COPY --from=prep --chown=1000:1000  /empty_dir /tmp
+COPY --from=prep --chown=1000:1000 /empty_dir /data
+
+COPY --chown=1000:1000 target/x86_64-unknown-linux-musl/release/strandgut /strandgut
+
+EXPOSE 13569
+USER 1000:1000
+ENTRYPOINT ["/strandgut"]

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" class="static-background">
+<head>
+  <script>
+    (function(){
+      try{
+        var s=localStorage.getItem('theme');
+        var d=window.matchMedia('(prefers-color-scheme:dark)').matches;
+        var t=(s==='light'||s==='dark')?s:(d?'dark':'light');
+        document.documentElement.setAttribute('data-theme',t);
+      }catch(e){
+        document.documentElement.setAttribute('data-theme','dark');
+      }
+    })();
+  </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title data-i18n="app.title">Strandgut</title>
+  <link rel="stylesheet" href="/assets/css/style.css?v=0.1.0">
+  <link rel="icon" href="/assets/img/logo.svg" type="image/svg+xml">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand">
+        <img src="/assets/img/logo.svg" alt="Strandgut" class="logo" width="120" height="36">
+      </div>
+    </div>
+    <div class="header-right">
+      <button
+        type="button"
+        class="btn btn-ghost"
+        data-testid="add-button"
+        data-i18n-aria="add.button"
+        aria-label="Add"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
+      <button id="theme-toggle" class="btn btn-ghost" role="switch" aria-label="Switch to light theme" aria-checked="false">
+      <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+      <button
+        type="button"
+        class="pill-switch"
+        role="switch"
+        aria-checked="false"
+        data-testid="edit-toggle"
+        data-i18n-aria="edit.toggle.aria"
+        aria-label="Toggle edit mode"
+        id="pill-switch"
+      >
+        <span class="pill-switch__track" aria-hidden="true">
+          <span class="pill-switch__thumb"></span>
+        </span>
+        <span class="pill-switch__label pill-switch__label--left" aria-hidden="true">
+          <span class="pill-switch__icon pill-switch__icon--view">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </span>
+          <span class="pill-switch__text" data-i18n="pill.view">View</span>
+        </span>
+        <span class="pill-switch__label pill-switch__label--right" aria-hidden="true">
+          <span class="pill-switch__icon pill-switch__icon--edit">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+              <path d="m15 5 4 4"/>
+            </svg>
+          </span>
+          <span class="pill-switch__text" data-i18n="pill.edit">Edit</span>
+        </span>
+      </button>
+  </header>
+
+  <main>
+    <section
+      class="onboarding"
+      data-testid="onboarding"
+      aria-hidden="false"
+    >
+      <h2 data-i18n="onboarding.title">Nothing washed ashore yet</h2>
+      <p data-i18n="onboarding.subtitle">Let's find your services!</p>
+      <button
+        type="button"
+        class="btn btn-primary"
+        data-testid="onboarding-cta"
+        data-i18n="add.button"
+      >
+        Add
+      </button>
+      <button
+        type="button"
+        class="btn btn-ghost"
+        data-testid="onboarding-skip"
+        data-i18n="onboarding.skip"
+      >
+        Skip for now
+      </button>
+    </section>
+
+    <section
+      class="grid"
+      data-testid="service-grid"
+      aria-label="Services"
+    >
+      <!-- Tiles rendered by JS -->
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-left">
+      <p class="photo-credit" data-testid="photo-credit">Photo by <a href="https://www.pexels.com/photo/grass-growing-on-beach-at-sunrise-18082118/" target="_blank" rel="noopener">Pexels</a></p>
+    </div>
+    <div class="footer-right">
+      <button
+        type="button"
+        class="pill-switch pill-switch--single"
+        role="switch"
+        aria-checked="false"
+        data-testid="background-rotate-toggle"
+        data-i18n-aria="background.rotate.aria"
+        aria-label="Toggle background rotation"
+        id="background-toggle"
+      >
+        <span class="pill-switch__track" aria-hidden="true">
+          <span class="pill-switch__thumb"></span>
+        </span>
+        <span class="pill-switch__label pill-switch__label--left" aria-hidden="true">
+          <span class="pill-switch__text" data-i18n="background.rotate.label">Rotate background</span>
+        </span>
+      </button>
+    </div>
+  </footer>
+
+  <script type="module" src="/assets/js/theme.js?v=0.1.0"></script>
+  <script type="module" src="/assets/js/app.js?v=0.1.0"></script>
+</body>
+</html>

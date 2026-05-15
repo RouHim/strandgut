@@ -1,0 +1,258 @@
+name: CI/CD
+
+on:
+  push:
+  pull_request:
+    types:
+      - opened
+  workflow_dispatch: # allow manual execution
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  STRANDGUT_CONFIG: /data/config.toml
+
+jobs:
+  check:
+    name: Check, build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check Rust format
+        run: cargo fmt --all -- --check
+
+      - name: Run Rust linter
+        run: cargo clippy -- -D warnings
+
+      - name: Run unit tests
+        run: cargo test
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: Upload release binary artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: strandgut-binary
+          path: target/release/strandgut
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+  e2e:
+    name: Playwright E2E Tests
+    runs-on: ubuntu-latest
+    needs: [check]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install npm dependencies
+        run: npm ci
+        working-directory: e2e
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        working-directory: e2e
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Run E2E tests
+        run: npm test
+        working-directory: e2e
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7
+
+  create-release:
+    name: Create release
+    needs: check
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install semantic-release dependencies
+        run: |
+          npm install -g \
+            semantic-release \
+            @semantic-release/git \
+            @semantic-release/changelog \
+            @semantic-release/exec \
+            @semantic-release/commit-analyzer \
+            @semantic-release/release-notes-generator \
+            conventional-changelog-conventionalcommits
+
+      - name: Generate Semantic Release
+        id: semantic
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          BEFORE_TAG=$(git tag --list 'v*' --sort=-version:refname | head -n1)
+
+          npx semantic-release
+
+          git fetch --tags --force
+          AFTER_TAG=$(git tag --list 'v*' --sort=-version:refname | head -n1)
+
+          if [ -n "$AFTER_TAG" ] && [ "$AFTER_TAG" != "$BEFORE_TAG" ]; then
+            echo "new_release_published=true" >> "$GITHUB_OUTPUT"
+            echo "new_release_version=${AFTER_TAG#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "new_release_published=false" >> "$GITHUB_OUTPUT"
+            echo "new_release_version=" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-binaries:
+    name: Build and upload release binaries
+    needs: create-release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/rust-cross/rust-musl-cross:x86_64-musl
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Configure git safe directory
+        run: git config --global --add safe.directory /__w/strandgut/strandgut
+
+      - name: Get latest tag
+        id: get_tag
+        if: needs.create-release.outputs.new_release_published == 'true'
+        run: |
+          TAG=$(git tag --list 'v*' --sort=-version:refname | head -n1)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Checkout tag
+        if: needs.create-release.outputs.new_release_published == 'true'
+        run: |
+          git fetch --tags
+          git checkout ${{ steps.get_tag.outputs.tag }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: x86_64-unknown-linux-musl
+
+      - name: Build release binary
+        run: cargo build --release --target x86_64-unknown-linux-musl
+
+      - name: Verify binary is statically linked
+        run: |
+          file target/x86_64-unknown-linux-musl/release/strandgut
+          file target/x86_64-unknown-linux-musl/release/strandgut | grep -Eq "statically linked|static-pie linked"
+          ldd target/x86_64-unknown-linux-musl/release/strandgut 2>&1 | tee ldd.txt
+          grep -Eq "not a dynamic executable|statically linked" ldd.txt
+
+      - name: Upload musl binary artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: strandgut-musl-binary
+          path: target/x86_64-unknown-linux-musl/release/strandgut
+
+      - name: Upload binary to release
+        if: needs.create-release.outputs.new_release_published == 'true'
+        uses: softprops/action-gh-release@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_tag.outputs.tag }}
+          files: target/x86_64-unknown-linux-musl/release/strandgut
+          overwrite_files: true
+
+  build-container:
+    name: Build and push container image
+    needs:
+      - create-release
+      - build-binaries
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download musl binary artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: strandgut-musl-binary
+          path: target/x86_64-unknown-linux-musl/release
+
+      - name: Verify downloaded binary
+        run: |
+          chmod +x target/x86_64-unknown-linux-musl/release/strandgut
+          file target/x86_64-unknown-linux-musl/release/strandgut
+          file target/x86_64-unknown-linux-musl/release/strandgut | grep -Eq "statically linked|static-pie linked"
+          ldd target/x86_64-unknown-linux-musl/release/strandgut 2>&1 | tee ldd.txt
+          grep -Eq "not a dynamic executable|statically linked" ldd.txt
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build container image
+        run: |
+          podman build -t ghcr.io/rouhim/strandgut:latest -f Containerfile.pipeline .
+
+      - name: Tag release image
+        if: needs.create-release.outputs.new_release_published == 'true'
+        run: |
+          podman tag ghcr.io/rouhim/strandgut:latest \
+            ghcr.io/rouhim/strandgut:${{ needs.create-release.outputs.new_release_version }}
+
+      - name: Push container images
+        run: |
+          podman push ghcr.io/rouhim/strandgut:latest
+
+      - name: Push versioned container image
+        if: needs.create-release.outputs.new_release_published == 'true'
+        run: |
+          podman push ghcr.io/rouhim/strandgut:${{ needs.create-release.outputs.new_release_version }}

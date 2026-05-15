@@ -1,0 +1,28 @@
+[package]
+name = "strandgut"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+hyper = { version = "1.9", features = ["server", "http1"], default-features = false }
+hyper-util = { version = "0.1", features = ["server", "http1", "tokio"], default-features = false }
+http-body-util = "0.1"
+matchit = "0.9"
+tokio = { version = "1.52", features = ["rt", "rt-multi-thread", "net", "macros", "sync", "signal", "io-util"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = "0.4"
+toml = "0.8"
+ureq = "3"
+rand = "0.8"
+env_logger = "0.11"
+
+[target.'cfg(target_env = "musl")'.dependencies]
+mimalloc = "0.1"
+
+[profile.release]
+opt-level = 3
+panic = "abort"
+codegen-units = 1
+lto = true
+strip = true
