@@ -1,20 +1,45 @@
-FROM docker.io/alpine AS prep
+ARG TARGETARCH
 
-# Create an empty directory that will be used in the final image
+# Map Docker TARGETARCH (amd64/arm64) to Rust cross images
+FROM docker.io/messense/rust-musl-cross:x86_64-musl AS builder-amd64
+FROM docker.io/messense/rust-musl-cross:aarch64-musl AS builder-arm64
+FROM builder-${TARGETARCH:-amd64} AS builder
+
+WORKDIR /app
 RUN mkdir "/empty_dir"
+
+# Copy dependency manifests first for layer caching
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+COPY assets ./assets
+
+# Determine Rust target triple from Docker architecture
+ARG TARGETARCH
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        echo "aarch64-unknown-linux-musl" > /tmp/rust-target; \
+    else \
+        echo "x86_64-unknown-linux-musl" > /tmp/rust-target; \
+    fi
+
+# Pre-fetch dependencies
+RUN RUST_TARGET=$(cat /tmp/rust-target) && cargo fetch --target ${RUST_TARGET}
+
+# Build release binary
+RUN RUST_TARGET=$(cat /tmp/rust-target) && cargo build --release --target ${RUST_TARGET}
 
 FROM scratch
 
 ENV DATA_FOLDER="/data"
-ENV RUST_LOG="info"  # Controls log level (env_logger)
+ENV RUST_LOG="info"
 
 VOLUME /data
 WORKDIR /data
 
-COPY --from=prep --chown=1000:1000  /empty_dir /tmp
-COPY --from=prep --chown=1000:1000 /empty_dir /data
+COPY --from=builder --chown=1000:1000 /empty_dir /tmp
+COPY --from=builder --chown=1000:1000 /empty_dir /data
 
-COPY --chown=1000:1000 target/x86_64-unknown-linux-musl/release/strandgut /strandgut
+# Copy the built binary — glob matches whichever target was built
+COPY --from=builder --chown=1000:1000 /app/target/*/release/strandgut /strandgut
 
 EXPOSE 13569
 USER 1000:1000

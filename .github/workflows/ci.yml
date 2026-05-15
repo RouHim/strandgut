@@ -1,5 +1,4 @@
 name: CI/CD
-
 on:
   push:
   pull_request:
@@ -15,8 +14,8 @@ env:
   STRANDGUT_CONFIG: /data/config.toml
 
 jobs:
-  check:
-    name: Check, build and test
+  lint-format:
+    name: Lint and format
     runs-on: ubuntu-latest
 
     steps:
@@ -37,32 +36,35 @@ jobs:
       - name: Run Rust linter
         run: cargo clippy -- -D warnings
 
+  rust-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
       - name: Run unit tests
         run: cargo test
 
       - name: Build release
         run: cargo build --release
 
-      - name: Upload release binary artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: strandgut-binary
-          path: target/release/strandgut
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-
-  e2e:
+  e2e-tests:
     name: Playwright E2E Tests
     runs-on: ubuntu-latest
-    needs: [check]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Install Rust toolchain
+      - name: Install rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Rust dependencies
@@ -89,7 +91,7 @@ jobs:
         working-directory: e2e
 
       - name: Upload test results
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
@@ -98,12 +100,16 @@ jobs:
 
   create-release:
     name: Create release
-    needs: check
+    needs:
+      - lint-format
+      - rust-tests
+      - e2e-tests
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     outputs:
       new_release_published: ${{ steps.semantic.outputs.new_release_published }}
       new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -122,7 +128,6 @@ jobs:
             semantic-release \
             @semantic-release/git \
             @semantic-release/changelog \
-            @semantic-release/exec \
             @semantic-release/commit-analyzer \
             @semantic-release/release-notes-generator \
             conventional-changelog-conventionalcommits
@@ -152,9 +157,18 @@ jobs:
     needs: create-release
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            image: ghcr.io/rust-cross/rust-musl-cross:x86_64-musl
+            name: strandgut-x86_64-unknown-linux-musl
+          - target: aarch64-unknown-linux-musl
+            image: ghcr.io/rust-cross/rust-musl-cross:aarch64-musl
+            name: strandgut-aarch64-unknown-linux-musl
 
     container:
-      image: ghcr.io/rust-cross/rust-musl-cross:x86_64-musl
+      image: ${{ matrix.image }}
 
     steps:
       - name: Checkout code
@@ -165,94 +179,115 @@ jobs:
       - name: Configure git safe directory
         run: git config --global --add safe.directory /__w/strandgut/strandgut
 
-      - name: Get latest tag
-        id: get_tag
-        if: needs.create-release.outputs.new_release_published == 'true'
-        run: |
-          TAG=$(git tag --list 'v*' --sort=-version:refname | head -n1)
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-
-      - name: Checkout tag
-        if: needs.create-release.outputs.new_release_published == 'true'
-        run: |
-          git fetch --tags
-          git checkout ${{ steps.get_tag.outputs.tag }}
-
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          key: x86_64-unknown-linux-musl
+          key: ${{ matrix.target }}
 
       - name: Build release binary
-        run: cargo build --release --target x86_64-unknown-linux-musl
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Rename binary with target name
+        run: |
+          cp target/${{ matrix.target }}/release/strandgut ${{ matrix.name }}
 
       - name: Verify binary is statically linked
         run: |
-          file target/x86_64-unknown-linux-musl/release/strandgut
-          file target/x86_64-unknown-linux-musl/release/strandgut | grep -Eq "statically linked|static-pie linked"
-          ldd target/x86_64-unknown-linux-musl/release/strandgut 2>&1 | tee ldd.txt
+          file ${{ matrix.name }}
+          file ${{ matrix.name }} | grep -Eq "statically linked|static-pie linked"
+          ldd ${{ matrix.name }} 2>&1 | tee ldd.txt
           grep -Eq "not a dynamic executable|statically linked" ldd.txt
 
-      - name: Upload musl binary artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: strandgut-musl-binary
-          path: target/x86_64-unknown-linux-musl/release/strandgut
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          TAG=$(git ls-remote --tags https://github.com/${{ github.repository }} | grep -o 'refs/tags/v[0-9.]*$' | sort -V | tail -n1 | sed 's|refs/tags/||')
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       - name: Upload binary to release
         if: needs.create-release.outputs.new_release_published == 'true'
         uses: softprops/action-gh-release@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           tag_name: ${{ steps.get_tag.outputs.tag }}
-          files: target/x86_64-unknown-linux-musl/release/strandgut
-          overwrite_files: true
+          files: ${{ matrix.name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-container:
-    name: Build and push container image
-    needs:
-      - create-release
-      - build-binaries
+    name: Build container image
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
+    needs:
+      - lint-format
+      - rust-tests
+      - e2e-tests
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: amd64
+            platform: linux/amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            platform: linux/arm64
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Download musl binary artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: strandgut-musl-binary
-          path: target/x86_64-unknown-linux-musl/release
-
-      - name: Verify downloaded binary
-        run: |
-          chmod +x target/x86_64-unknown-linux-musl/release/strandgut
-          file target/x86_64-unknown-linux-musl/release/strandgut
-          file target/x86_64-unknown-linux-musl/release/strandgut | grep -Eq "statically linked|static-pie linked"
-          ldd target/x86_64-unknown-linux-musl/release/strandgut 2>&1 | tee ldd.txt
-          grep -Eq "not a dynamic executable|statically linked" ldd.txt
-
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Build container image
+      - name: Build ${{ matrix.arch }} image
         run: |
-          podman build -t ghcr.io/rouhim/strandgut:latest -f Containerfile.pipeline .
+          podman build \
+            --platform ${{ matrix.platform }} \
+            --build-arg TARGETARCH=${{ matrix.arch }} \
+            --tag strandgut-${{ matrix.arch }}:latest \
+            -f Containerfile.pipeline .
 
-      - name: Tag release image
-        if: needs.create-release.outputs.new_release_published == 'true'
+      - name: Test container startup and health
+        if: matrix.arch == 'amd64'
         run: |
-          podman tag ghcr.io/rouhim/strandgut:latest \
-            ghcr.io/rouhim/strandgut:${{ needs.create-release.outputs.new_release_version }}
+          podman run -d --name strandgut-test -p 13569:13569 --user=0 strandgut-${{ matrix.arch }}:latest
+          sleep 3
+          echo "=== Container logs after 3s ==="
+          podman logs strandgut-test
+          echo "=== Testing health endpoint ==="
+          if ! curl --retry 5 --retry-delay 2 --retry-all-errors http://localhost:13569/api/health; then
+            echo "=== Health check failed, dumping full logs ==="
+            podman logs strandgut-test
+            podman stop strandgut-test
+            podman rm strandgut-test
+            exit 1
+          fi
+          podman stop strandgut-test
+          podman rm strandgut-test
 
-      - name: Push container images
+      - name: Push image to GHCR
         run: |
-          podman push ghcr.io/rouhim/strandgut:latest
+          podman push strandgut-${{ matrix.arch }}:latest ghcr.io/rouhim/strandgut:${{ matrix.arch }}-latest
 
-      - name: Push versioned container image
-        if: needs.create-release.outputs.new_release_published == 'true'
+  push-manifest:
+    name: Push multi-arch manifest
+    runs-on: ubuntu-latest
+    needs: build-container
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push multi-arch manifest
         run: |
-          podman push ghcr.io/rouhim/strandgut:${{ needs.create-release.outputs.new_release_version }}
+          docker buildx imagetools create -t ghcr.io/rouhim/strandgut:latest \
+            ghcr.io/rouhim/strandgut:amd64-latest \
+            ghcr.io/rouhim/strandgut:arm64-latest

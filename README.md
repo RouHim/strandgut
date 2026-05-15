@@ -1,10 +1,14 @@
-# Strandgut
+<p align="center">
+  <img src="https://raw.githubusercontent.com/RouHim/strandgut/main/.github/readme/banner.svg" width="600">
+</p>
 
-Minimalist LAN service scanner dashboard. Single binary, no dependencies.
-
-[![CI/CD](https://github.com/rouhim/strandgut/actions/workflows/ci.yml/badge.svg)](https://github.com/rouhim/strandgut/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![GHCR](https://img.shields.io/badge/ghcr.io-rouhim%2Fstrandgut-blue)](https://github.com/rouhim/strandgut/pkgs/container/strandgut)
+<p align="center">
+  <a href="https://github.com/rouhim/strandgut/actions/workflows/ci.yml"><img src="https://github.com/rouhim/strandgut/actions/workflows/ci.yml/badge.svg" alt="CI/CD"></a>
+  <a href="https://github.com/rouhim/strandgut/pkgs/container/strandgut"><img src="https://img.shields.io/badge/ghcr.io-rouhim%2Fstrandgut-blue" alt="GHCR"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/rouhim/strandgut/releases/latest"><img src="https://img.shields.io/badge/arch-x86__64%20%7C%20arm64-blue" alt="Architecture: x86_64 | arm64"></a>
+  <img src="https://img.shields.io/badge/renovate-enabled-brightgreen.svg" alt="Renovate enabled">
+</p>
 
 ## Features
 
@@ -51,11 +55,21 @@ docker run -p 13569:13569 -v ./data:/data --sysctl net.ipv4.ping_group_range='0 
 
 ### Standalone binary
 
-If you want the binary without Docker, the CI job cuts a statically linked musl release on every version tag. Download `strandgut` from the [latest release](https://github.com/rouhim/strandgut/releases/latest), `chmod +x` it, and run it. That's it.
+Pre-built statically linked binaries are available for x86_64 and arm64 on every release:
 
 ```bash
-./strandgut    # No libc, no runtime, no system dependencies
+# x86_64 / amd64
+curl -L -o strandgut https://github.com/rouhim/strandgut/releases/latest/download/strandgut-x86_64-unknown-linux-musl
+chmod +x strandgut
+./strandgut
+
+# arm64 / aarch64
+curl -L -o strandgut https://github.com/rouhim/strandgut/releases/latest/download/strandgut-aarch64-unknown-linux-musl
+chmod +x strandgut
+./strandgut
 ```
+
+No libc, no runtime, no system dependencies. Just download and run.
 
 Set `STRANDGUT_CONFIG` if you need a config file somewhere else:
 

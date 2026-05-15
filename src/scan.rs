@@ -161,10 +161,7 @@ async fn scan_port(host: &str, port: u16, timeout_ms: u64) -> Option<ScanResult>
 /// HTTP fingerprinting result: (service_name, icon_slug, title).
 type HttpInfo = (Option<String>, Option<String>, Option<String>);
 
-pub(crate) fn fetch_http_info(
-    host: &str,
-    port: u16,
-) -> Result<HttpInfo, AppError> {
+pub(crate) fn fetch_http_info(host: &str, port: u16) -> Result<HttpInfo, AppError> {
     let url = format!("http://{}:{}", host, port);
 
     let response = get_http_agent()

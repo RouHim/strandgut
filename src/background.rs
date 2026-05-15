@@ -10,7 +10,6 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant, SystemTime};
 
-use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
@@ -149,18 +148,14 @@ pub fn fetch_pexels_photo(api_key: &str, query: &str) -> Result<PexelsPhoto, App
             .read_to_string()
             .map_err(|e| AppError::Internal(format!("pexels request failed: {e}")))?;
 
-        let photo_response: PexelsPhotoResponse = serde_json::from_str(&body_bytes)
+        let mut photo_response: PexelsPhotoResponse = serde_json::from_str(&body_bytes)
             .map_err(|e| AppError::Internal(format!("pexels request failed: {e}")))?;
-
         if photo_response.photos.is_empty() {
             return Err(AppError::Internal("no results from Pexels".into()));
         }
 
-        return photo_response
-            .photos
-            .choose(&mut rand::thread_rng())
-            .cloned()
-            .ok_or_else(|| AppError::Internal("no results from Pexels".into()));
+        let idx = fastrand::usize(..photo_response.photos.len());
+        return Ok(photo_response.photos.swap_remove(idx));
     }
 
     Err(AppError::Internal(
