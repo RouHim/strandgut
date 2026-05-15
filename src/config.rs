@@ -74,6 +74,10 @@ impl Config {
     ///
     /// Writes to `{path}.tmp` first, then renames to `{path}`.
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), Box<dyn std::error::Error>> {
+        // Ensure parent directory exists
+        if let Some(parent) = path.as_ref().parent() {
+            fs::create_dir_all(parent)?;
+        }
         let toml_string = toml::to_string_pretty(self)?;
         let tmp_path = {
             let mut s = path.as_ref().as_os_str().to_os_string();

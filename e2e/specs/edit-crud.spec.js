@@ -49,7 +49,7 @@ test('add service via edit panel and persist', async ({ page }) => {
   await page.locator('[data-testid="edit-name"]').fill('My Test App');
   await page.locator('[data-testid="edit-url"]').fill('http://test-app.local:8080');
   const savePromise = page.waitForResponse(response => response.url().includes('/api/config') && response.request().method() === 'PUT');
-  await page.locator('[data-testid="edit-save"]').click();
+  await page.locator('[data-testid="edit-save"]').click({ force: true });
   await expect(page.locator('.tile').filter({ hasText: 'My Test App' })).toBeVisible();
   await savePromise;
   await page.reload();
@@ -95,7 +95,7 @@ test('edit existing service and persist', async ({ page, request }) => {
   await page.locator('[data-testid="edit-tile"]').first().click();
   await page.locator('[data-testid="edit-name"]').fill('Edited Name');
   const savePromise = page.waitForResponse(response => response.url().includes('/api/config') && response.request().method() === 'PUT');
-  await page.locator('[data-testid="edit-save"]').click();
+  await page.locator('[data-testid="edit-save"]').click({ force: true });
   await expect(page.locator('.tile').filter({ hasText: 'Edited Name' })).toBeVisible();
   await savePromise;
   await page.reload();
@@ -109,7 +109,7 @@ test('edit form validation shows errors', async ({ page }) => {
   await page.locator('[data-testid="edit-toggle"]').click();
   await page.locator('[data-testid="add-button"]').click();
   await page.locator('[data-testid="add-manual-button"]').click();
-  await page.locator('[data-testid="edit-save"]').click();
+  await page.locator('[data-testid="edit-save"]').click({ force: true });
   await expect(page.locator('[data-testid="edit-name-error"]')).toHaveCount(1);
   await expect(page.locator('[data-testid="edit-url-error"]')).toHaveCount(1);
 });

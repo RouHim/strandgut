@@ -7,6 +7,12 @@ test('SPA loads with correct title', async ({ page }) => {
 
 test('service grid is visible', async ({ page }) => {
   await page.goto('/');
+  // Dismiss onboarding if present (hides the grid)
+  const skip = page.locator('[data-testid="onboarding-skip"]');
+  if (await skip.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await skip.click();
+    await page.waitForTimeout(500);
+  }
   await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
 });
 

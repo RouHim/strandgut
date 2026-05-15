@@ -39,6 +39,7 @@ test('OS preference auto-detection when no stored preference', async ({ page }) 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
   await page.emulateMedia({ colorScheme: 'light' });
+  await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
 

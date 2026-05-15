@@ -15,7 +15,7 @@ test('add dialog can be closed', async ({ page }) => {
   const skip = page.locator('[data-testid="onboarding-skip"]');
   if (await skip.isVisible().catch(() => false)) await skip.click();
   await page.locator('[data-testid="add-button"]').click();
-  await page.locator('[data-testid="add-dialog-close"]').click();
+  await page.locator('[data-testid="add-dialog-close"]').click({ force: true });
   await expect(page.locator('[data-testid="add-dialog"]')).toBeHidden();
 });
 

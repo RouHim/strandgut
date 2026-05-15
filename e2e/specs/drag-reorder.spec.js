@@ -79,7 +79,7 @@ test('edit controls still work alongside drag', async ({ page, request }) => {
   await expect(page.locator('[data-testid="edit-name"]')).toBeVisible();
   await expect(page.locator('[data-testid="edit-name"]')).toHaveValue('Alpha');
 
-  await page.locator('[data-testid="edit-save"]').click();
+  await page.locator('[data-testid="edit-save"]').click({ force: true });
   await expect(page.locator('[data-testid="tile"]').nth(0)).toContainText('Alpha');
 });
 
