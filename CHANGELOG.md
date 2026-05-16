@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/RouHim/strandgut/compare/v1.1.0...v1.2.0) (2026-05-16)
+
+
+### Features
+
+* inline 'Open URL' button in edit service panel ([756c82e](https://github.com/RouHim/strandgut/commit/756c82e00ba5e98215e273a1a2f3e4f7e048a6d7))
+
 # [1.1.0](https://github.com/RouHim/strandgut/compare/v1.0.2...v1.1.0) (2026-05-16)
 
 
