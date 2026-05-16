@@ -121,16 +121,25 @@ export function openEditPanel(index) {
           <label for="edit-url">
             URL <span aria-label="required" class="required">*</span>
           </label>
-          <input
-            type="url"
-            id="edit-url"
-            name="url"
-            data-testid="edit-url"
-            class="edit-input"
-            value="${escapeHtml(service.url || '')}"
-            required
-            placeholder="https://example.com"
-          />
+          <div class="edit-panel__url-row">
+            <input
+              type="url"
+              id="edit-url"
+              name="url"
+              data-testid="edit-url"
+              class="edit-input edit-input--url"
+              value="${escapeHtml(service.url || '')}"
+              required
+              placeholder="https://example.com"
+            />
+            <button
+              type="button"
+              id="edit-url-open"
+              class="btn btn-ghost edit-panel__url-open"
+              data-testid="edit-url-open"
+              aria-label="Open URL in new tab"
+            ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
+          </div>
           <span class="error-msg" data-field="url" data-testid="edit-url-error"></span>
         </div>
 
@@ -199,6 +208,19 @@ export function openEditPanel(index) {
   const iconPreview = panel.querySelector('#icon-preview');
   if (iconInput && iconPreview) {
     initIconPicker(iconInput, iconPreview);
+  }
+  const urlOpenBtn = panel.querySelector('#edit-url-open');
+  const urlInput = panel.querySelector('#edit-url');
+  if (urlOpenBtn && urlInput) {
+    const updateUrlBtn = () => {
+      urlOpenBtn.disabled = !urlInput.value.trim();
+    };
+    updateUrlBtn();
+    urlInput.addEventListener('input', updateUrlBtn);
+    urlOpenBtn.addEventListener('click', () => {
+      const url = urlInput.value.trim();
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    });
   }
 
   panel.querySelector('#edit-cancel').addEventListener('click', closePanel);

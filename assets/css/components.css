@@ -196,7 +196,7 @@
   justify-content: center;
   width: 100%;
   gap: var(--space-1);
-  min-height: 100px;
+  min-height: 80px;
   aspect-ratio: 1 / 1;
   background: var(--color-glass-bg);
   backdrop-filter: blur(16px) saturate(180%);
@@ -837,6 +837,25 @@ a.scan-result-card__meta:hover {
 
 .edit-input--icon {
   flex: 1;
+}
+.edit-panel__url-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.edit-input--url {
+  flex: 1;
+}
+
+.edit-panel__url-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  flex-shrink: 0;
 }
 
 .icon-preview--visible {
