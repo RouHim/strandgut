@@ -1,0 +1,22 @@
+name: Feature request
+about: Suggest an idea
+title: "[Feature] "
+labels: enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      placeholder: "I wish Strandgut could [...]"
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposal
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

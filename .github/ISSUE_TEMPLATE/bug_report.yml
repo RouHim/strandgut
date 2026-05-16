@@ -1,0 +1,43 @@
+name: Bug report
+about: Report a problem
+title: "[Bug] "
+labels: bug
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: "v1.0.0, commit hash, or `cargo run`"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      placeholder: "Run with RUST_LOG=debug for more detail"
+      render: shell
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Docker (ghcr.io)
+        - docker compose
+        - Standalone binary
+        - cargo run

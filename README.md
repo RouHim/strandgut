@@ -3,10 +3,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/rouhim/strandgut/actions/workflows/ci.yml"><img src="https://github.com/rouhim/strandgut/actions/workflows/ci.yml/badge.svg" alt="CI/CD"></a>
-  <a href="https://github.com/rouhim/strandgut/pkgs/container/strandgut"><img src="https://img.shields.io/badge/ghcr.io-rouhim%2Fstrandgut-blue" alt="GHCR"></a>
+  <a href="https://github.com/RouHim/strandgut/actions/workflows/ci.yml"><img src="https://github.com/RouHim/strandgut/actions/workflows/ci.yml/badge.svg" alt="CI/CD"></a>
+  <a href="https://github.com/RouHim/strandgut/pkgs/container/strandgut"><img src="https://img.shields.io/badge/ghcr.io-RouHim%2Fstrandgut-blue" alt="GHCR"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://github.com/rouhim/strandgut/releases/latest"><img src="https://img.shields.io/badge/arch-x86__64%20%7C%20arm64-blue" alt="Architecture: x86_64 | arm64"></a>
+  <a href="https://github.com/RouHim/strandgut/releases/latest"><img src="https://img.shields.io/badge/arch-x86__64%20%7C%20arm64-blue" alt="Architecture: x86_64 | arm64"></a>
   <img src="https://img.shields.io/badge/renovate-enabled-brightgreen.svg" alt="Renovate enabled">
 </p>
 
@@ -23,7 +23,7 @@
 ## Quick start
 
 ```bash
-git clone https://github.com/rouhim/strandgut.git
+git clone https://github.com/RouHim/strandgut.git
 cd strandgut
 cargo run
 ```
@@ -47,10 +47,9 @@ The compose file mounts `./data` as a volume for persistent config. Write your o
 The release container is built `FROM scratch` and contains only the statically linked musl binary. It's about 5 MB. Pull it from GHCR:
 
 ```bash
-docker pull ghcr.io/rouhim/strandgut:latest
-docker run -p 13569:13569 -v ./data:/data --sysctl net.ipv4.ping_group_range='0 2147483647' ghcr.io/rouhim/strandgut:latest
+docker pull ghcr.io/RouHim/strandgut:latest
+docker run -p 13569:13569 -v ./data:/data --sysctl net.ipv4.ping_group_range='0 2147483647' ghcr.io/RouHim/strandgut:latest
 ```
-
 > **Note**: The `--sysctl` flag is required so the container can send ICMP pings to check host reachability during network scans. Omit it if you don't need ping-based reachability checks. When using `docker compose`, this is handled automatically by the included `docker-compose.yaml`.
 
 ### Standalone binary
@@ -59,12 +58,12 @@ Pre-built statically linked binaries are available for x86_64 and arm64 on every
 
 ```bash
 # x86_64 / amd64
-curl -L -o strandgut https://github.com/rouhim/strandgut/releases/latest/download/strandgut-x86_64-unknown-linux-musl
+curl -L -o strandgut https://github.com/RouHim/strandgut/releases/latest/download/strandgut-x86_64-unknown-linux-musl
 chmod +x strandgut
 ./strandgut
 
 # arm64 / aarch64
-curl -L -o strandgut https://github.com/rouhim/strandgut/releases/latest/download/strandgut-aarch64-unknown-linux-musl
+curl -L -o strandgut https://github.com/RouHim/strandgut/releases/latest/download/strandgut-aarch64-unknown-linux-musl
 chmod +x strandgut
 ./strandgut
 ```
@@ -107,7 +106,7 @@ Icon slugs come from [SimpleIcons](https://simpleicons.org). Omit `icon` to show
 ## Development
 
 ```bash
-git clone https://github.com/rouhim/strandgut.git
+git clone https://github.com/RouHim/strandgut.git
 cd strandgut
 
 # Run locally
@@ -129,6 +128,14 @@ npx playwright install --with-deps chromium
 npm test
 ```
 
+## Contributing
+
+PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, code style, and pull request checklist.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for the security policy and how to report vulnerabilities.
+
 ## License
 
-MIT. Do whatever you want with it.
+MIT — see [LICENSE](LICENSE).
