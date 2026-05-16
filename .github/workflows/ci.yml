@@ -59,6 +59,8 @@ jobs:
   e2e-tests:
     name: Playwright E2E Tests
     runs-on: ubuntu-latest
+    env:
+      STRANDGUT_CONFIG: ${{ github.workspace }}/e2e-test-config.toml
 
     steps:
       - name: Checkout code
