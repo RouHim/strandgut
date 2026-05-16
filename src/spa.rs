@@ -35,6 +35,7 @@ fn get_asset(path: &str) -> Option<AssetData> {
         "js/api.js" => include_bytes!("../assets/js/api.js"),
         "js/state.js" => include_bytes!("../assets/js/state.js"),
         "js/grid.js" => include_bytes!("../assets/js/grid.js"),
+        "js/icon-picker.js" => include_bytes!("../assets/js/icon-picker.js"),
         "js/drag.js" => include_bytes!("../assets/js/drag.js"),
         "js/edit.js" => include_bytes!("../assets/js/edit.js"),
         "js/add-dialog.js" => include_bytes!("../assets/js/add-dialog.js"),

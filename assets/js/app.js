@@ -16,6 +16,7 @@ const translations = lang === 'de' ? de : en;
 export function t(key) {
   return translations[key] || key;
 }
+window.__t = t;
 
 function applyTranslations() {
   document.querySelectorAll('[data-i18n]').forEach(el => {

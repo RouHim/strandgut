@@ -4,6 +4,7 @@ mod background;
 mod config;
 mod error;
 mod i18n;
+mod icons;
 mod routes;
 mod scan;
 mod spa;
@@ -21,6 +22,7 @@ pub struct AppState {
     pub scan_in_progress: Arc<AtomicBool>,
     pub cancel_scan: Arc<AtomicBool>,
     pub background: Arc<Mutex<crate::background::BackgroundState>>,
+    pub icon_cache: Arc<crate::icons::IconCache>,
 }
 
 #[tokio::main]
@@ -30,11 +32,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config_path =
         std::env::var("STRANDGUT_CONFIG").unwrap_or_else(|_| "./config.toml".to_string());
 
+    let icon_cache = Arc::new(crate::icons::IconCache::new(&config_path));
+    icon_cache
+        .ensure_cache_dir()
+        .map_err(|e| format!("cache dir: {e}"))?;
+    icon_cache.ensure_fresh();
+
     let state = Arc::new(AppState {
         config_path: Arc::new(config_path),
         scan_in_progress: Arc::new(AtomicBool::new(false)),
         cancel_scan: Arc::new(AtomicBool::new(false)),
         background: Arc::new(Mutex::new(crate::background::BackgroundState::new())),
+        icon_cache,
     });
 
     let listener = TcpListener::bind("0.0.0.0:13569").await?;
@@ -133,6 +142,7 @@ mod tests {
                     scan_in_progress: Arc::new(AtomicBool::new(false)),
                     cancel_scan: Arc::new(AtomicBool::new(false)),
                     background: Arc::new(Mutex::new(crate::background::BackgroundState::new())),
+                    icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
                 });
                 run_server(listener, state).await;
             });

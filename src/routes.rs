@@ -40,6 +40,7 @@ enum Route {
     SpaFallback,
     BackgroundStatus,
     BackgroundPhoto,
+    IconSearch,
 }
 
 fn build_router() -> Router<Route> {
@@ -71,6 +72,9 @@ fn build_router() -> Router<Route> {
     router
         .insert("/api/background/photo", Route::BackgroundPhoto)
         .expect("route /api/background/photo already registered");
+    router
+        .insert("/api/icons/search", Route::IconSearch)
+        .expect("route /api/icons/search already registered");
     router
 }
 
@@ -298,6 +302,40 @@ where
             }
         }
 
+        Route::IconSearch => {
+            if method != Method::GET {
+                return Ok(method_not_allowed());
+            }
+
+            // Parse `q` query parameter from the URI.
+            let query = req
+                .uri()
+                .query()
+                .and_then(|qs| {
+                    qs.split('&').find_map(|pair| {
+                        let mut kv = pair.splitn(2, '=');
+                        match (kv.next(), kv.next()) {
+                            (Some("q"), Some(v)) => Some(v.to_string()),
+                            _ => None,
+                        }
+                    })
+                })
+                .unwrap_or_default();
+
+            if query.is_empty() {
+                return Ok(json_response(StatusCode::OK, &serde_json::json!([])));
+            }
+
+            // Non-blocking freshness check; spawns background refresh if stale.
+            state.icon_cache.ensure_fresh();
+
+            let results = state.icon_cache.search(&query, 50)?;
+            Ok(json_response(
+                StatusCode::OK,
+                &serde_json::to_value(&results)?,
+            ))
+        }
+
         Route::SpaFallback => {
             if path.starts_with("/api/") {
                 return Ok(not_found_response());
@@ -369,6 +407,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await.unwrap();
@@ -393,6 +432,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await.unwrap();
@@ -417,6 +457,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await.unwrap();
@@ -444,6 +485,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await.unwrap();
@@ -468,6 +510,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await.unwrap();
@@ -505,6 +548,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await.unwrap();
@@ -537,6 +581,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await.unwrap();
@@ -570,6 +615,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await;
@@ -602,6 +648,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
         let put_resp = handle_request(put_req, state.clone()).await.unwrap();
         assert_eq!(put_resp.status(), 200);
@@ -639,6 +686,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await;
@@ -685,6 +733,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await.unwrap();
@@ -729,6 +778,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let first_resp = handle_request(req, state.clone()).await.unwrap();
@@ -765,6 +815,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await.unwrap();
@@ -799,6 +850,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await.unwrap();
@@ -820,6 +872,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await.unwrap();
@@ -841,6 +894,7 @@ mod tests {
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
+            icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
 
         let resp = handle_request(req, state).await.unwrap();

@@ -49,4 +49,8 @@ export default {
   'background.rotate.unavailable': 'Setze PEXELS_API_KEY zum Aktivieren',
   'footer.branding': 'Strandgut — dein Küsten-Dashboard',
   'footer.credit.format': 'Foto von {photographer} auf Pexels',
+  'icon.search.placeholder': 'Icons durchsuchen…',
+  'icon.search.noResults': 'Keine Icons gefunden',
+  'icon.search.customUrl': 'Eigene URL verwenden',
+  'icon.search.loading': 'Lädt…',
 };

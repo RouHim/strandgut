@@ -49,4 +49,8 @@ export default {
   'background.rotate.unavailable': 'Set PEXELS_API_KEY to enable',
   'footer.branding': 'Strandgut — your shoreline dashboard',
   'footer.credit.format': 'Photo by {photographer} on Pexels',
+  'icon.search.placeholder': 'Search icons…',
+  'icon.search.noResults': 'No icons found',
+  'icon.search.customUrl': 'Use custom URL',
+  'icon.search.loading': 'Loading…',
 };

@@ -10,6 +10,7 @@ import {
 } from './state.js';
 import { escapeHtml } from './api.js';
 import { renderGrid } from './grid.js';
+import { initIconPicker } from './icon-picker.js';
 
 let panelElement = null;
 
@@ -196,23 +197,9 @@ export function openEditPanel(index) {
 
   const iconInput = panel.querySelector('#edit-icon');
   const iconPreview = panel.querySelector('#icon-preview');
-
-  function updateIconPreview() {
-    const val = iconInput.value.trim();
-    if (val) {
-      const url = val.startsWith('http')
-        ? val
-        : `https://cdn.simpleicons.org/${encodeURIComponent(val)}`;
-      iconPreview.src = url;
-      iconPreview.classList.add('icon-preview--visible');
-    } else {
-      iconPreview.src = '';
-      iconPreview.classList.remove('icon-preview--visible');
-    }
+  if (iconInput && iconPreview) {
+    initIconPicker(iconInput, iconPreview);
   }
-
-  iconInput?.addEventListener('input', updateIconPreview);
-  updateIconPreview();
 
   panel.querySelector('#edit-cancel').addEventListener('click', closePanel);
 
