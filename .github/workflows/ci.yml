@@ -143,8 +143,10 @@ jobs:
 
           npx semantic-release
 
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git fetch --tags --force
           AFTER_TAG=$(git tag --list 'v*' --sort=-version:refname | head -n1)
+          git remote set-url origin "https://github.com/${GITHUB_REPOSITORY}.git"
 
           if [ -n "$AFTER_TAG" ] && [ "$AFTER_TAG" != "$BEFORE_TAG" ]; then
             echo "new_release_published=true" >> "$GITHUB_OUTPUT"
