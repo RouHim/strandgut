@@ -1,3 +1,16 @@
+# 1.0.0 (2026-05-16)
+
+
+### Bug Fixes
+
+* **ci:** set STRANDGUT_CONFIG to workspace path for e2e-tests job ([5f90a54](https://github.com/RouHim/strandgut/commit/5f90a54a36b5fa1f7b4b0a8c253738aff3b684df))
+* E2E tests — config save, click timeouts, and test drift ([6836c33](https://github.com/RouHim/strandgut/commit/6836c33dfc015d3ded5fd2d5c1f7f6ca36bf9b19))
+
+
+### Features
+
+* Homarr-style proportional card redesign ([36b3b4d](https://github.com/RouHim/strandgut/commit/36b3b4d0f4953298b55a1c30a42315205492622d))
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
