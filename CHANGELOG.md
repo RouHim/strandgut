@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/RouHim/strandgut/compare/v1.0.0...v1.0.1) (2026-05-16)
+
+
+### Bug Fixes
+
+* **ci:** authenticate git fetch in create-release job ([88e0f2e](https://github.com/RouHim/strandgut/commit/88e0f2e73b050148e7c901c03a6e3093b4ef03e5))
+
 # 1.0.0 (2026-05-16)
 
 
