@@ -33,9 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::env::var("STRANDGUT_CONFIG").unwrap_or_else(|_| "./config.toml".to_string());
 
     let icon_cache = Arc::new(crate::icons::IconCache::new(&config_path));
-    icon_cache
-        .ensure_cache_dir()
-        .map_err(|e| format!("cache dir: {e}"))?;
+    icon_cache.ensure_cache_dir()?;
     icon_cache.ensure_fresh();
 
     let state = Arc::new(AppState {

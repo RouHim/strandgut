@@ -32,11 +32,11 @@ FROM scratch
 ENV DATA_FOLDER="/data"
 ENV RUST_LOG="info"
 
-VOLUME /data
-WORKDIR /data
-
 COPY --from=builder --chown=1000:1000 /empty_dir /tmp
 COPY --from=builder --chown=1000:1000 /empty_dir /data
+
+VOLUME /data
+WORKDIR /data
 
 # Copy the built binary — glob matches whichever target was built
 COPY --from=builder --chown=1000:1000 /app/target/*/release/strandgut /strandgut
