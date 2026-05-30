@@ -1,3 +1,10 @@
+## [1.2.4](https://github.com/RouHim/strandgut/compare/v1.2.3...v1.2.4) (2026-05-30)
+
+
+### Bug Fixes
+
+* ensure /data is owned by app user in pipeline image ([9536d89](https://github.com/RouHim/strandgut/commit/9536d89928dfe20fade3c113cf85df8659fa3817))
+
 ## [1.2.3](https://github.com/RouHim/strandgut/compare/v1.2.2...v1.2.3) (2026-05-30)
 
 ## [1.2.2](https://github.com/RouHim/strandgut/compare/v1.2.1...v1.2.2) (2026-05-25)
