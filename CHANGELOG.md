@@ -1,3 +1,10 @@
+## [1.2.6](https://github.com/RouHim/strandgut/compare/v1.2.5...v1.2.6) (2026-06-06)
+
+
+### Bug Fixes
+
+* don't crash on unwritable cache dir; include paths in I/O errors ([f0eabcb](https://github.com/RouHim/strandgut/commit/f0eabcbfc419bba86d627ef54c2e85485641ae85))
+
 ## [1.2.5](https://github.com/RouHim/strandgut/compare/v1.2.4...v1.2.5) (2026-06-06)
 
 ## [1.2.4](https://github.com/RouHim/strandgut/compare/v1.2.3...v1.2.4) (2026-05-30)
