@@ -66,7 +66,11 @@ impl Config {
                 Ok(config)
             }
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
-            Err(e) => Err(e.into()),
+            Err(e) => Err(format!(
+                "failed to read config {}: {e}",
+                path.as_ref().display()
+            )
+            .into()),
         }
     }
 
@@ -76,7 +80,12 @@ impl Config {
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), Box<dyn std::error::Error>> {
         // Ensure parent directory exists
         if let Some(parent) = path.as_ref().parent() {
-            fs::create_dir_all(parent)?;
+            fs::create_dir_all(parent).map_err(|e| {
+                format!(
+                    "failed to create config parent dir {}: {e}",
+                    parent.display()
+                )
+            })?;
         }
         let toml_string = toml::to_string_pretty(self)?;
         let tmp_path = {
@@ -84,8 +93,16 @@ impl Config {
             s.push(".tmp");
             PathBuf::from(s)
         };
-        fs::write(&tmp_path, &toml_string)?;
-        fs::rename(&tmp_path, path.as_ref())?;
+        fs::write(&tmp_path, &toml_string).map_err(|e| {
+            format!("failed to write config tmp {}: {e}", tmp_path.display())
+        })?;
+        fs::rename(&tmp_path, path.as_ref()).map_err(|e| {
+            format!(
+                "failed to rename config tmp {} -> {}: {e}",
+                tmp_path.display(),
+                path.as_ref().display()
+            )
+        })?;
         Ok(())
     }
 }

@@ -43,7 +43,7 @@ main {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, 220px);
+  grid-template-columns: repeat(auto-fit, 160px);
   justify-content: center;
   gap: var(--space-2);
   padding: var(--space-4) var(--space-6) var(--space-8);
@@ -107,9 +107,9 @@ main {
   }
 
   .tile {
-    padding: var(--space-4);
+    padding: var(--space-3);
     border-radius: var(--radius-md);
-    min-height: 120px;
+    min-height: 100px;
   }
 
   .btn {

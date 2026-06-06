@@ -33,8 +33,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::env::var("STRANDGUT_CONFIG").unwrap_or_else(|_| "./config.toml".to_string());
 
     let icon_cache = Arc::new(crate::icons::IconCache::new(&config_path));
-    icon_cache.ensure_cache_dir()?;
+    if let Err(e) = icon_cache.ensure_cache_dir() {
+        log::warn!(
+            "{}. Cache directory is not writable — icon search and background \
+             photos will use fallbacks. Container runs as UID 1000:1000; ensure \
+             the mounted volume is owned by the same UID (e.g. chown -R 1000:1000 \
+             /path/on/host).",
+            e
+        );
+    }
     icon_cache.ensure_fresh();
+
+    // Startup write canary: verify the config directory is writable.
+    // Catches cases where the cache dir exists but file writes will fail.
+    {
+        let config_dir = std::path::Path::new(&config_path)
+            .parent()
+            .unwrap_or_else(|| std::path::Path::new("."));
+        let canary_path = config_dir.join(".write-test");
+        match std::fs::write(&canary_path, b"ok")
+            .and_then(|_| std::fs::read(&canary_path))
+            .and_then(|data| {
+                let _ = std::fs::remove_file(&canary_path);
+                if data == b"ok" { Ok(()) } else { Err(std::io::Error::other("mismatch")) }
+            })
+        {
+            Ok(_) => {}
+            Err(e) => {
+                log::warn!(
+                    "Write test to {} failed: {}. Config directory is not writable — \
+                     settings and cache will not persist. Container runs as UID 1000:1000; \
+                     ensure the mounted volume is owned by the same UID.",
+                    canary_path.display(),
+                    e
+                );
+            }
+        }
+    }
 
     let state = Arc::new(AppState {
         config_path: Arc::new(config_path),

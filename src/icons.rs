@@ -73,7 +73,8 @@ impl IconCache {
     /// Ensure the cache directory exists.
     pub fn ensure_cache_dir(&self) -> Result<(), AppError> {
         let dir = self.cache_dir();
-        fs::create_dir_all(&dir).map_err(|e| AppError::Internal(e.to_string()))
+        fs::create_dir_all(&dir)
+            .map_err(|e| AppError::Internal(format!("{}: {e}", dir.display())))
     }
 
     /// Check whether the cache file exists and is fresh (within the refresh interval).
@@ -225,12 +226,22 @@ fn refresh_cache(cache_path: &PathBuf) -> Result<(), AppError> {
     // Atomic write: .tmp → rename.
     let tmp_path = cache_path.with_extension("tmp");
     if let Some(parent) = tmp_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| AppError::Internal(e.to_string()))?;
+        fs::create_dir_all(parent).map_err(|e| {
+            AppError::Internal(format!("failed to create icon cache dir {}: {e}", parent.display()))
+        })?;
     }
 
     let json = serde_json::to_vec(&merged).map_err(|e| AppError::Internal(e.to_string()))?;
-    fs::write(&tmp_path, &json).map_err(|e| AppError::Internal(e.to_string()))?;
-    fs::rename(&tmp_path, cache_path).map_err(|e| AppError::Internal(e.to_string()))?;
+    fs::write(&tmp_path, &json).map_err(|e| {
+        AppError::Internal(format!("failed to write icon cache {}: {e}", tmp_path.display()))
+    })?;
+    fs::rename(&tmp_path, cache_path).map_err(|e| {
+        AppError::Internal(format!(
+            "failed to rename icon cache {} -> {}: {e}",
+            tmp_path.display(),
+            cache_path.display()
+        ))
+    })?;
 
     log::info!("Icon cache written to {}", cache_path.display());
     Ok(())

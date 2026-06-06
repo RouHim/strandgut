@@ -254,3 +254,8 @@ HTTP ports trigger a `GET /` request. The `<title>` tag is matched against known
 **Headless Chromium caches CSS across tab sessions:** After editing embedded CSS assets and rebuilding the server, the headless browser tab may still serve stale CSS even with `location.reload(true)`. Use `close(all: true)` then a fresh `open` to guarantee the latest assets are loaded. Re-using tab names without a full close will return cached styles.
 
 **Playwright `webServer` times out on clean release builds:** The `e2e/playwright.config.ts` webServer runs `cargo run --release` with a 60s timeout. A clean release build takes ~55-90s. Pre-build with `cargo build --release` before running `CI=true npx playwright test`, or increase the webServer timeout.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->
