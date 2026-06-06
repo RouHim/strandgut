@@ -17,8 +17,6 @@ ureq = "3"
 fastrand = "2"
 env_logger = "0.11"
 
-[target.'cfg(target_env = "musl")'.dependencies]
-mimalloc = "0.1"
 
 [profile.release]
 opt-level = 3

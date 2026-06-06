@@ -24,9 +24,6 @@ pub enum AppError {
     BadRequest(String),
     /// Unexpected internal failure (→ 500).
     Internal(String),
-    /// Scanner / sub-process failure (→ 500).
-    #[allow(dead_code)]
-    ScanError(String),
 }
 
 impl fmt::Display for AppError {
@@ -37,7 +34,6 @@ impl fmt::Display for AppError {
             AppError::NotFound(msg) => write!(f, "not found: {msg}"),
             AppError::BadRequest(msg) => write!(f, "bad request: {msg}"),
             AppError::Internal(msg) => write!(f, "internal error: {msg}"),
-            AppError::ScanError(msg) => write!(f, "scan error: {msg}"),
         }
     }
 }
@@ -53,7 +49,6 @@ impl AppError {
             AppError::NotFound(..) => 404,
             AppError::BadRequest(..) => 400,
             AppError::Internal(..) => 500,
-            AppError::ScanError(..) => 500,
         }
     }
 
@@ -102,7 +97,6 @@ mod tests {
             (AppError::NotFound("x".into()), 404),
             (AppError::BadRequest("x".into()), 400),
             (AppError::Internal("x".into()), 500),
-            (AppError::ScanError("x".into()), 500),
         ];
         for (err, expected) in cases {
             let actual = err.to_http_status();
@@ -190,10 +184,6 @@ mod tests {
         assert_eq!(
             AppError::Internal("oops".into()).to_string(),
             "internal error: oops"
-        );
-        assert_eq!(
-            AppError::ScanError("timeout".into()).to_string(),
-            "scan error: timeout"
         );
     }
 }

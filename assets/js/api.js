@@ -14,11 +14,6 @@ export async function saveConfig(config) {
   return res.json();
 }
 
-export function startScan(params = {}) {
-  const query = new URLSearchParams(params).toString();
-  const url = query ? `/api/scan?${query}` : '/api/scan';
-  return new EventSource(url);
-}
 
 export function escapeHtml(str) {
   const div = document.createElement('div');

@@ -3,7 +3,6 @@
 mod background;
 mod config;
 mod error;
-mod i18n;
 mod icons;
 mod routes;
 mod scan;
@@ -20,7 +19,6 @@ use tokio::net::TcpListener;
 pub struct AppState {
     pub config_path: Arc<String>,
     pub scan_in_progress: Arc<AtomicBool>,
-    pub cancel_scan: Arc<AtomicBool>,
     pub background: Arc<Mutex<crate::background::BackgroundState>>,
     pub icon_cache: Arc<crate::icons::IconCache>,
 }
@@ -77,7 +75,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = Arc::new(AppState {
         config_path: Arc::new(config_path),
         scan_in_progress: Arc::new(AtomicBool::new(false)),
-        cancel_scan: Arc::new(AtomicBool::new(false)),
         background: Arc::new(Mutex::new(crate::background::BackgroundState::new())),
         icon_cache,
     });
@@ -176,7 +173,6 @@ mod tests {
                 let state = Arc::new(AppState {
                     config_path: Arc::new("./config.toml".to_string()),
                     scan_in_progress: Arc::new(AtomicBool::new(false)),
-                    cancel_scan: Arc::new(AtomicBool::new(false)),
                     background: Arc::new(Mutex::new(crate::background::BackgroundState::new())),
                     icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
                 });

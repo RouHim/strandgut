@@ -43,7 +43,6 @@ fn get_asset(path: &str) -> Option<AssetData> {
         "js/theme.js" => include_bytes!("../assets/js/theme.js"),
         "js/pill-switch.js" => include_bytes!("../assets/js/pill-switch.js"),
         "js/background.js" => include_bytes!("../assets/js/background.js"),
-        "js/ping.js" => include_bytes!("../assets/js/ping.js"),
         "js/i18n/en.js" => include_bytes!("../assets/js/i18n/en.js"),
         "js/i18n/de.js" => include_bytes!("../assets/js/i18n/de.js"),
         "img/logo.svg" => include_bytes!("../assets/img/logo.svg"),

@@ -52,4 +52,3 @@ if (toggleBtn) {
   toggleBtn.addEventListener('click', toggleTheme);
 }
 
-export { getEffectiveTheme, setTheme, toggleTheme };

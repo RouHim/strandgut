@@ -52,7 +52,7 @@ export function openAddDialog() {
   dialogEl._keydownHandler = handleKeydown;
 }
 
-export function closeAddDialog() {
+function closeAddDialog() {
   if (dialogEl) {
     if (dialogEl._keydownHandler) {
       document.removeEventListener('keydown', dialogEl._keydownHandler);

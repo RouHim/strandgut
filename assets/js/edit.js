@@ -4,9 +4,6 @@ import {
   updateService,
   removeService,
   isEditing,
-  isConfigDirty,
-  markClean,
-  getConfig,
 } from './state.js';
 import { escapeHtml } from './api.js';
 import { renderGrid } from './grid.js';

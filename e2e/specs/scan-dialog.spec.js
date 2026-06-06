@@ -33,40 +33,7 @@ test('scan dialog can be closed', async ({ page }) => {
   await expect(page.locator('[data-testid="scan-dialog"]')).toBeHidden();
 });
 
-test('host reachability check on blur', async ({ page }) => {
-  await page.goto('/');
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) await skip.click();
-  await page.locator('[data-testid="add-button"]').click();
-  await page.locator('[data-testid="add-scan-button"]').click();
-  await expect(page.locator('[data-testid="scan-dialog"]')).toBeVisible();
 
-  const hostInput = page.locator('[data-testid="scan-host-input"]');
-  await hostInput.fill('127.0.0.1');
-  await hostInput.blur();
-
-  const badge = page.locator('[data-testid="scan-ping-badge"]');
-  await expect(badge).toBeVisible();
-  // Reachability ping is a stub — badge stays at base class until implemented
-  await expect(badge).toHaveClass('scan-ping-badge');
-});
-
-test('empty host skips reachability check', async ({ page }) => {
-  await page.goto('/');
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) await skip.click();
-  await page.locator('[data-testid="add-button"]').click();
-  await page.locator('[data-testid="add-scan-button"]').click();
-
-  const hostInput = page.locator('[data-testid="scan-host-input"]');
-  await hostInput.fill('');
-  await hostInput.blur();
-
-  await page.waitForTimeout(100);
-  const badge = page.locator('[data-testid="scan-ping-badge"]');
-  await expect(badge).toHaveClass('scan-ping-badge');
-  await expect(badge).toHaveText('');
-});
 
 test('dialog close during reachability ping does not error', async ({ page }) => {
   const errors = [];

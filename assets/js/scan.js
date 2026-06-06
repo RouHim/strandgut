@@ -2,7 +2,6 @@ import { addService, getServices } from './state.js';
 import { escapeHtml } from './api.js';
 import { renderGrid } from './grid.js';
 import { t } from './app.js';
-import { checkReachability, abortInFlightPing } from './ping.js';
 
 let abortController = null;
 let dialogEl = null;
@@ -29,7 +28,6 @@ export function openScanDialog() {
         <div class="scan-field">
           <label for="scan-host">Host / IP</label>
           <input type="text" id="scan-host" class="scan-input" value="${defaultHost}" data-testid="scan-host-input">
-          <span class="scan-ping-badge" data-testid="scan-ping-badge" role="status" aria-live="polite"></span>
         </div>
 
         <fieldset class="scan-fieldset">
@@ -95,8 +93,7 @@ export function openScanDialog() {
   }
 
   const hostInput = dialogEl.querySelector('#scan-host');
-  const badgeEl = dialogEl.querySelector('[data-testid="scan-ping-badge"]');
-  hostInput.addEventListener('blur', () => checkReachability(hostInput, badgeEl));
+  hostInput.focus();
   hostInput.focus();
   hostInput.select();
   hostInput.addEventListener('click', () => hostInput.select());
@@ -369,8 +366,7 @@ function buildService(result) {
   };
 }
 
-export function closeScanDialog() {
-  abortInFlightPing();
+function closeScanDialog() {
   if (abortController) {
     abortController.abort();
     abortController = null;

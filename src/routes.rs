@@ -33,8 +33,6 @@ enum Route {
     Health,
     Readyz,
     ConfigGet,
-    #[allow(dead_code)]
-    ConfigPut,
     ScanStart,
     Assets,
     SpaFallback,
@@ -144,7 +142,7 @@ where
             ))
         }
 
-        Route::ConfigGet | Route::ConfigPut => {
+        Route::ConfigGet => {
             if method == Method::GET {
                 let config = Config::load(state.config_path.as_ref())
                     .map_err(|e| AppError::Internal(e.to_string()))?;
@@ -403,7 +401,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new("config.toml".into()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -428,7 +425,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new("config.toml".into()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -453,7 +449,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new("config.toml".into()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -481,7 +476,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new("config.toml".into()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -506,7 +500,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new("config.toml".into()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -544,7 +537,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new(path.clone()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -577,7 +569,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new(path.clone()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -611,7 +602,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new(path.clone()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -644,7 +634,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new(path.clone()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -682,7 +671,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new(path.clone()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -729,7 +717,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new("config.toml".into()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -774,7 +761,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new("config.toml".into()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -811,7 +797,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new("config.toml".into()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -846,7 +831,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new("config.toml".into()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -868,7 +852,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new("config.toml".into()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
@@ -890,7 +873,6 @@ mod tests {
         let state = Arc::new(AppState {
             config_path: Arc::new("config.toml".into()),
             scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            cancel_scan: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             background: Arc::new(std::sync::Mutex::new(
                 crate::background::BackgroundState::new(),
             )),
