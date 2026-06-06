@@ -205,17 +205,26 @@ pub fn cache_photo(
     validate_image(image_data)?;
 
     fs::create_dir_all(cache_dir).map_err(|e| {
-        AppError::Internal(format!("failed to create cache dir {}: {e}", cache_dir.display()))
+        AppError::Internal(format!(
+            "failed to create cache dir {}: {e}",
+            cache_dir.display()
+        ))
     })?;
 
     let tmp_path = cache_dir.join("background.tmp");
     let final_path = cache_dir.join("background.jpg");
 
     let mut tmp_file = fs::File::create(&tmp_path).map_err(|e| {
-        AppError::Internal(format!("failed to create cache file {}: {e}", tmp_path.display()))
+        AppError::Internal(format!(
+            "failed to create cache file {}: {e}",
+            tmp_path.display()
+        ))
     })?;
     tmp_file.write_all(image_data).map_err(|e| {
-        AppError::Internal(format!("failed to write cache file {}: {e}", tmp_path.display()))
+        AppError::Internal(format!(
+            "failed to write cache file {}: {e}",
+            tmp_path.display()
+        ))
     })?;
     drop(tmp_file);
 

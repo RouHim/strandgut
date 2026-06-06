@@ -66,11 +66,7 @@ impl Config {
                 Ok(config)
             }
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
-            Err(e) => Err(format!(
-                "failed to read config {}: {e}",
-                path.as_ref().display()
-            )
-            .into()),
+            Err(e) => Err(format!("failed to read config {}: {e}", path.as_ref().display()).into()),
         }
     }
 
@@ -93,9 +89,8 @@ impl Config {
             s.push(".tmp");
             PathBuf::from(s)
         };
-        fs::write(&tmp_path, &toml_string).map_err(|e| {
-            format!("failed to write config tmp {}: {e}", tmp_path.display())
-        })?;
+        fs::write(&tmp_path, &toml_string)
+            .map_err(|e| format!("failed to write config tmp {}: {e}", tmp_path.display()))?;
         fs::rename(&tmp_path, path.as_ref()).map_err(|e| {
             format!(
                 "failed to rename config tmp {} -> {}: {e}",

@@ -55,9 +55,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .and_then(|_| std::fs::read(&canary_path))
             .and_then(|data| {
                 let _ = std::fs::remove_file(&canary_path);
-                if data == b"ok" { Ok(()) } else { Err(std::io::Error::other("mismatch")) }
-            })
-        {
+                if data == b"ok" {
+                    Ok(())
+                } else {
+                    Err(std::io::Error::other("mismatch"))
+                }
+            }) {
             Ok(_) => {}
             Err(e) => {
                 log::warn!(
