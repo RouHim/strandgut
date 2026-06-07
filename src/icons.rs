@@ -47,8 +47,10 @@ pub struct IconCache {
 }
 
 impl IconCache {
-    /// Create a new cache, deriving the cache path from the config path using
-    /// the same logic as `background::get_cache_dir()`.
+    /// Create a new cache, deriving the cache path from the config path.
+    ///
+    /// Does not create the cache directory — call [`ensure_cache_dir`](Self::ensure_cache_dir)
+    /// before first use.
     pub fn new(config_path: &str) -> Self {
         let config = std::path::Path::new(config_path);
         let cache_dir = config
@@ -62,18 +64,23 @@ impl IconCache {
         }
     }
 
-    /// Return the cache directory path (creates it if missing).
+    /// Ensure the cache directory exists. Returns an error if it cannot be created.
+    pub fn ensure_cache_dir(&self) -> Result<(), AppError> {
+        let dir = self.cache_dir();
+        fs::create_dir_all(&dir).map_err(|e| {
+            AppError::Internal(format!(
+                "failed to create cache directory {}: {e}",
+                dir.display()
+            ))
+        })
+    }
+
+    /// Return the cache directory path (parent of the icons.json cache file).
     fn cache_dir(&self) -> PathBuf {
         self.cache_path
             .parent()
             .map(|p| p.to_path_buf())
-            .unwrap_or_else(|| PathBuf::from("."))
-    }
-
-    /// Ensure the cache directory exists.
-    pub fn ensure_cache_dir(&self) -> Result<(), AppError> {
-        let dir = self.cache_dir();
-        fs::create_dir_all(&dir).map_err(|e| AppError::Internal(format!("{}: {e}", dir.display())))
+            .unwrap_or_else(|| PathBuf::from("./cache"))
     }
 
     /// Check whether the cache file exists and is fresh (within the refresh interval).

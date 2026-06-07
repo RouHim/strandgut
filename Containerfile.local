@@ -11,18 +11,17 @@ RUN cargo build --release --target x86_64-unknown-linux-musl
 FROM docker.io/debian:bookworm-slim
 
 ENV DATA_FOLDER="/data"
-ENV RUST_LOG="info"  # Controls log level (env_logger)
+ENV RUST_LOG="info"
 
-VOLUME /data
 
 WORKDIR /data
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates tzdata \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /data /tmp \
+    && mkdir -p /data /tmp /data/cache \
     && chmod 1777 /tmp \
-    && chown -R 1000:1000 /data /tmp
+    && chown -R 1000:1000 /data /tmp /data/cache
 
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/strandgut /strandgut
 

@@ -32,13 +32,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let icon_cache = Arc::new(crate::icons::IconCache::new(&config_path));
     if let Err(e) = icon_cache.ensure_cache_dir() {
-        log::warn!(
-            "{}. Cache directory is not writable — icon search and background \
-             photos will use fallbacks. Container runs as UID 1000:1000; ensure \
-             the mounted volume is owned by the same UID (e.g. chown -R 1000:1000 \
-             /path/on/host).",
-            e
+        log::error!(
+            "Failed to create cache directory: {e}. Container runs as UID 1000:1000; \
+             ensure the mounted volume is owned by the same UID \
+             (e.g. chown -R 1000:1000 /path/on/host)."
         );
+        std::process::exit(1);
     }
     icon_cache.ensure_fresh();
 

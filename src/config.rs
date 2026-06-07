@@ -102,6 +102,8 @@ impl Config {
     }
 }
 
+
+// ---------------------------------------------------------------------------
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -246,4 +248,5 @@ position = { row = 0, col = 0 }
 
         let _ = fs::remove_file(&path);
     }
+
 }
