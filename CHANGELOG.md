@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/RouHim/strandgut/compare/v1.2.9...v1.3.0) (2026-06-07)
+
+
+### Features
+
+* gate container push on E2E test pass ([646f8ac](https://github.com/RouHim/strandgut/commit/646f8ac9774608ec09a94e27c83d14b4faed3885))
+
 ## [1.2.9](https://github.com/RouHim/strandgut/compare/v1.2.8...v1.2.9) (2026-06-07)
 
 
