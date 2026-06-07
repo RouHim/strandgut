@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/RouHim/strandgut/compare/v1.3.0...v1.3.1) (2026-06-07)
+
+
+### Bug Fixes
+
+* **config:** fall back to direct-write when atomic rename fails ([df3aaa8](https://github.com/RouHim/strandgut/commit/df3aaa807aeee14bdc0022ea1b5d2a91489b45db))
+
 # [1.3.0](https://github.com/RouHim/strandgut/compare/v1.2.9...v1.3.0) (2026-06-07)
 
 
