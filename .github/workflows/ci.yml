@@ -241,37 +241,68 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Log in to GitHub Container Registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build ${{ matrix.arch }} image
         run: |
-          podman build \
+          docker build \
             --platform ${{ matrix.platform }} \
             --build-arg TARGETARCH=${{ matrix.arch }} \
             --tag strandgut-${{ matrix.arch }}:latest \
             -f Containerfile.pipeline .
 
-      - name: Test container startup and health
+      # amd64: Setup Node + Playwright for container E2E gate
+      - name: Setup Node.js
+        if: matrix.arch == 'amd64'
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install npm dependencies
+        if: matrix.arch == 'amd64'
+        run: npm ci
+        working-directory: e2e
+
+      - name: Install Playwright browsers
+        if: matrix.arch == 'amd64'
+        run: npx playwright install --with-deps chromium
+        working-directory: e2e
+
+      - name: Start container for E2E tests
         if: matrix.arch == 'amd64'
         run: |
-          podman run -d --name strandgut-test -p 13569:13569 --user=0 strandgut-${{ matrix.arch }}:latest
+          docker run -d --name strandgut-e2e -p 13569:13569 --user=0 strandgut-amd64:latest
+
+      - name: Quick health check
+        if: matrix.arch == 'amd64'
+        run: |
           sleep 3
           echo "=== Container logs after 3s ==="
-          podman logs strandgut-test
+          docker logs strandgut-e2e
           echo "=== Testing health endpoint ==="
           if ! curl --retry 5 --retry-delay 2 --retry-all-errors http://localhost:13569/api/health; then
             echo "=== Health check failed, dumping full logs ==="
-            podman logs strandgut-test
-            podman stop strandgut-test
-            podman rm strandgut-test
+            docker logs strandgut-e2e
             exit 1
           fi
-          podman stop strandgut-test
-          podman rm strandgut-test
+
+      - name: Run E2E tests against container
+        if: matrix.arch == 'amd64'
+        run: npm test
+        working-directory: e2e
+        env:
+          STRANDGUT_NO_WEBSERVER: '1'
+
+      - name: Stop E2E container
+        if: matrix.arch == 'amd64' && always()
+        run: |
+          docker stop strandgut-e2e || true
+          docker rm strandgut-e2e || true
 
       - name: Push image to GHCR
         run: |
-          podman push strandgut-${{ matrix.arch }}:latest ghcr.io/rouhim/strandgut:${{ matrix.arch }}-latest
+          docker tag strandgut-${{ matrix.arch }}:latest ghcr.io/rouhim/strandgut:${{ matrix.arch }}-latest
+          docker push ghcr.io/rouhim/strandgut:${{ matrix.arch }}-latest
 
   push-manifest:
     name: Push multi-arch manifest

@@ -32,11 +32,13 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: 'cargo run --release',
-    cwd: '..',
-    url: 'http://localhost:13569/api/health',
-    reuseExistingServer: !process.env.CI,
-    timeout: 60000,
-  },
+  ...(process.env.STRANDGUT_NO_WEBSERVER
+    ? {}
+    : { webServer: {
+        command: 'cargo run --release',
+        cwd: '..',
+        url: 'http://localhost:13569/api/health',
+        reuseExistingServer: !process.env.CI,
+        timeout: 60000,
+      } }),
 });
