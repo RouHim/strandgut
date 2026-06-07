@@ -1,3 +1,11 @@
+## [1.2.8](https://github.com/RouHim/strandgut/compare/v1.2.7...v1.2.8) (2026-06-07)
+
+
+### Bug Fixes
+
+* cargo fmt and theme test localStorage leak ([4759bd9](https://github.com/RouHim/strandgut/commit/4759bd94ba61ccbcabeb07946f9f5f9e0eb8eea8))
+* **e2e:** use launchOptions.executablePath for system Chromium ([5747c82](https://github.com/RouHim/strandgut/commit/5747c824a9fc446644eecdc34181d7b6df3a0bb2))
+
 ## [1.2.7](https://github.com/RouHim/strandgut/compare/v1.2.6...v1.2.7) (2026-06-06)
 
 ## [1.2.6](https://github.com/RouHim/strandgut/compare/v1.2.5...v1.2.6) (2026-06-06)
