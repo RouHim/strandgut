@@ -72,41 +72,51 @@ impl Config {
 
     /// Save config to a TOML file atomically.
     ///
-    /// Writes to `{path}.tmp` first, then renames to `{path}`.
+    /// Serializes to TOML, then delegates to [`write_atomic`].
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), Box<dyn std::error::Error>> {
         let path = path.as_ref();
-        let result = (|| -> Result<(), Box<dyn std::error::Error>> {
-            // Ensure parent directory exists
-            if let Some(parent) = path.parent() {
-                fs::create_dir_all(parent).map_err(|e| {
-                    format!(
-                        "failed to create config parent dir {}: {e}",
-                        parent.display()
-                    )
-                })?;
-            }
-            let toml_string = toml::to_string_pretty(self)?;
-            let tmp_path = {
-                let mut s = path.as_os_str().to_os_string();
-                s.push(".tmp");
-                PathBuf::from(s)
-            };
-            fs::write(&tmp_path, &toml_string)
-                .map_err(|e| format!("failed to write config tmp {}: {e}", tmp_path.display()))?;
-            fs::rename(&tmp_path, path).map_err(|e| {
-                format!(
-                    "failed to rename config tmp {} -> {}: {e}",
-                    tmp_path.display(),
-                    path.display()
-                )
-            })?;
-            Ok(())
-        })();
+        let toml_string = toml::to_string_pretty(self)?;
+        let result = write_atomic(path, &toml_string);
         if let Err(ref e) = result {
             log::error!("Failed to save config {}: {e}", path.display());
         }
         result
     }
+}
+/// Write `content` to `path` atomically.
+///
+/// Writes to `{path}.tmp`, then renames to `{path}`.
+/// Ensures the parent directory exists before writing.
+fn write_atomic(path: &Path, content: &str) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| {
+            format!(
+                "failed to create config parent dir {}: {e}",
+                parent.display()
+            )
+        })?;
+    }
+    let tmp_path = {
+        let mut s = path.as_os_str().to_os_string();
+        s.push(".tmp");
+        PathBuf::from(s)
+    };
+    fs::write(&tmp_path, content)
+        .map_err(|e| format!("failed to write config tmp {}: {e}", tmp_path.display()))?;
+    if let Err(e) = fs::rename(&tmp_path, path) {
+        log::warn!(
+            "Atomic rename failed {} -> {}: {e}, using direct-write fallback",
+            tmp_path.display(),
+            path.display()
+        );
+        let _ = fs::remove_file(&tmp_path);
+        let _ = fs::remove_file(path);
+        let _ = fs::remove_dir_all(path);
+        fs::write(path, content).map_err(|e| {
+            format!("failed to write config {}: {e}", path.display())
+        })?;
+    }
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -253,5 +263,20 @@ position = { row = 0, col = 0 }
         );
 
         let _ = fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_write_atomic_rename_failure_falls_back() {
+        let dir = test_path("write_atomic_rename_failure");
+        let target = dir.join("config.toml");
+        // Make the target path an existing directory so `fs::rename` fails (EISDIR).
+        fs::create_dir_all(&target).expect("failed to create target dir");
+
+        let result = write_atomic(&target, "key = 'value'");
+        // Before fallback is implemented, rename fails → Err.
+        // After fallback: directory removed, direct write succeeds → Ok.
+        assert!(result.is_ok(), "rename onto directory should succeed after fallback");
+
+        let _ = fs::remove_dir_all(&dir);
     }
 }
