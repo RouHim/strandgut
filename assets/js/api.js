@@ -10,7 +10,16 @@ export async function saveConfig(config) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(config),
   });
-  if (!res.ok) throw new Error(`Failed to save config: ${res.status}`);
+  if (!res.ok) {
+    let serverMsg = '';
+    try {
+      const body = await res.json();
+      if (body.error) serverMsg = ': ' + body.error;
+    } catch (_) {
+      // body not JSON
+    }
+    throw new Error(`Failed to save config: ${res.status}${serverMsg}`);
+  }
   return res.json();
 }
 

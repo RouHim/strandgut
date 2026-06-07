@@ -81,7 +81,7 @@ async function init() {
         markClean();
       } catch (err) {
         console.error('Auto-save failed:', err);
-        alert(t('error.save') + ': ' + err.message);
+        alert(err.message);
       }
     });
 

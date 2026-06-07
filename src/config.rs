@@ -74,31 +74,38 @@ impl Config {
     ///
     /// Writes to `{path}.tmp` first, then renames to `{path}`.
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), Box<dyn std::error::Error>> {
-        // Ensure parent directory exists
-        if let Some(parent) = path.as_ref().parent() {
-            fs::create_dir_all(parent).map_err(|e| {
+        let path = path.as_ref();
+        let result = (|| -> Result<(), Box<dyn std::error::Error>> {
+            // Ensure parent directory exists
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent).map_err(|e| {
+                    format!(
+                        "failed to create config parent dir {}: {e}",
+                        parent.display()
+                    )
+                })?;
+            }
+            let toml_string = toml::to_string_pretty(self)?;
+            let tmp_path = {
+                let mut s = path.as_os_str().to_os_string();
+                s.push(".tmp");
+                PathBuf::from(s)
+            };
+            fs::write(&tmp_path, &toml_string)
+                .map_err(|e| format!("failed to write config tmp {}: {e}", tmp_path.display()))?;
+            fs::rename(&tmp_path, path).map_err(|e| {
                 format!(
-                    "failed to create config parent dir {}: {e}",
-                    parent.display()
+                    "failed to rename config tmp {} -> {}: {e}",
+                    tmp_path.display(),
+                    path.display()
                 )
             })?;
+            Ok(())
+        })();
+        if let Err(ref e) = result {
+            log::error!("Failed to save config {}: {e}", path.display());
         }
-        let toml_string = toml::to_string_pretty(self)?;
-        let tmp_path = {
-            let mut s = path.as_ref().as_os_str().to_os_string();
-            s.push(".tmp");
-            PathBuf::from(s)
-        };
-        fs::write(&tmp_path, &toml_string)
-            .map_err(|e| format!("failed to write config tmp {}: {e}", tmp_path.display()))?;
-        fs::rename(&tmp_path, path.as_ref()).map_err(|e| {
-            format!(
-                "failed to rename config tmp {} -> {}: {e}",
-                tmp_path.display(),
-                path.as_ref().display()
-            )
-        })?;
-        Ok(())
+        result
     }
 }
 
