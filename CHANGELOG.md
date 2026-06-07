@@ -1,3 +1,10 @@
+## [1.2.9](https://github.com/RouHim/strandgut/compare/v1.2.8...v1.2.9) (2026-06-07)
+
+
+### Bug Fixes
+
+* surface save error details in server logs and frontend alerts ([82e1196](https://github.com/RouHim/strandgut/commit/82e119667ba8e223826bf634054f0d2ddeda4b1f))
+
 ## [1.2.8](https://github.com/RouHim/strandgut/compare/v1.2.7...v1.2.8) (2026-06-07)
 
 
