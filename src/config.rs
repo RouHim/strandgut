@@ -112,9 +112,8 @@ fn write_atomic(path: &Path, content: &str) -> Result<(), Box<dyn std::error::Er
         let _ = fs::remove_file(&tmp_path);
         let _ = fs::remove_file(path);
         let _ = fs::remove_dir_all(path);
-        fs::write(path, content).map_err(|e| {
-            format!("failed to write config {}: {e}", path.display())
-        })?;
+        fs::write(path, content)
+            .map_err(|e| format!("failed to write config {}: {e}", path.display()))?;
     }
     Ok(())
 }
@@ -275,7 +274,10 @@ position = { row = 0, col = 0 }
         let result = write_atomic(&target, "key = 'value'");
         // Before fallback is implemented, rename fails → Err.
         // After fallback: directory removed, direct write succeeds → Ok.
-        assert!(result.is_ok(), "rename onto directory should succeed after fallback");
+        assert!(
+            result.is_ok(),
+            "rename onto directory should succeed after fallback"
+        );
 
         let _ = fs::remove_dir_all(&dir);
     }
