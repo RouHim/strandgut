@@ -13,8 +13,6 @@ const THREE_SERVICES = {
 
 /**
  * Seeds the server config and localStorage, then navigates to `/`.
- * Both API seed and localStorage are set so the app can consume data
- * regardless of its config-loading strategy.
  */
 async function seedAndNavigate(page, request, config = THREE_SERVICES) {
   await request.put('/api/config', { data: config });
@@ -22,6 +20,47 @@ async function seedAndNavigate(page, request, config = THREE_SERVICES) {
     localStorage.setItem('strandgut-config', JSON.stringify(cfg));
   }, config);
   await page.goto('/');
+}
+
+/**
+ * Simulate HTML5 drag-and-drop between two tile indices using native DOM events.
+ * This is reliable in headless Chromium where Playwright's dragTo() hangs.
+ */
+async function simulateDragDrop(page, fromIndex, toIndex) {
+  await page.evaluate(({ fromIndex, toIndex }) => {
+    const tiles = document.querySelectorAll('[data-testid="tile"]');
+    const source = tiles[fromIndex];
+    const target = tiles[toIndex];
+
+    if (!source || !target) return;
+
+    const dataTransfer = new DataTransfer();
+    dataTransfer.setData('text/plain', String(fromIndex));
+
+    source.dispatchEvent(new DragEvent('dragstart', {
+      dataTransfer,
+      bubbles: true,
+      cancelable: true,
+    }));
+
+    target.dispatchEvent(new DragEvent('dragover', {
+      dataTransfer,
+      bubbles: true,
+      cancelable: true,
+    }));
+
+    target.dispatchEvent(new DragEvent('drop', {
+      dataTransfer,
+      bubbles: true,
+      cancelable: true,
+    }));
+
+    source.dispatchEvent(new DragEvent('dragend', {
+      dataTransfer,
+      bubbles: true,
+      cancelable: true,
+    }));
+  }, { fromIndex, toIndex });
 }
 
 test('drag first tile to second position', async ({ page, request }) => {
@@ -33,7 +72,7 @@ test('drag first tile to second position', async ({ page, request }) => {
   await expect(tiles.nth(0)).toContainText('Alpha');
   await expect(tiles.nth(1)).toContainText('Beta');
 
-  await tiles.nth(0).dragTo(tiles.nth(1));
+  await simulateDragDrop(page, 0, 1);
 
   await expect(tiles.nth(0)).toContainText('Beta');
   await expect(tiles.nth(1)).toContainText('Alpha');
@@ -50,7 +89,7 @@ test('drag last tile to first position', async ({ page, request }) => {
   const tiles = page.locator('[data-testid="tile"]');
   await expect(tiles).toHaveCount(3);
 
-  await tiles.nth(2).dragTo(tiles.nth(0));
+  await simulateDragDrop(page, 2, 0);
 
   await expect(tiles.nth(0)).toContainText('Gamma');
   await expect(tiles.nth(1)).toContainText('Alpha');
@@ -92,7 +131,7 @@ test('drag to same position is a no-op', async ({ page, request }) => {
 
   const initial = await tiles.allTextContents();
 
-  await tiles.nth(0).dragTo(tiles.nth(0));
+  await simulateDragDrop(page, 0, 0);
 
   const after = await tiles.allTextContents();
   expect(after).toEqual(initial);
