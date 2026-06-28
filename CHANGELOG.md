@@ -1,3 +1,10 @@
+## [1.3.6](https://github.com/RouHim/strandgut/compare/v1.3.5...v1.3.6) (2026-06-28)
+
+
+### Bug Fixes
+
+* **e2e:** replace flaky dragTo() with deterministic DragEvent dispatch ([22f4f6a](https://github.com/RouHim/strandgut/commit/22f4f6a0fedd1c49a86394d4861e2110a20a0928))
+
 ## [1.3.5](https://github.com/RouHim/strandgut/compare/v1.3.4...v1.3.5) (2026-06-22)
 
 ## [1.3.4](https://github.com/RouHim/strandgut/compare/v1.3.3...v1.3.4) (2026-06-21)
