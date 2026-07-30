@@ -1,3 +1,10 @@
+## [1.3.18](https://github.com/RouHim/strandgut/compare/v1.3.17...v1.3.18) (2026-07-30)
+
+
+### Bug Fixes
+
+* hide pill switch text on mobile to fix e2e click interception ([3babfcf](https://github.com/RouHim/strandgut/commit/3babfcf87a96242cf4a9812362f5090b40818366))
+
 ## [1.3.17](https://github.com/RouHim/strandgut/compare/v1.3.16...v1.3.17) (2026-07-29)
 
 ## [1.3.16](https://github.com/RouHim/strandgut/compare/v1.3.15...v1.3.16) (2026-07-28)
