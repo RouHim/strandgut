@@ -119,6 +119,14 @@ main {
   .btn {
     min-height: 48px;
   }
+
+  .pill-switch__text {
+    display: none;
+  }
+
+  .pill-switch__label {
+    padding: var(--space-2) var(--space-2);
+  }
 }
 
 @media (min-width: 600px) and (max-width: 899px) {
