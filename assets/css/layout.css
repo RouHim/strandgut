@@ -35,10 +35,18 @@ main {
   align-items: center;
 }
 
-.logo {
+.logo-icon {
   display: block;
-  height: auto;
-  max-width: 120px;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.brand-text {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--color-text-primary);
+  white-space: nowrap;
 }
 
 .grid {
