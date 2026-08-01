@@ -49,12 +49,18 @@ export function renderGrid() {
   indexedServices.sort((a, b) => a.sortKey - b.sortKey);
 
   indexedServices.forEach(({ service, index }, i) => {
-    const tile = document.createElement('article');
+    const tile = document.createElement(isEditing() ? 'article' : 'a');
     tile.className = 'tile';
     tile.setAttribute('data-testid', 'tile');
     tile.setAttribute('data-index', String(index));
     tile.style.setProperty('--i', String(i));
     tile.style.animationDelay = `calc(${i} * 50ms)`;
+
+    if (!isEditing()) {
+      tile.href = service.url;
+      tile.target = '_blank';
+      tile.rel = 'noopener noreferrer';
+    }
 
 
     const resolved = resolveIconUrl(service);
@@ -91,12 +97,7 @@ export function renderGrid() {
     tile.appendChild(iconWrapper);
     tile.appendChild(info);
 
-    if (!isEditing()) {
-      tile.style.cursor = 'pointer';
-      tile.addEventListener('click', () => {
-        window.open(service.url, '_blank', 'noopener,noreferrer');
-      });
-    } else {
+    if (isEditing()) {
       tile.setAttribute('draggable', 'true');
       tile.addEventListener('click', () => {
         window.dispatchEvent(new CustomEvent('editservice', { detail: { index } }));
