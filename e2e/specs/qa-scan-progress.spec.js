@@ -111,6 +111,10 @@ test.describe('Scan Progress QA', () => {
     await page.route('/api/scan', async (route) => {
       if (route.request().method() !== 'POST') return route.continue();
 
+      // Hold the stream open briefly so the transient "Scanning…" status is
+      // observable before `done` flips it to "Keine Dienste gefunden".
+      await new Promise((resolve) => setTimeout(resolve, 750));
+
       await route.fulfill({
         status: 200,
         headers: {
