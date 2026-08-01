@@ -1,3 +1,10 @@
+## [1.3.21](https://github.com/RouHim/strandgut/compare/v1.3.20...v1.3.21) (2026-08-01)
+
+
+### Bug Fixes
+
+* make scan progress QA scenario 4 deterministic ([7932f6e](https://github.com/RouHim/strandgut/commit/7932f6e8d97d8cc5ab83f5552a70f4632878d6d9))
+
 ## [1.3.20](https://github.com/RouHim/strandgut/compare/v1.3.19...v1.3.20) (2026-08-01)
 
 
