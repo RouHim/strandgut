@@ -17,7 +17,9 @@ async function seedConfig(request, services) {
 
 async function skipOnboarding(page) {
   const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) await skip.click();
+  if (await skip.isVisible().catch(() => false)) {
+    await skip.click({ timeout: 3000 }).catch(() => {});
+  }
 }
 
 
@@ -197,4 +199,20 @@ test('tile has backdrop-filter with blur', async ({ page, request }) => {
   );
 
   expect(backdropFilter).toContain('blur');
+});
+
+// ---------------------------------------------------------------------------
+// 9. Embedded font – Hanken Grotesk is loaded and applied
+// ---------------------------------------------------------------------------
+
+test('tiles use the embedded Hanken Grotesk font', async ({ page, request }) => {
+  await seedConfig(request, [
+    { name: 'Service', url: 'http://test.local', icon: null, description: null, position: { row: 0, col: 0 } },
+  ]);
+  await page.goto('/');
+  await skipOnboarding(page);
+
+  await expect.poll(() => page.evaluate(() => document.fonts.check('700 1rem "Hanken Grotesk"'))).toBe(true);
+  const family = await page.locator('body').evaluate((el) => getComputedStyle(el).fontFamily);
+  expect(family).toContain('Hanken Grotesk');
 });

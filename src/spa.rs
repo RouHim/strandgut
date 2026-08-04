@@ -31,6 +31,12 @@ fn get_asset(path: &str) -> Option<AssetData> {
         "css/components.css" => include_bytes!("../assets/css/components.css"),
         "css/animations.css" => include_bytes!("../assets/css/animations.css"),
         "css/style.css" => include_bytes!("../assets/css/style.css"),
+        "fonts/hanken-grotesk-latin.woff2" => {
+            include_bytes!("../assets/fonts/hanken-grotesk-latin.woff2")
+        }
+        "fonts/jetbrains-mono-latin.woff2" => {
+            include_bytes!("../assets/fonts/jetbrains-mono-latin.woff2")
+        }
         "js/app.js" => include_bytes!("../assets/js/app.js"),
         "js/api.js" => include_bytes!("../assets/js/api.js"),
         "js/state.js" => include_bytes!("../assets/js/state.js"),
@@ -126,6 +132,9 @@ fn detect_mime(path: &str) -> &'static str {
     if path.ends_with(".webp") {
         return "image/webp";
     }
+    if path.ends_with(".woff2") {
+        return "font/woff2";
+    }
     "application/octet-stream"
 }
 
@@ -138,6 +147,18 @@ mod tests {
         assert!(get_asset("index.html").is_some());
         assert!(get_asset("css/style.css").is_some());
         assert!(get_asset("js/app.js").is_some());
+        assert!(get_asset("fonts/hanken-grotesk-latin.woff2").is_some());
+    }
+
+    #[test]
+    fn test_serve_asset_woff2_mime() {
+        let resp =
+            serve_asset("fonts/hanken-grotesk-latin.woff2").expect("serve_asset should succeed");
+        assert_eq!(resp.status(), 200);
+        assert_eq!(
+            resp.headers().get(header::CONTENT_TYPE).unwrap(),
+            "font/woff2"
+        );
     }
 
     #[test]

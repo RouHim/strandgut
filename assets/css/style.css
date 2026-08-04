@@ -4,3 +4,22 @@
 @import "components.css";
 @import "animations.css";
 @import "themes.css";
+
+/* ─── Self-hosted fonts (inlined: @import would add a stylesheet
+   round-trip that blocks module script execution and widens the
+   first-load race in e2e tests) ─── */
+@font-face {
+  font-family: 'Hanken Grotesk';
+  src: url('/assets/fonts/hanken-grotesk-latin.woff2') format('woff2');
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/assets/fonts/jetbrains-mono-latin.woff2') format('woff2');
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}

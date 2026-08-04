@@ -255,6 +255,10 @@ HTTP ports trigger a `GET /` request. The `<title>` tag is matched against known
 
 **Playwright `webServer` times out on clean release builds:** The `e2e/playwright.config.ts` webServer runs `cargo run --release` with a 60s timeout. A clean release build takes ~55-90s. Pre-build with `cargo build --release` before running `CI=true npx playwright test`, or increase the webServer timeout.
 
+**Import order defeats same-specificity overrides:** `style.css` imports `layout.css` BEFORE `components.css`, so `.tile`-level mobile overrides placed in layout.css's `@media (max-width: 599px)` block silently lose the cascade to components.css's base rules. Mobile tile overrides (`.tile`, `.tile-icon`, `.tile-info`, `.tile-title`) live at the END of `components.css` in their own `@media (max-width: 599px)` block.
+
+**Stylesheet `@import` round-trips delay module scripts:** Deferred module scripts wait for pending stylesheets, so `@import "fonts.css"` in `style.css` delayed `app.js` past the `load` event and widened the e2e onboarding-skip race (`isVisible()` → `click()` vs. the async config apply that hides onboarding). Keep `@font-face` rules inlined in `style.css`; spec skip-clicks use a tolerant `click({ timeout: 3000 }).catch(() => {})`.
+
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan

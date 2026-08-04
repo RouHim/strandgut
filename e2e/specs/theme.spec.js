@@ -74,7 +74,9 @@ test('keyboard accessibility — Enter toggles theme', async ({ page }) => {
   await page.reload();
 
   const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) await skip.click();
+  if (await skip.isVisible().catch(() => false)) {
+    await skip.click({ timeout: 3000 }).catch(() => {});
+  }
 
   const toggle = page.locator('#theme-toggle');
   await toggle.focus();
@@ -124,7 +126,9 @@ test('scan dialog renders correctly in light theme', async ({ page }) => {
   await page.reload();
 
   const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) await skip.click();
+  if (await skip.isVisible().catch(() => false)) {
+    await skip.click({ timeout: 3000 }).catch(() => {});
+  }
 
   await page.locator('[data-testid="add-button"]').click();
   await page.locator('[data-testid="add-scan-button"]').click();

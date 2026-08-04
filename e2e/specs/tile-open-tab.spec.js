@@ -15,7 +15,9 @@ test('tile is a real link that opens the service in a new tab', async ({ page, r
   await page.waitForLoadState('networkidle');
 
   const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) await skip.click();
+  if (await skip.isVisible().catch(() => false)) {
+    await skip.click({ timeout: 3000 }).catch(() => {});
+  }
 
   const tile = page.locator('[data-testid="tile"]').first();
   await expect(tile).toBeVisible();

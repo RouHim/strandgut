@@ -3,7 +3,9 @@ import { test, expect } from '@playwright/test';
 test('toggle enters edit mode', async ({ page }) => {
   await page.goto('/');
   const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) await skip.click();
+  if (await skip.isVisible().catch(() => false)) {
+    await skip.click({ timeout: 3000 }).catch(() => {});
+  }
   await page.locator('[data-testid="edit-toggle"]').click();
   await expect.poll(() => page.evaluate(() => document.body.classList.contains('edit-mode'))).toBe(true);
 });
@@ -11,7 +13,9 @@ test('toggle enters edit mode', async ({ page }) => {
 test('toggle returns to view mode', async ({ page }) => {
   await page.goto('/');
   const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) await skip.click();
+  if (await skip.isVisible().catch(() => false)) {
+    await skip.click({ timeout: 3000 }).catch(() => {});
+  }
   const toggle = page.locator('[data-testid="edit-toggle"]');
   await toggle.click();
   await toggle.click();
@@ -42,7 +46,9 @@ test('edit controls survive toggle off and on', async ({ page, request }) => {
 test('add service via edit panel and persist', async ({ page }) => {
   await page.goto('/');
   const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) await skip.click();
+  if (await skip.isVisible().catch(() => false)) {
+    await skip.click({ timeout: 3000 }).catch(() => {});
+  }
   await page.locator('[data-testid="edit-toggle"]').click();
   await page.locator('[data-testid="add-button"]').click();
   await page.locator('[data-testid="add-manual-button"]').click();
@@ -105,7 +111,9 @@ test('edit existing service and persist', async ({ page, request }) => {
 test('edit form validation shows errors', async ({ page }) => {
   await page.goto('/');
   const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) await skip.click();
+  if (await skip.isVisible().catch(() => false)) {
+    await skip.click({ timeout: 3000 }).catch(() => {});
+  }
   await page.locator('[data-testid="edit-toggle"]').click();
   await page.locator('[data-testid="add-button"]').click();
   await page.locator('[data-testid="add-manual-button"]').click();

@@ -14,7 +14,9 @@ test('URL open button visible and enabled for service with URL', async ({ page, 
   await page.waitForLoadState('networkidle');
 
   const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) await skip.click();
+  if (await skip.isVisible().catch(() => false)) {
+    await skip.click({ timeout: 3000 }).catch(() => {});
+  }
 
   await page.locator('[data-testid="edit-toggle"]').click();
   await page.locator('[data-testid="edit-tile"]').first().click();
@@ -49,7 +51,9 @@ test('URL open button disabled when URL is empty', async ({ page, request }) => 
   await page.waitForLoadState('networkidle');
 
   const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) await skip.click();
+  if (await skip.isVisible().catch(() => false)) {
+    await skip.click({ timeout: 3000 }).catch(() => {});
+  }
 
   await page.locator('[data-testid="edit-toggle"]').click();
   await page.locator('[data-testid="edit-tile"]').first().click();

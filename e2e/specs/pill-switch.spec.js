@@ -3,7 +3,9 @@ import { test, expect } from '@playwright/test';
 test.describe('Pill Switch', () => {
   async function dismissOnboarding(page) {
     const skip = page.locator('[data-testid="onboarding-skip"]');
-    if (await skip.isVisible().catch(() => false)) await skip.click();
+    if (await skip.isVisible().catch(() => false)) {
+      await skip.click({ timeout: 3000 }).catch(() => {});
+    }
   }
 
   test('has role="switch"', async ({ page }) => {

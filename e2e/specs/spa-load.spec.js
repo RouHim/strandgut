@@ -10,7 +10,7 @@ test('service grid is visible', async ({ page }) => {
   // Dismiss onboarding if present (hides the grid)
   const skip = page.locator('[data-testid="onboarding-skip"]');
   if (await skip.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await skip.click();
+    await skip.click({ timeout: 3000 }).catch(() => {});
     await page.waitForTimeout(500);
   }
   await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
