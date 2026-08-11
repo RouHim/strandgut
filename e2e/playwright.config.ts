@@ -17,18 +17,12 @@ export default defineConfig({
       name: 'desktop',
       use: {
         ...devices['Desktop Chrome'],
-        launchOptions: {
-          executablePath: '/usr/bin/chromium',
-        },
       },
     },
     {
       name: 'mobile',
       use: {
         ...devices['Pixel 5'],
-        launchOptions: {
-          executablePath: '/usr/bin/chromium',
-        },
       },
     },
   ],

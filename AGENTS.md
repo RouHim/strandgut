@@ -5,7 +5,7 @@ Guidelines for AI agents working in this codebase.
 ## Project Overview
 
 Strandgut is a minimalist LAN service scanner dashboard. A single-binary Rust backend serves a
-Vanilla JS SPA, with all static assets embedded at compile time via `rust-embed`. It scans your
+Vanilla JS SPA, with all static assets embedded at compile time via `include_bytes!`. It scans your
 local network for open ports, fingerprints common services (Home Assistant, Proxmox, Pi-hole,
 etc.), and presents them as a configurable grid of service cards.
 
@@ -14,7 +14,7 @@ etc.), and presents them as a configurable grid of service cards.
 - **Backend**: Rust (hyper HTTP server, tokio async runtime, matchit router)
 - **Frontend**: Vanilla JavaScript (ES modules), HTML, CSS
 - **Configuration**: TOML file (`config.toml` or path via `STRANDGUT_CONFIG` env var)
-- **Static embedding**: `rust-embed` (assets compiled into binary)
+- **Static embedding**: `include_bytes!` (assets compiled into binary)
 - **Internationalisation**: Embedded JS locale bundles (`en`, `de`)
 
 ## Build & Run Commands
@@ -51,7 +51,7 @@ src/
   config.rs         # TOML config loading/saving (atomic write via .tmp → rename)
   error.rs          # AppError enum, HTTP status mapping, JSON error bodies
   scan.rs           # Async TCP port scanner with SSE streaming, service fingerprinting
-  spa.rs            # Embedded asset serving (rust-embed), SPA fallback
+  spa.rs            # Embedded asset serving (include_bytes!), SPA fallback
   i18n.rs           # Accept-Language parser, locale detection
 assets/
   index.html        # SPA shell
@@ -252,6 +252,9 @@ HTTP ports trigger a `GET /` request. The `<title>` tag is matched against known
 
 **`justify-self: center` shrink-wraps grid items to content size:** In CSS Grid, `justify-self: center` causes items to size to their intrinsic content width rather than stretching to fill the grid cell. This caused unequal card widths in the service grid — each card's width varied with its text length. Use `width: 100%` with the default `justify-self: stretch` for uniform sizing. If centering is needed, use `justify-content` on the grid container or fixed track sizes instead.
 **Headless Chromium caches CSS across tab sessions:** After editing embedded CSS assets and rebuilding the server, the headless browser tab may still serve stale CSS even with `location.reload(true)`. Use `close(all: true)` then a fresh `open` to guarantee the latest assets are loaded. Re-using tab names without a full close will return cached styles.
+
+**Never hardcode a Chromium path in `e2e/`:** `e2e/playwright.config.ts` must not set `launchOptions.executablePath` (e.g. `/usr/bin/chromium`) — that was a machine-specific workaround for one Arch box and breaks every other host (CI installs the bundled browser via `npx playwright install --with-deps chromium`; locally the same cache is used). Both projects rely on `devices['Desktop Chrome']`/`devices['Pixel 5']` which already pin `defaultBrowserType: 'chromium'`. Fix a broken local browser with `npx playwright install chromium`, never by hardcoding a system path.
+**Harness shell exports `CI=1`:** The omp shell environment sets `CI=1`, which flips `playwright.config.ts`'s `reuseExistingServer: !process.env.CI` to false and errors with "url is already used" if a dev server is running. Run `CI= npx playwright test ...` locally to reuse the running server (list reporter, no retries), or stop the server and run with `CI=1` for the CI profile.
 
 **Playwright `webServer` times out on clean release builds:** The `e2e/playwright.config.ts` webServer runs `cargo run --release` with a 60s timeout. A clean release build takes ~55-90s. Pre-build with `cargo build --release` before running `CI=true npx playwright test`, or increase the webServer timeout.
 

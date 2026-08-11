@@ -5,10 +5,11 @@
 //! asset paths fall back to `index.html` so that client-side routing
 //! (SPA) works without server-side route awareness.
 
-use crate::error::AppError;
 use http_body_util::{BodyExt, Full};
 use hyper::body::Bytes;
 use hyper::{Response, header};
+
+use crate::error::AppError;
 
 /// Type-erased HTTP body used for all SPA responses.
 type BoxBody = http_body_util::combinators::UnsyncBoxBody<Bytes, hyper::Error>;

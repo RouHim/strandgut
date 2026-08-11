@@ -1,19 +1,19 @@
 //! Async TCP port scanner with service fingerprinting.
 
-use crate::error::AppError;
-use serde::Serialize;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::task::{Context, Poll};
 use std::time::Duration;
 
+use hyper::body::{Body, Bytes, Frame};
+use serde::Serialize;
 use tokio::net::TcpStream;
 use tokio::sync::Semaphore;
 use tokio::sync::mpsc;
 use tokio::time::{Interval, timeout};
 
-use hyper::body::{Body, Bytes, Frame};
+use crate::error::AppError;
 
 /// Create a shared HTTP agent with sensible defaults for service fingerprinting.
 ///
@@ -438,7 +438,7 @@ mod tests {
         assert_eq!(results[0].service_name.as_deref(), Some("Home Assistant"));
         assert_eq!(results[0].icon_slug.as_deref(), Some("home-assistant"));
         assert_eq!(results[0].title.as_deref(), Some("Home Assistant"));
-        assert_eq!(results[0].reachable, true);
+        assert!(results[0].reachable);
     }
 
     #[test]
@@ -480,7 +480,7 @@ mod tests {
         assert_eq!(r.port, port);
         assert_eq!(r.service_name.as_deref(), Some("Pi-hole"));
         assert_eq!(r.title.as_deref(), Some("Pi-hole"));
-        assert_eq!(r.reachable, true);
+        assert!(r.reachable);
     }
 
     #[tokio::test]
@@ -499,7 +499,7 @@ mod tests {
         assert_eq!(r.port, port);
         assert_eq!(r.service_name, None);
         assert_eq!(r.title, None);
-        assert_eq!(r.reachable, false);
+        assert!(!r.reachable);
     }
 
     async fn collect_sse_body_poll(mut body: SseScanBody) -> Vec<String> {
@@ -819,10 +819,10 @@ mod tests {
         assert!(result.is_ok(), "scan_host must not hang on redirect loop");
         let results = result.unwrap();
         assert_eq!(results.len(), 1);
-        // RED: currently passes because fetch_http_info rejects 3xx.
-        // Once redirect following lands, this guards against infinite loops.
+        // ureq follows redirects by default; an infinite loop is bounded by its
+        // redirect limit, so scan_host must not hang and reports the port as unreachable.
         assert_eq!(results[0].service_name, None);
-        assert_eq!(results[0].reachable, false);
+        assert!(!results[0].reachable);
     }
 
     #[tokio::test]
@@ -839,32 +839,31 @@ mod tests {
         assert_eq!(results.len(), 1);
         let r = &results[0];
         assert_eq!(r.port, port);
-        // RED: currently passes because fetch_http_info gracefully handles
-        // invalid HTTP by returning None. Regression guard for future changes.
+        // fetch_http_info returns Err on invalid HTTP; scan_host records the
+        // port as unreachable instead of failing the whole scan.
         assert_eq!(r.service_name, None);
-        assert_eq!(r.reachable, false);
+        assert!(!r.reachable);
     }
 
-    // === Title edge case tests (RED: extract_title is a naive <title> search) ===
+    // === Title edge case tests ===
 
     #[test]
     fn test_title_with_attributes() {
-        // RED: current extract_title lowercases then looks for literal "<title>",
-        // but the input has <title lang="en"> which doesn't match.
+        // extract_title matches any <title ...> tag, not just a bare <title>.
         let html = r#"<html><head><title lang="en">My App</title></head></html>"#;
         assert_eq!(extract_title(html), Some("My App".to_string()));
     }
 
     #[test]
     fn test_title_html_entities() {
-        // RED: current extract_title returns raw text including &amp; without decoding.
+        // extract_title decodes common HTML entities.
         let html = "<html><head><title>&amp; Foo</title></head></html>";
         assert_eq!(extract_title(html), Some("& Foo".to_string()));
     }
 
     #[test]
     fn test_title_multiline_normalized() {
-        // RED: current extract_title only trims ends but preserves internal newlines.
+        // extract_title collapses internal whitespace to single spaces.
         let html = "<html><head><title>\n  Multi\n  Line\n</title></head></html>";
         assert_eq!(extract_title(html), Some("Multi Line".to_string()));
     }
@@ -878,8 +877,7 @@ mod tests {
 
     #[test]
     fn test_title_corpus() {
-        // Corpus of 18 HTML title fixtures: asserts CORRECT expected output.
-        // Many cases are RED while extract_title is still naive.
+        // Corpus of HTML title fixtures: asserts correct expected output.
         let fixtures: Vec<(&str, Option<&str>)> = vec![
             ("basic.html", Some("Simple Title")),
             ("attributes.html", Some("Attributed Title")),
@@ -980,6 +978,6 @@ mod tests {
         assert_eq!(results[0].port, port);
         assert_eq!(results[0].service_name, None);
         assert_eq!(results[0].title.as_deref(), Some("& My Dashboard & More"));
-        assert_eq!(results[0].reachable, true);
+        assert!(results[0].reachable);
     }
 }

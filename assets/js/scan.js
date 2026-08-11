@@ -94,7 +94,6 @@ export function openScanDialog() {
 
   const hostInput = dialogEl.querySelector('#scan-host');
   hostInput.focus();
-  hostInput.focus();
   hostInput.select();
   hostInput.addEventListener('click', () => hostInput.select());
 
@@ -234,9 +233,7 @@ async function startScan() {
     if (err.name !== 'AbortError') {
       statusEl.textContent = 'Error: ' + err.message;
       statusEl.className = 'scan-status scan-status--error';
-      progressBar.style.animation = 'none';
-      progressBar.style.width = '100%';
-      progressBar.style.background = 'var(--color-danger, #c4746e)';
+      finishProgressBar(progressBar, 'var(--color-danger, #c4746e)');
     }
   } finally {
     startBtn.disabled = false;
@@ -266,9 +263,7 @@ function handleScanEvent(event, data, progressBar, statusEl, resultsEl, scanStat
     case 'done': {
       statusEl.textContent = scanState && !scanState.hasFoundResults ? t('scan.noServices') : 'Scan complete.';
       statusEl.className = 'scan-status scan-status--success';
-      progressBar.style.animation = 'none';
-      progressBar.style.width = '100%';
-      progressBar.style.background = 'var(--color-success, #6baf92)';
+      finishProgressBar(progressBar, 'var(--color-success, #6baf92)');
       const closeBtn = dialogEl.querySelector('[data-testid="scan-close-button"]');
       if (closeBtn) closeBtn.hidden = false;
       break;
@@ -276,14 +271,18 @@ function handleScanEvent(event, data, progressBar, statusEl, resultsEl, scanStat
     case 'error': {
       statusEl.textContent = 'Error: ' + (data || 'Unknown error');
       statusEl.className = 'scan-status scan-status--error';
-      progressBar.style.animation = 'none';
-      progressBar.style.width = '100%';
-      progressBar.style.background = 'var(--color-danger, #c4746e)';
+      finishProgressBar(progressBar, 'var(--color-danger, #c4746e)');
       const closeBtn = dialogEl.querySelector('[data-testid="scan-close-button"]');
       if (closeBtn) closeBtn.hidden = false;
       break;
     }
   }
+}
+
+function finishProgressBar(progressBar, color) {
+  progressBar.style.animation = 'none';
+  progressBar.style.width = '100%';
+  progressBar.style.background = color;
 }
 
 function createResultCard(result) {

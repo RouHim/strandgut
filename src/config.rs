@@ -1,7 +1,7 @@
 //! Configuration loading and validation.
 //!
-//! Reads `strandgut.toml` from the data directory, deserializes it with
-//! `serde`, and provides a typed `Config` struct to the rest of the
+//! Reads `config.toml` (path from `STRANDGUT_CONFIG` or `./config.toml` by default),
+//! deserializes it with `serde`, and provides a typed `Config` struct to the rest of the
 //! application.  Uses an atomic write pattern (`.tmp` → `fs::rename`) for
 //! persisting user settings at runtime.
 

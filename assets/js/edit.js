@@ -307,7 +307,7 @@ function validateForm(panel) {
  * Deletes a service after confirmation.
  * @param {number} index
  */
-export function deleteService(index) {
+function deleteService(index) {
   const services = getServices();
   const svc = services[index];
   const name = svc?.name || 'this service';

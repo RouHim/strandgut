@@ -12,43 +12,6 @@
 :root {
   color-scheme: light dark;
 
-  /* ── Blue-teal scale (derived from deep-sea #0a1628) ── */
-  --blue-50: #e8f0ee;
-  --blue-100: #d0e0dc;
-  --blue-200: #b0c8c0;
-  --blue-300: #90b0a8;
-  --blue-400: #709890;
-  --blue-500: #508078;
-  --blue-600: #306860;
-  --blue-700: #1e4840;
-  --blue-800: #0e2828;
-  --blue-900: #0a1628;
-
-  /* ── Warm gray scale (derived from driftwood text tones) ── */
-  --gray-50: #f5f2ee;
-  --gray-100: #e8e0d8;
-  --gray-200: #d0c8c0;
-  --gray-300: #b8b0a8;
-  --gray-400: #a09890;
-  --gray-500: #8b8078;
-  --gray-600: #706860;
-  --gray-700: #585048;
-  --gray-800: #403830;
-  --gray-900: #282018;
-  --gray-950: #181008;
-
-  /* ── Amber scale (derived from sea-glass accent #f4a340) ── */
-  --amber-50: #fef4e0;
-  --amber-100: #fde8c0;
-  --amber-200: #fcd4a0;
-  --amber-300: #fabe80;
-  --amber-400: #f8a860;
-  --amber-500: #f4a340;
-  --amber-600: #d08030;
-  --amber-700: #a86020;
-  --amber-800: #804010;
-  --amber-900: #582000;
-
   /* ── Spacing scale (preserved) ── */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -57,13 +20,7 @@
   --space-5: 1.25rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
-  --space-10: 2.5rem;
   --space-12: 3rem;
-
-  /* ── Icon sizes ── */
-  --icon-size-sm: 1rem;    /* 16px */
-  --icon-size-md: 1.5rem;  /* 24px — primary tile icon */
-  --icon-size-lg: 2rem;    /* 32px */
 
   /* ── Border radius (preserved) ── */
   --radius-sm: 8px;
@@ -95,7 +52,6 @@
   /* Text hierarchy */
   --color-text-primary:   light-dark(#2c2420, #e8e0d8);
   --color-text-secondary: light-dark(#7a7268, #8b8078);
-  --color-text-muted:     light-dark(#b0a8a0, #605048);
 
   /* Accent & status — theme-invariant */
   --color-accent: #f4a340;
@@ -104,7 +60,6 @@
 
   /* Borders */
   --color-border:        light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.12));
-  --color-border-subtle: light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.08));
 
   /* Glassmorphism recipe */
   --color-glass-bg:       light-dark(rgba(255, 255, 255, 0.5), rgba(232, 224, 216, 0.07));
@@ -115,7 +70,6 @@
   --shadow-tile-hover:    light-dark(0 16px 48px -8px rgba(80, 50, 20, 0.28), 0 16px 48px -8px rgba(0, 8, 16, 0.6));
 
   /* Legacy aliases (backward compatibility) */
-  --color-bg:  light-dark(#f2ede4, #0a1628);
   --color-text: light-dark(#2c2420, #e8e0d8);
 
   /* Component-specific tokens */
@@ -125,8 +79,6 @@
   --color-button-primary-text: #0a1628;
   --color-accent-hover: #f5b04a;
   --color-accent-glow:  rgba(244, 163, 64, 0.4);
-  --color-success-glow: rgba(107, 175, 146, 0.4);
-  --color-danger-glow:  rgba(196, 116, 110, 0.4);
   --color-overlay-bg:   light-dark(rgba(70, 50, 30, 0.35), rgba(4, 10, 18, 0.6));
   --color-accent-ring:  light-dark(rgba(244, 163, 64, 0.28), rgba(244, 163, 64, 0.3));
 }
@@ -141,10 +93,8 @@
 
   --color-text-primary: #e8e0d8;
   --color-text-secondary: #8b8078;
-  --color-text-muted: #605048;
 
   --color-border: rgba(255, 255, 255, 0.12);
-  --color-border-subtle: rgba(255, 255, 255, 0.08);
 
   --color-glass-bg: rgba(232, 224, 216, 0.07);
   --color-glass-bg-hover: rgba(232, 224, 216, 0.12);
@@ -156,7 +106,6 @@
   --color-overlay-bg: rgba(4, 10, 18, 0.6);
 
   /* Legacy aliases (backward compatibility) */
-  --color-bg:  #0a1628;
   --color-text: #e8e0d8;
 
   /* Component-specific */
