@@ -1,3 +1,10 @@
+## [1.3.24](https://github.com/RouHim/strandgut/compare/v1.3.23...v1.3.24) (2026-08-11)
+
+
+### Bug Fixes
+
+* **e2e:** drop hardcoded /usr/bin/chromium executablePath ([7259c3e](https://github.com/RouHim/strandgut/commit/7259c3e58c7447ee85392fbcd0977b10ccca50f5))
+
 ## [1.3.23](https://github.com/RouHim/strandgut/compare/v1.3.22...v1.3.23) (2026-08-08)
 
 ## [1.3.22](https://github.com/RouHim/strandgut/compare/v1.3.21...v1.3.22) (2026-08-05)
