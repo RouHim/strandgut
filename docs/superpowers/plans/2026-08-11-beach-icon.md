@@ -26,7 +26,7 @@
 
 - Brand palette: teal `#306860`, light teal `#6FB3A2`, amber `#E9A95E`, cream `#F6DFB8`, olive `#7C9E3A` family, warm brown `#7A5440` family. Chosen by user ("brand color swap") and validated visually at 300/36/16px.
 - Out of scope: `assets/img/background.webp` (background photo, not an icon), all HTML/CSS/Rust files, e2e specs (verified: no test references the logo).
-- Banner icon placement: `translate(52, 25) scale(1.28)` (100-unit art to 128px, left edge matches current flip-flop at 52, vertical offset 25 centers the circle on the text block). Amber glow circle retained at `r=70` following the beach circle center (45,61).
+- Banner icon placement: `translate(52, 25) scale(1.28)` (100-unit art to 128px; rendered left edge is 45.6, 6.4px left of the previous icon's 52; vertical offset 25 centers the circle on the text block). Amber glow circle retained at `r=70` following the beach circle center (45,61).
 - Source: https://www.svgrepo.com/download/428248/beach.svg (43KB download; real art ~1.1KB, rest is an embedded `<i:pgf>` Adobe Illustrator CDATA blob, DOCTYPE/entity cruft, and a `<switch>`/`<foreignObject>` wrapper, all stripped).
 
 ## Research Notes

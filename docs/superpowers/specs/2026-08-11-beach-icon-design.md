@@ -67,8 +67,9 @@ Explicitly **not** changed:
 
 ## Banner Layout
 
-- Icon group: `translate(52, 25) scale(1.28)`: 100-unit art → 128px, same left edge as the
-  current 512-unit flip-flop at `scale(0.25)`. Vertical offset 25 (not 36) centers the beach
+- Icon group: `translate(52, 25) scale(1.28)`: 100-unit art → 128px. Rendered left edge is
+  45.6 (beach viewBox starts at x=-5, so 52 + (-5 × 1.28)), 6.4px left of the previous
+  icon's left edge at 52. Vertical offset 25 (not 36) centers the beach
   circle (center y=61) on the text block (visual center ~103).
 - Glow circle: `<circle cx="45" cy="61" r="70" fill="rgba(244,163,64,0.04)" filter="url(#icon-glow)"/>`
  : amber halo retained; follows the beach circle center.
