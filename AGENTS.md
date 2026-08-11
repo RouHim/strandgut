@@ -5,7 +5,7 @@ Guidelines for AI agents working in this codebase.
 ## Project Overview
 
 Strandgut is a minimalist LAN service scanner dashboard. A single-binary Rust backend serves a
-Vanilla JS SPA, with all static assets embedded at compile time via `rust-embed`. It scans your
+Vanilla JS SPA, with all static assets embedded at compile time via `include_bytes!`. It scans your
 local network for open ports, fingerprints common services (Home Assistant, Proxmox, Pi-hole,
 etc.), and presents them as a configurable grid of service cards.
 
@@ -14,7 +14,7 @@ etc.), and presents them as a configurable grid of service cards.
 - **Backend**: Rust (hyper HTTP server, tokio async runtime, matchit router)
 - **Frontend**: Vanilla JavaScript (ES modules), HTML, CSS
 - **Configuration**: TOML file (`config.toml` or path via `STRANDGUT_CONFIG` env var)
-- **Static embedding**: `rust-embed` (assets compiled into binary)
+- **Static embedding**: `include_bytes!` (assets compiled into binary)
 - **Internationalisation**: Embedded JS locale bundles (`en`, `de`)
 
 ## Build & Run Commands
@@ -51,7 +51,7 @@ src/
   config.rs         # TOML config loading/saving (atomic write via .tmp → rename)
   error.rs          # AppError enum, HTTP status mapping, JSON error bodies
   scan.rs           # Async TCP port scanner with SSE streaming, service fingerprinting
-  spa.rs            # Embedded asset serving (rust-embed), SPA fallback
+  spa.rs            # Embedded asset serving (include_bytes!), SPA fallback
   i18n.rs           # Accept-Language parser, locale detection
 assets/
   index.html        # SPA shell
