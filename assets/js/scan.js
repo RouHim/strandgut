@@ -94,7 +94,6 @@ export function openScanDialog() {
 
   const hostInput = dialogEl.querySelector('#scan-host');
   hostInput.focus();
-  hostInput.focus();
   hostInput.select();
   hostInput.addEventListener('click', () => hostInput.select());
 
