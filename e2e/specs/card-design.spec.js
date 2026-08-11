@@ -23,7 +23,9 @@ async function skipOnboarding(page) {
 }
 
 
-// 1. Icon size — assert .tile-icon img has proportional bounding box (100-200px)
+// 1. Icon size — assert .tile-icon img has a proportional bounding box.
+//    Desktop/tablet square tiles show a large icon (fills the tile);
+//    mobile (< 600px) uses compact row tiles with a smaller icon badge.
 
 test('tile icon has proportional bounding box', async ({ page, request }) => {
   await seedConfig(request, [
@@ -36,10 +38,19 @@ test('tile icon has proportional bounding box', async ({ page, request }) => {
   const box = await iconImg.boundingBox();
 
   expect(box).not.toBeNull();
-  expect(box.width).toBeGreaterThanOrEqual(100);
-  expect(box.width).toBeLessThanOrEqual(370);
-  expect(box.height).toBeGreaterThanOrEqual(100);
-  expect(box.height).toBeLessThanOrEqual(370);
+  if ((page.viewportSize()?.width ?? 1280) < 600) {
+    // Mobile compact row tile: 52px icon badge beside the label
+    expect(box.width).toBeGreaterThanOrEqual(40);
+    expect(box.width).toBeLessThanOrEqual(120);
+    expect(box.height).toBeGreaterThanOrEqual(40);
+    expect(box.height).toBeLessThanOrEqual(120);
+  } else {
+    // Square tile: icon fills most of the tile (100-370px)
+    expect(box.width).toBeGreaterThanOrEqual(100);
+    expect(box.width).toBeLessThanOrEqual(370);
+    expect(box.height).toBeGreaterThanOrEqual(100);
+    expect(box.height).toBeLessThanOrEqual(370);
+  }
 });
 
 // ---------------------------------------------------------------------------
