@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/RouHim/strandgut/compare/v1.3.24...v1.4.0) (2026-08-11)
+
+
+### Features
+
+* **brand:** replace flip-flop logo with beach icon ([66de672](https://github.com/RouHim/strandgut/commit/66de67237ac8b58f63339a515a3916dd9ce7b38e)), closes [#428248](https://github.com/RouHim/strandgut/issues/428248)
+
 ## [1.3.24](https://github.com/RouHim/strandgut/compare/v1.3.23...v1.3.24) (2026-08-11)
 
 
