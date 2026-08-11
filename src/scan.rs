@@ -1,12 +1,12 @@
 //! Async TCP port scanner with service fingerprinting.
 
-use crate::error::AppError;
-use serde::Serialize;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::task::{Context, Poll};
 use std::time::Duration;
+
+use serde::Serialize;
 
 use tokio::net::TcpStream;
 use tokio::sync::Semaphore;
@@ -14,6 +14,8 @@ use tokio::sync::mpsc;
 use tokio::time::{Interval, timeout};
 
 use hyper::body::{Body, Bytes, Frame};
+
+use crate::error::AppError;
 
 /// Create a shared HTTP agent with sensible defaults for service fingerprinting.
 ///

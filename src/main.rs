@@ -8,10 +8,11 @@ mod routes;
 mod scan;
 mod spa;
 
-use http_body_util::BodyExt;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
+
+use http_body_util::BodyExt;
 use tokio::net::TcpListener;
 
 /// Shared application state accessible from all request handlers.
