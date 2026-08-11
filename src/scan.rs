@@ -6,14 +6,12 @@ use std::sync::{Arc, OnceLock};
 use std::task::{Context, Poll};
 use std::time::Duration;
 
+use hyper::body::{Body, Bytes, Frame};
 use serde::Serialize;
-
 use tokio::net::TcpStream;
 use tokio::sync::Semaphore;
 use tokio::sync::mpsc;
 use tokio::time::{Interval, timeout};
-
-use hyper::body::{Body, Bytes, Frame};
 
 use crate::error::AppError;
 
