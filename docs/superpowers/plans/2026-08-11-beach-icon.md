@@ -1,0 +1,191 @@
+# Beach Icon Implementation Plan
+
+**Goal:** Replace Strandgut's flip-flop brand mark with the beach icon (SVG Repo #428248), recolored to the brand palette, in `assets/img/logo.svg` and `.github/readme/banner.svg`.
+**Architecture:** Pure asset replacement at the same paths. No HTML, CSS, Rust, or config changes: `index.html` references `/assets/img/logo.svg` (favicon, header, onboarding) and `src/spa.rs` embeds it via `include_bytes!`, so only the file contents change. The banner embeds the icon artwork inline.
+**Tech Stack:** SVG (hand-authored, no tooling), Rust build for verification.
+
+## Plain-Language Summary
+
+**What this does:** Replaces the app's flip-flop icon with a beach scene (water, sand, palm) recolored to match Strandgut's teal and amber brand colors. Shows up in the browser tab icon, the app header, the onboarding screen, and the GitHub banner.
+
+**Why this way:** You picked the brand color swap: teal sea, amber sand, olive palm. The artwork keeps every original shape (only colors change, matching how the flip-flop was branded), the 42KB Illustrator cruft in the download is stripped so the icon file is ~6KB, and the banner gets the same icon at the same 128px size so the whole brand stays consistent.
+
+**How it fits together:** Task 1 writes the new `logo.svg`; Task 2 swaps the banner's embedded artwork; Task 3 verifies the SVGs render, the Rust build still passes (the binary embeds the icon), and the running app actually shows the new icon in the header.
+
+**What success looks like:** Opening the app shows a teal-and-amber beach circle in the top-left header and in the onboarding panel; the browser tab shows the same mark; the GitHub README banner shows the beach icon next to "Strandgut"; `cargo test`, `cargo clippy`, and the e2e suite stay green.
+
+## File Map
+
+| File | Action | Responsibility | Depends On |
+|---|---|---|---|
+| `assets/img/logo.svg` | Modify (overwrite) | Favicon, header mark, onboarding mark artwork | None |
+| `.github/readme/banner.svg` | Modify | README banner artwork | Task 1 output (icon block reused) |
+| `docs/superpowers/specs/2026-08-11-beach-icon-design.md` | Create (done) | Design record: color mapping, rationale, verification | None |
+
+## Assumptions
+
+- Brand palette: teal `#306860`, light teal `#6FB3A2`, amber `#E9A95E`, cream `#F6DFB8`, olive `#7C9E3A` family, warm brown `#7A5440` family. Chosen by user ("brand color swap") and validated visually at 300/36/16px.
+- Out of scope: `assets/img/background.webp` (background photo, not an icon), all HTML/CSS/Rust files, e2e specs (verified: no test references the logo).
+- Banner icon placement: `translate(52, 25) scale(1.28)` (100-unit art to 128px; rendered left edge is 45.6, 6.4px left of the previous icon's 52; vertical offset 25 centers the circle on the text block). Amber glow circle retained at `r=70` following the beach circle center (45,61).
+- Source: https://www.svgrepo.com/download/428248/beach.svg (43KB download; real art ~1.1KB, rest is an embedded `<i:pgf>` Adobe Illustrator CDATA blob, DOCTYPE/entity cruft, and a `<switch>`/`<foreignObject>` wrapper, all stripped).
+
+## Research Notes
+
+- **Logo locations:** grep found `logo.svg` referenced in `assets/index.html` (favicon line 21, header line 27, onboarding line 96), `assets/css/layout.css` (`.logo-icon`, `.onboarding__mark` size rules), `src/spa.rs` (`include_bytes!` embed + MIME test at line 220), and `README.md` (banner URL). Decision: overwrite file contents only; zero code changes.
+- **e2e impact:** no matches for `logo|favicon|brand|onboarding__mark` in `e2e/specs`. Decision: no test changes; existing suite must stay green.
+- **Color tuning:** two visual QA passes on rendered PNGs. Stock greens were too saturated (muted to olive), stock trunk merged into the dark sand patch (lightened trunk and dune). Wave strokes lightened for contrast. Decision: mapping in the spec doc.
+
+## Constitution Check
+
+- AGENTS.md conventions: no `unwrap()`, no `anyhow` (no Rust code touched), no `#[allow(dead_code)]` (N/A). `include_bytes!` embed path unchanged. Zero-warning gate enforced via verification.
+- No em-dashes in new files (spec doc checked; plan uses hyphens).
+- No fallback logic, no new I/O paths.
+
+## Tasks
+
+### Task 1: Replace `assets/img/logo.svg` with the brand-swapped beach icon
+
+- **Files:** Modify `assets/img/logo.svg` (full overwrite)
+- **Depends on:** None
+- **Parallel:** no (Task 2 reuses this artwork)
+- **Steps:**
+  1. Overwrite `assets/img/logo.svg` with exactly this content (verified render target; all paths and shapes preserved from the source, only fills changed):
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Beach icon: SVG Repo (www.svgrepo.com, #428248), recolored to Strandgut brand palette. -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="-5 11 100 100" width="100" height="100">
+<g>
+		<circle fill="#306860" cx="45" cy="61" r="50"/>
+		<g>
+			<defs>
+				<circle id="SVGID_1_" cx="45" cy="61" r="50"/>
+			</defs>
+			<clipPath id="SVGID_2_">
+				<use xlink:href="#SVGID_1_"  overflow="visible"/>
+			</clipPath>
+			<path clip-path="url(#SVGID_2_)" fill="#E9A95E" d="M5.4,97.4c0,0,3.6-3.8,3.8-7.9s3.1-7.1,5.5-8.8s6.1-5.3,6.6-8.9
+				s3.5-8.6,13.6-10.6s6.8-4.4,19.6-5s17.7,3.2,26.4,3s12,2,17.1,7.2s-1,39.9-35.8,48.9S5.4,97.4,5.4,97.4z"/>
+			<g clip-path="url(#SVGID_2_)">
+				<defs>
+					<path id="SVGID_3_" d="M5.4,97.4c0,0,3.6-3.8,3.8-7.9s3.1-7.1,5.5-8.8s6.1-5.3,6.6-8.9s3.5-8.6,13.6-10.6s6.8-4.4,19.6-5
+						s17.7,3.2,26.4,3s12,2,17.1,7.2s-1,39.9-35.8,48.9S5.4,97.4,5.4,97.4z"/>
+				</defs>
+				<clipPath id="SVGID_4_">
+					<use xlink:href="#SVGID_3_"  overflow="visible"/>
+				</clipPath>
+				<path clip-path="url(#SVGID_4_)" fill="#F6DFB8" d="M4.1,99c0,0,8.3-0.4,11.2-8.9c2.1-6.3,8.1-2.9,11.8-8.9s-0.1-6.7,4.6-12.9
+					s20.6-0.5,23.2-8.3s6,8.5,16.6,8.9s12.3-8.1,24.9-1.5s10.5,12,10.5,12l4.7-33.2c0,0-85.3-15.1-113.8,46.7S4.1,99,4.1,99z"/>
+				<path clip-path="url(#SVGID_4_)" fill="#DDB37A" d="M106.3,124.3c3.5-9.7-0.8-29.6-16.5-38c-2.3-1.2-13.1,1.5-15.4,0.7
+					c-7-2.5-8.8,3.7-15,3.9c-10.3,0.3-18.2,1.9-20.7,8.8c-4.1,11.2,7.8,25.7,26.5,32.5C83.8,139,102.3,135.5,106.3,124.3z"/>
+				<path clip-path="url(#SVGID_4_)" fill="#C99B63" d="M31.5,105c1.4,0,2.5-1.1,2.5-2.5s-1.1-2.5-2.5-2.5s-2.5,1.1-2.5,2.5
+					S30.1,105,31.5,105z M22.5,94c0.8,0,1.5-0.7,1.5-1.5S23.3,91,22.5,91S21,91.7,21,92.5S21.7,94,22.5,94z M62,88c1.1,0,2-0.9,2-2
+					s-0.9-2-2-2s-2,0.9-2,2S60.9,88,62,88z M39.5,83c0.8,0,1.5-0.7,1.5-1.5S40.3,80,39.5,80S38,80.7,38,81.5S38.7,83,39.5,83z
+					 M89.5,76c0.8,0,1.5-0.7,1.5-1.5S90.3,73,89.5,73S88,73.7,88,74.5S88.7,76,89.5,76z"/>
+				<circle clip-path="url(#SVGID_4_)" fill="#C9A06B" cx="45.5" cy="98.2" r="1.5"/>
+				<circle clip-path="url(#SVGID_4_)" fill="#C9A06B" cx="57.5" cy="104.2" r="1.5"/>
+			</g>
+			<path clip-path="url(#SVGID_2_)" fill="#7A5440" d="M97.6,101.5c0,0-14.8-3.7-25.7-33s-5.9-4-5.9-4s-3.7,15,8.4,38.2
+				S97.6,101.5,97.6,101.5z"/>
+			<g clip-path="url(#SVGID_2_)">
+				<defs>
+					<path id="SVGID_5_" d="M97.6,101.5c0,0-14.8-3.7-25.7-33s-5.9-4-5.9-4s-3.7,15,8.4,38.2S97.6,101.5,97.6,101.5z"/>
+				</defs>
+				<clipPath id="SVGID_6_">
+					<use xlink:href="#SVGID_5_"  overflow="visible"/>
+				</clipPath>
+				<polygon clip-path="url(#SVGID_6_)" fill="#634434" points="82.5,83.6 78.3,94 65,90.2 62,45.3 				"/>
+				<polygon clip-path="url(#SVGID_6_)" fill="#4A3026" points="78.5,74.7 74.1,85.3 63.8,81.1 63.7,45.6 				"/>
+			</g>
+				<ellipse transform="matrix(0.9976 6.975632e-02 -6.975632e-02 0.9976 4.9488 -4.0485)" clip-path="url(#SVGID_2_)" fill="#5E8027" cx="60.4" cy="68.8" rx="5" ry="6.5"/>
+				<ellipse transform="matrix(0.7771 -0.6293 0.6293 0.7771 -22.2109 61.6745)" clip-path="url(#SVGID_2_)" fill="#5E8027" cx="76" cy="62.2" rx="5" ry="6.5"/>
+				<ellipse transform="matrix(0.9744 -0.225 0.225 0.9744 -13.2486 17.5909)" clip-path="url(#SVGID_2_)" fill="#62892B" cx="70.6" cy="66.9" rx="5.3" ry="7"/>
+			<path clip-path="url(#SVGID_2_)" fill="#7C9E3A" d="M67.9,60.2c0,0-3.1,7.7-2.9,17c-3.4-3.7-4.3-9.1-5.3-12.1
+				c-2,1.5-7.3,8.5-7.3,14c-2.7-2.8-5-11.1-0.8-18.7c-2.4-1.3-3.2-1.7-6.4-1c0.4-3.7,3.6-8.2,14.1-8.3C60,46.6,67.2,40.4,71.5,41
+				c-2,3.3-1.2,6.1-1.2,6.1s11.1-2.5,16.6,3.6c-3.2,0-9.4,1.8-11,3.2c2.4,0.5,8.1,6,8.4,10.3C76.4,58.5,67.9,60.2,67.9,60.2z"/>
+			<path clip-path="url(#SVGID_2_)" fill="#7C9E3A" d="M52.5,79.6c-0.1,0-0.3-0.1-0.4-0.2c-2.9-3.1-5-11.5-1.1-18.8
+				c-2.1-1.1-2.7-1.3-5.6-0.7c-0.2,0-0.3,0-0.4-0.1c-0.1-0.1-0.2-0.3-0.2-0.4c0.3-2.6,2.2-8.6,14.2-8.7c1-4.7,8.2-10.7,12.6-10.1
+				c0.2,0,0.3,0.1,0.4,0.3s0.1,0.3,0,0.5c-1.4,2.3-1.4,4.4-1.3,5.2c0.9-0.2,2.7-0.4,4.9-0.4c3.6,0,8.5,0.7,11.7,4.3
+				c0.1,0.1,0.2,0.4,0.1,0.5s-0.3,0.3-0.5,0.3h0c-2.8,0-7.7,1.4-9.9,2.5c2.8,1.4,7.4,6.2,7.8,10.3c0,0.1,0,0.1,0,0.2
+				c0,0.3-0.2,0.5-0.5,0.5c0,0,0,0,0,0c-0.1,0-0.2,0-0.3-0.1c-4.8-3.4-9.7-4.1-13.1-4.1c-1.2,0-2.2,0.1-2.6,0.2
+				c-0.5,1.4-2.9,8.4-2.8,16.5c0,0.2-0.1,0.4-0.3,0.5c-0.2,0.1-0.4,0-0.6-0.1c-2.8-3.1-4-7.3-4.8-10.3c-0.1-0.4-0.2-0.8-0.3-1.2
+				C57.2,68,53,74.3,53,79.1c0,0.2-0.1,0.4-0.3,0.5C52.6,79.6,52.5,79.6,52.5,79.6z M47.8,58.5c1.5,0,2.6,0.5,4.1,1.4
+				c0.1,0.1,0.2,0.2,0.2,0.3c0,0.1,0,0.3,0,0.4c-3.8,6.8-2.1,13.9-0.1,17.1c0.7-5.3,5.3-11.6,7.4-13.1c0.1-0.1,0.3-0.1,0.4-0.1
+				c0.2,0,0.3,0.2,0.3,0.3c0.2,0.6,0.4,1.2,0.6,2c0.7,2.6,1.7,6.1,3.7,8.9c0.1-8.6,2.9-15.7,2.9-15.7c0.1-0.2,0.2-0.3,0.4-0.3
+				c0,0,1.2-0.2,3.1-0.2c3.3,0,8,0.7,12.7,3.6c-1-3.9-5.7-8.3-7.8-8.8c-0.2,0-0.3-0.2-0.4-0.4c0-0.2,0-0.4,0.2-0.5
+				c1.6-1.3,6.7-2.9,10.1-3.2c-2.9-2.6-7.1-3.2-10.2-3.2c-2.9,0-5.1,0.5-5.2,0.5c-0.3,0.1-0.5-0.1-0.6-0.4c0-0.1-0.6-2.7,0.9-5.7
+				c-4,0.3-10.2,5.8-10.8,9.7c0,0.2-0.2,0.4-0.5,0.4c-10.5,0-12.9,4.6-13.5,7.1C46.7,58.6,47.3,58.5,47.8,58.5z"/>
+			<path clip-path="url(#SVGID_2_)" fill="#6FB3A2" d="M-5.9,56c-0.1,0-0.1,0-0.2,0c-0.8-0.1-1.4-0.9-1.3-1.7
+				c0-0.1,1.6-10.9,16.5-11.7c0.8,0,1.5,0.6,1.6,1.4c0,0.8-0.6,1.5-1.4,1.6c-12.5,0.7-13.7,9-13.7,9.1C-4.6,55.5-5.2,56-5.9,56z"/>
+			<path clip-path="url(#SVGID_2_)" fill="#6FB3A2" d="M-4.1,84.5c0,0-0.1,0-0.1,0c-0.8-0.1-1.4-0.8-1.4-1.6
+				C-5.3,79.6-2.7,73,5,71.5c0.8-0.2,1.6,0.4,1.8,1.2s-0.4,1.6-1.2,1.8c-7.4,1.5-8.1,8.4-8.1,8.7C-2.6,83.9-3.3,84.5-4.1,84.5z"/>
+			<path clip-path="url(#SVGID_2_)" fill="#6FB3A2" d="M29.9,29.5c-0.3,0-0.5-0.1-0.8-0.2c-0.7-0.4-1-1.3-0.5-2.1
+				c0.2-0.4,5.7-9.4,19.5-7.8c0.8,0.1,1.4,0.8,1.3,1.7c-0.1,0.8-0.8,1.4-1.7,1.3c-11.9-1.4-16.5,6.3-16.6,6.4
+				C30.9,29.2,30.4,29.5,29.9,29.5z"/>
+			<path clip-path="url(#SVGID_2_)" fill="#6FB3A2" d="M22.4,55.2c-0.2,0-0.4,0-0.7-0.2c-0.7-0.4-1.1-1.3-0.7-2
+				c0.2-0.4,5.3-10.6,19.3-9.4c0.8,0.1,1.4,0.8,1.4,1.6c-0.1,0.8-0.8,1.4-1.6,1.4c-11.9-1-16.3,7.6-16.3,7.7
+				C23.5,54.9,22.9,55.2,22.4,55.2z"/>
+			<path clip-path="url(#SVGID_2_)" fill="#6FB3A2" d="M78.9,35.1c-0.4,0-0.8-0.2-1.1-0.5c-2.2-2.2-5-3.3-8.5-3.2
+				c-4.2,0.2-7.8,2-8.7,3c-0.5,0.6-1.5,0.7-2.1,0.2c-0.6-0.5-0.7-1.5-0.2-2.1c1.6-1.8,6.2-3.9,10.9-4.1c4.3-0.1,8,1.3,10.7,4.1
+				c0.6,0.6,0.6,1.5,0,2.1C79.6,35,79.2,35.1,78.9,35.1z"/>
+		</g>
+	</g>
+</svg>
+```
+
+  2. Confirm no `fill` value from the stock palette remains: the only fills present must be from `#306860, #6FB3A2, #E9A95E, #F6DFB8, #DDB37A, #C99B63, #C9A06B, #7C9E3A, #5E8027, #62892B, #7A5440, #634434, #4A3026`.
+
+- **Verification:**
+  - Command: `rsvg-convert -w 100 -h 100 assets/img/logo.svg -o /tmp/t1-logo.png`
+  - Expected: exit 0, no XML parse errors. Compare `/tmp/t1-logo.png` to the approved render: teal water circle, amber sand lower-right, olive palm right side.
+
+### Task 2: Update `.github/readme/banner.svg` icon group
+
+- **Files:** Modify `.github/readme/banner.svg`
+- **Depends on:** Task 1 (reuses the new artwork)
+- **Parallel:** no
+- **Steps:**
+  1. Add `xmlns:xlink="http://www.w3.org/1999/xlink"` to the root `<svg>` tag (the beach art uses `xlink:href` in clip paths):
+     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" ...>` becomes
+     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 800 200" ...>`.
+  2. Replace everything between the `<!-- Flip-flops icon (~128px rendered) -->` comment and the `<!-- Typography -->` comment (the entire `<g transform="translate(52, 36) scale(0.25)">...</g>` block, inclusive of the comment) with:
+
+```xml
+  <!-- Beach icon (~128px rendered) -->
+  <g transform="translate(52, 25) scale(1.28)">
+    <circle cx="45" cy="61" r="70" fill="rgba(244,163,64,0.04)" filter="url(#icon-glow)"/>
+    <INNER ART FROM assets/img/logo.svg>
+  </g>
+
+```
+
+     where `<INNER ART FROM assets/img/logo.svg>` is the content of the new `assets/img/logo.svg` between its root `<svg ...>` opening tag and its `</svg>` closing tag (the `<g>` wrapper containing all circles/paths), indented to match. Do not copy the `<?xml?>` declaration, the credit comment, or the root `<svg>` tag.
+  3. Leave all `<defs>` (gradients, filters), the background rects, the two `<text>` elements, and the accent `<line>` untouched.
+- **Verification:**
+  - Command: `rsvg-convert -w 800 -h 200 .github/readme/banner.svg -o /tmp/t2-banner.png`
+  - Expected: exit 0, no XML errors. Render shows: navy banner, beach circle icon on the left vertically centered against the text block, "Strandgut" title, tagline, amber accent bar. No leftover flip-flop paths (search the file for `00CC96`, `FFD796`, `C94545`, `E84F4F`: zero hits).
+
+### Task 3: Full verification gate
+
+- **Files:** none (read-only checks)
+- **Depends on:** Tasks 1-2
+- **Parallel:** no
+- **Steps:**
+  1. `cargo test` (logo is embedded via `include_bytes!`; the `spa.rs` `test_serve_asset_svg_mime` test exercises the embed path).
+  2. `cargo clippy -- -D warnings`.
+  3. `cargo fmt --check`.
+  4. Build and run the server, then verify the UI with Playwright (per AGENTS.md: no curl for UI verification). Use a fresh browser profile: close any existing tab (headless Chromium caches assets across tab sessions), open `http://localhost:13569/`, and assert:
+     - `.logo-icon` is visible and has `naturalWidth > 0` (SVG loaded, not broken);
+     - the favicon request for `/assets/img/logo.svg` returns 200;
+     - onboarding (if shown) displays the mark at 64px.
+  5. If the onboarding flow interferes, skip it via the existing spec mechanism (the e2e suite handles onboarding; a targeted Playwright script may call the same skip path).
+- **Verification:**
+  - Command: `cargo test && cargo clippy -- -D warnings && cargo fmt --check`
+  - Expected: 93/93 tests pass, zero clippy warnings, zero fmt diffs.
+  - Command: `CI= npx playwright test` (or targeted screenshot script against the running server)
+  - Expected: all e2e tests pass (175 tests, pre-existing skips unchanged), header logo screenshot shows the teal/amber beach mark.
+
+## Post-Implementation
+
+- Commit: `feat(brand): replace flip-flop logo with beach icon` (conventional commits per repo convention; includes `assets/img/logo.svg`, `.github/readme/banner.svg`, `docs/superpowers/specs/2026-08-11-beach-icon-design.md`).
+- Do not touch `assets/img/background.webp` or any code files.
