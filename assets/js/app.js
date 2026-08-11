@@ -1,5 +1,5 @@
 import { loadConfig, saveConfig, escapeHtml } from './api.js';
-import { getConfig, setConfig, isConfigDirty, markClean, toggleEditMode, getServices } from './state.js';
+import { getConfig, setConfig, isConfigDirty, markClean, getServices } from './state.js';
 import { openAddDialog } from './add-dialog.js';
 import { renderGrid } from './grid.js';
 import { initDrag } from './drag.js';
