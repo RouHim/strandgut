@@ -23,7 +23,9 @@ async function skipOnboarding(page) {
 }
 
 
-// 1. Icon size — assert .tile-icon img has proportional bounding box (100-200px)
+// 1. Icon size — assert .tile-icon img has a proportional bounding box.
+//    Tiles are square at every breakpoint (icon fills the tile above the
+//    label), so the same bounds apply on desktop, tablet, and mobile.
 
 test('tile icon has proportional bounding box', async ({ page, request }) => {
   await seedConfig(request, [
@@ -84,16 +86,16 @@ test('tiles are centered at 1280px viewport with 2 services', async ({ page, req
 });
 
 // ---------------------------------------------------------------------------
-// 4. Responsive mobile – single-column stack at Pixel 5 viewport
+// 4. Responsive mobile – two tiles per row at Pixel 5 viewport
 // ---------------------------------------------------------------------------
 
-test('tiles stack in a single column at mobile viewport', async ({ page, request }) => {
+test('tiles render two per row at mobile viewport', async ({ page, request }) => {
   await page.setViewportSize({ width: 393, height: 851 });
   await seedConfig(request, [
     { name: 'Service A', url: 'http://a.local', icon: null, description: null, position: { row: 0, col: 0 } },
-    { name: 'Service B', url: 'http://b.local', icon: null, description: null, position: { row: 1, col: 0 } },
-    { name: 'Service C', url: 'http://c.local', icon: null, description: null, position: { row: 2, col: 0 } },
-    { name: 'Service D', url: 'http://d.local', icon: null, description: null, position: { row: 3, col: 0 } },
+    { name: 'Service B', url: 'http://b.local', icon: null, description: null, position: { row: 0, col: 1 } },
+    { name: 'Service C', url: 'http://c.local', icon: null, description: null, position: { row: 1, col: 0 } },
+    { name: 'Service D', url: 'http://d.local', icon: null, description: null, position: { row: 1, col: 1 } },
   ]);
   await page.goto('/');
   await skipOnboarding(page);
@@ -101,11 +103,16 @@ test('tiles stack in a single column at mobile viewport', async ({ page, request
   const tiles = page.locator('[data-testid="tile"]');
   const box0 = await tiles.nth(0).boundingBox();
   const box1 = await tiles.nth(1).boundingBox();
+  const box2 = await tiles.nth(2).boundingBox();
 
   expect(box0).not.toBeNull();
   expect(box1).not.toBeNull();
-  // Second tile appears below the first (single-column layout)
-  expect(box1.y).toBeGreaterThanOrEqual(box0.y + box0.height - 2);
+  expect(box2).not.toBeNull();
+
+  // Tiles 0 and 1 are on the same row (similar y)
+  expect(Math.abs(box0.y - box1.y)).toBeLessThanOrEqual(8);
+  // Tile 2 starts a new row (below tile 0's row)
+  expect(box2.y).toBeGreaterThanOrEqual(box0.y + box0.height - 2);
 });
 
 // ---------------------------------------------------------------------------

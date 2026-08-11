@@ -84,7 +84,7 @@ pub fn serve_asset(path: &str) -> Result<Response<BoxBody>, AppError> {
                 .boxed_unsync();
             Ok(Response::builder()
                 .header(header::CONTENT_TYPE, content_type)
-                .header(header::CACHE_CONTROL, "public, max-age=3600")
+                .header(header::CACHE_CONTROL, "no-cache")
                 .body(body)
                 .expect("asset response built from valid parts"))
         }
@@ -186,7 +186,7 @@ mod tests {
         );
         assert_eq!(
             resp.headers().get(header::CACHE_CONTROL).unwrap(),
-            "public, max-age=3600"
+            "no-cache"
         );
     }
 
@@ -201,7 +201,7 @@ mod tests {
         );
         assert_eq!(
             resp.headers().get(header::CACHE_CONTROL).unwrap(),
-            "public, max-age=3600"
+            "no-cache"
         );
     }
 
@@ -231,7 +231,7 @@ mod tests {
         assert_eq!(resp.status(), 200);
         assert_eq!(
             resp.headers().get(header::CACHE_CONTROL).unwrap(),
-            "public, max-age=3600"
+            "no-cache"
         );
     }
 
