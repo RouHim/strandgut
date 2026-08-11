@@ -438,7 +438,7 @@ mod tests {
         assert_eq!(results[0].service_name.as_deref(), Some("Home Assistant"));
         assert_eq!(results[0].icon_slug.as_deref(), Some("home-assistant"));
         assert_eq!(results[0].title.as_deref(), Some("Home Assistant"));
-        assert_eq!(results[0].reachable, true);
+        assert!(results[0].reachable);
     }
 
     #[test]
@@ -480,7 +480,7 @@ mod tests {
         assert_eq!(r.port, port);
         assert_eq!(r.service_name.as_deref(), Some("Pi-hole"));
         assert_eq!(r.title.as_deref(), Some("Pi-hole"));
-        assert_eq!(r.reachable, true);
+        assert!(r.reachable);
     }
 
     #[tokio::test]
@@ -499,7 +499,7 @@ mod tests {
         assert_eq!(r.port, port);
         assert_eq!(r.service_name, None);
         assert_eq!(r.title, None);
-        assert_eq!(r.reachable, false);
+        assert!(!r.reachable);
     }
 
     async fn collect_sse_body_poll(mut body: SseScanBody) -> Vec<String> {
@@ -822,7 +822,7 @@ mod tests {
         // RED: currently passes because fetch_http_info rejects 3xx.
         // Once redirect following lands, this guards against infinite loops.
         assert_eq!(results[0].service_name, None);
-        assert_eq!(results[0].reachable, false);
+        assert!(!results[0].reachable);
     }
 
     #[tokio::test]
@@ -842,7 +842,7 @@ mod tests {
         // RED: currently passes because fetch_http_info gracefully handles
         // invalid HTTP by returning None. Regression guard for future changes.
         assert_eq!(r.service_name, None);
-        assert_eq!(r.reachable, false);
+        assert!(!r.reachable);
     }
 
     // === Title edge case tests (RED: extract_title is a naive <title> search) ===
@@ -980,6 +980,6 @@ mod tests {
         assert_eq!(results[0].port, port);
         assert_eq!(results[0].service_name, None);
         assert_eq!(results[0].title.as_deref(), Some("& My Dashboard & More"));
-        assert_eq!(results[0].reachable, true);
+        assert!(results[0].reachable);
     }
 }
