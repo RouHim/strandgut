@@ -885,56 +885,25 @@ a.scan-result-card__meta:hover {
   font-size: 0.875rem;
 }
 
-/* ─── Mobile tile layout (compact horizontal rows) ───
+/* ─── Mobile tile layout (2-up grid, icon above label) ───
    Lives here, not in layout.css: components.css loads after layout.css,
    so same-specificity tile rules in layout.css would lose the cascade.
 
-   Mobile tiles are balanced rows: a 52px icon badge beside a prominent,
-   up-to-2-line label. Radius stays radius-lg (same as desktop tiles) so the
-   corner-radius system is consistent across breakpoints. */
+   Mobile tiles reuse the desktop square-tile pattern (icon above, label
+   below) at 2 per row; only the press feedback and 2-line label clamp
+   differ from the base .tile rule. */
 @media (max-width: 599px) {
-  .tile {
-    flex-direction: row;
-    align-items: center;
-    text-align: left;
-    gap: var(--space-4);
-    aspect-ratio: auto;
-    min-height: 76px;
-    padding: var(--space-3) var(--space-4);
-    border-radius: var(--radius-lg);
-  }
-
-  /* Tactile press feedback. Uses filter, not transform: the wash-ashore
-     entrance animation fills forwards and would override a transform. */
   .tile:active {
     filter: brightness(0.94);
     transition: filter 0.12s ease;
   }
 
-  .tile-icon {
-    flex: none;
-    width: 52px;
-    height: 52px;
-  }
-
-  .tile-info {
-    flex: 1;
-    min-width: 0;
-    align-items: flex-start;
-  }
-
   .tile-title {
-    text-align: left;
-    font-size: 1.0625rem;
-    line-height: 1.35;
+    font-size: 0.9375rem;
+    line-height: 1.3;
     white-space: normal;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-  }
-
-  /* In edit mode keep names clear of the absolutely-positioned controls */
-  .edit-mode .tile-info {
-    padding-right: 84px;
   }
 }
