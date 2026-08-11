@@ -90,7 +90,6 @@ html {
   --color-accent-ring: rgba(244, 163, 64, 0.28);
 
   /* Legacy tokens for backward compatibility with style.css */
-  --color-bg: #f5f0e8;
   --color-text: #2c2420;
   --color-text-secondary: #8a7e76;
 
