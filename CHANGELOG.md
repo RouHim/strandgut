@@ -1,3 +1,16 @@
+# [1.5.0](https://github.com/RouHim/strandgut/compare/v1.4.0...v1.5.0) (2026-08-11)
+
+
+### Bug Fixes
+
+* **spa:** serve embedded assets with no-cache so redeploys are always visible ([d85d3c7](https://github.com/RouHim/strandgut/commit/d85d3c7e8da86c9ff0cadc072cc0de57e2c2e20a))
+
+
+### Features
+
+* **ui:** compact balanced mobile service tiles ([4f42f1e](https://github.com/RouHim/strandgut/commit/4f42f1e3a3b960a09a73e161abd8f00813f6a099))
+* **ui:** two-up mobile tile grid with icon above label ([5671b46](https://github.com/RouHim/strandgut/commit/5671b46a9207a224392bd8f7a882e74a97448db6))
+
 # [1.4.0](https://github.com/RouHim/strandgut/compare/v1.3.24...v1.4.0) (2026-08-11)
 
 
