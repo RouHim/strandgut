@@ -142,81 +142,9 @@ where
             ))
         }
 
-        Route::ConfigGet => {
-            if method == Method::GET {
-                let config = Config::load(state.config_path.as_ref())
-                    .map_err(|e| AppError::Internal(e.to_string()))?;
-                let value = serde_json::to_value(&config)?;
-                Ok(json_response(StatusCode::OK, &value))
-            } else if method == Method::PUT {
-                let body_bytes = read_body(req.into_body()).await?;
-                let config: Config = serde_json::from_slice(&body_bytes)
-                    .map_err(|e| AppError::BadRequest(e.to_string()))?;
-                config
-                    .save(state.config_path.as_ref())
-                    .map_err(|e| AppError::Internal(e.to_string()))?;
-                let value = serde_json::to_value(&config)?;
-                Ok(json_response(StatusCode::OK, &value))
-            } else {
-                Ok(method_not_allowed())
-            }
-        }
+        Route::ConfigGet => handle_config_get(req, method, state).await,
 
-        Route::ScanStart => {
-            if method != Method::POST {
-                return Ok(method_not_allowed());
-            }
-
-            let was_running = state
-                .scan_in_progress
-                .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-                .is_err();
-
-            if was_running {
-                return Ok(json_response(
-                    StatusCode::CONFLICT,
-                    &serde_json::json!({"error": "scan already in progress"}),
-                ));
-            }
-
-            let body_bytes = match read_body(req.into_body()).await {
-                Ok(b) => b,
-                Err(e) => {
-                    state.scan_in_progress.store(false, Ordering::SeqCst);
-                    return Err(e);
-                }
-            };
-
-            let scan_req: ScanRequest = match serde_json::from_slice(&body_bytes) {
-                Ok(r) => r,
-                Err(e) => {
-                    state.scan_in_progress.store(false, Ordering::SeqCst);
-                    return Err(AppError::BadRequest(e.to_string()));
-                }
-            };
-
-            let ports = scan_req
-                .ports
-                .unwrap_or_else(|| crate::scan::get_ports(&scan_req.depth));
-
-            let stream = crate::scan::scan_with_sse(
-                scan_req.host,
-                ports,
-                ScanInProgress(state.scan_in_progress.clone()),
-            )
-            .await;
-
-            let body = stream.map_err(|never| match never {}).boxed_unsync();
-
-            Ok(Response::builder()
-                .status(StatusCode::OK)
-                .header("Content-Type", "text/event-stream")
-                .header("Cache-Control", "no-cache")
-                .header("Connection", "keep-alive")
-                .header("X-Accel-Buffering", "no")
-                .body(body)
-                .expect("SSE response built from valid parts"))
-        }
+        Route::ScanStart => handle_scan_start(req, state).await,
 
         Route::Assets => {
             if method != Method::GET {
@@ -226,113 +154,11 @@ where
             spa::serve_asset(asset_path)
         }
 
-        Route::BackgroundStatus => {
-            if method != Method::GET {
-                return Ok(method_not_allowed());
-            }
-            let config = Config::load(state.config_path.as_ref())
-                .map_err(|e| AppError::Internal(e.to_string()))?;
-            let status = {
-                let bg = state
-                    .background
-                    .lock()
-                    .map_err(|_| AppError::Internal("background state mutex poisoned".into()))?;
-                background::get_background_status(&bg, &config)
-            };
+        Route::BackgroundStatus => handle_background_status(method, state).await,
 
-            if config.background_rotate {
-                let needs_fetch = {
-                    let bg = state.background.lock().map_err(|_| {
-                        AppError::Internal("background state mutex poisoned".into())
-                    })?;
-                    let has_cache = bg.cached_path.is_some();
-                    let is_stale = bg
-                        .last_fetch
-                        .map(|t| t.elapsed().as_secs() > background::ROTATION_INTERVAL_SECS)
-                        .unwrap_or(true);
-                    let not_in_progress = !bg.fetch_in_progress.load(Ordering::SeqCst);
-                    not_in_progress && (!has_cache || is_stale)
-                };
+        Route::BackgroundPhoto => handle_background_photo(method, state).await,
 
-                if needs_fetch {
-                    let bg = Arc::clone(&state.background);
-                    let cfg = config.clone();
-                    let path = Arc::clone(&state.config_path);
-                    tokio::task::spawn(async move {
-                        let _ =
-                            background::try_fetch_and_cache_async(bg, Arc::new(cfg), path).await;
-                    });
-                }
-            }
-
-            Ok(json_response(
-                StatusCode::OK,
-                &serde_json::to_value(&status)?,
-            ))
-        }
-
-        Route::BackgroundPhoto => {
-            if method != Method::GET {
-                return Ok(method_not_allowed());
-            }
-            let cache_dir = background::get_cache_dir(state.config_path.as_ref());
-            match background::read_cached_photo(&cache_dir.join("background.jpg")) {
-                Ok(bytes) => {
-                    let body = http_body_util::Full::new(Bytes::from(bytes))
-                        .map_err(|never| match never {})
-                        .boxed_unsync();
-                    Ok(Response::builder()
-                        .status(StatusCode::OK)
-                        .header("Content-Type", "image/jpeg")
-                        .header("Cache-Control", "no-cache")
-                        .body(body)
-                        .expect("photo response built from valid parts"))
-                }
-                Err(_) => {
-                    let empty = http_body_util::Full::new(Bytes::new())
-                        .map_err(|never| match never {})
-                        .boxed_unsync();
-                    Ok(Response::builder()
-                        .status(StatusCode::NO_CONTENT)
-                        .body(empty)
-                        .expect("204 response built from valid parts"))
-                }
-            }
-        }
-
-        Route::IconSearch => {
-            if method != Method::GET {
-                return Ok(method_not_allowed());
-            }
-
-            // Parse `q` query parameter from the URI.
-            let query = req
-                .uri()
-                .query()
-                .and_then(|qs| {
-                    qs.split('&').find_map(|pair| {
-                        let mut kv = pair.splitn(2, '=');
-                        match (kv.next(), kv.next()) {
-                            (Some("q"), Some(v)) => Some(v.to_string()),
-                            _ => None,
-                        }
-                    })
-                })
-                .unwrap_or_default();
-
-            if query.is_empty() {
-                return Ok(json_response(StatusCode::OK, &serde_json::json!([])));
-            }
-
-            // Non-blocking freshness check; spawns background refresh if stale.
-            state.icon_cache.ensure_fresh();
-
-            let results = state.icon_cache.search(&query, 50)?;
-            Ok(json_response(
-                StatusCode::OK,
-                &serde_json::to_value(&results)?,
-            ))
-        }
+        Route::IconSearch => handle_icon_search(req, method, state).await,
 
         Route::SpaFallback => {
             if path.starts_with("/api/") {
@@ -341,6 +167,221 @@ where
             spa::serve_index()
         }
     }
+}
+
+async fn handle_config_get<B>(
+    req: Request<B>,
+    method: Method,
+    state: Arc<AppState>,
+) -> Result<Response<BoxBody>, AppError>
+where
+    B: BodyExt + Send + 'static,
+    B::Error: std::fmt::Display,
+{
+    if method == Method::GET {
+        let config = Config::load(state.config_path.as_ref())
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let value = serde_json::to_value(&config)?;
+        Ok(json_response(StatusCode::OK, &value))
+    } else if method == Method::PUT {
+        let body_bytes = read_body(req.into_body()).await?;
+        let config: Config =
+            serde_json::from_slice(&body_bytes).map_err(|e| AppError::BadRequest(e.to_string()))?;
+        config
+            .save(state.config_path.as_ref())
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let value = serde_json::to_value(&config)?;
+        Ok(json_response(StatusCode::OK, &value))
+    } else {
+        Ok(method_not_allowed())
+    }
+}
+
+async fn handle_scan_start<B>(
+    req: Request<B>,
+    state: Arc<AppState>,
+) -> Result<Response<BoxBody>, AppError>
+where
+    B: BodyExt + Send + 'static,
+    B::Error: std::fmt::Display,
+{
+    let method = req.method().clone();
+
+    if method != Method::POST {
+        return Ok(method_not_allowed());
+    }
+
+    let was_running = state
+        .scan_in_progress
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err();
+
+    if was_running {
+        return Ok(json_response(
+            StatusCode::CONFLICT,
+            &serde_json::json!({"error": "scan already in progress"}),
+        ));
+    }
+
+    let body_bytes = match read_body(req.into_body()).await {
+        Ok(b) => b,
+        Err(e) => {
+            state.scan_in_progress.store(false, Ordering::SeqCst);
+            return Err(e);
+        }
+    };
+
+    let scan_req: ScanRequest = match serde_json::from_slice(&body_bytes) {
+        Ok(r) => r,
+        Err(e) => {
+            state.scan_in_progress.store(false, Ordering::SeqCst);
+            return Err(AppError::BadRequest(e.to_string()));
+        }
+    };
+
+    let ports = scan_req
+        .ports
+        .unwrap_or_else(|| crate::scan::get_ports(&scan_req.depth));
+
+    let stream = crate::scan::scan_with_sse(
+        scan_req.host,
+        ports,
+        ScanInProgress(state.scan_in_progress.clone()),
+    )
+    .await;
+
+    let body = stream.map_err(|never| match never {}).boxed_unsync();
+
+    Ok(Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", "text/event-stream")
+        .header("Cache-Control", "no-cache")
+        .header("Connection", "keep-alive")
+        .header("X-Accel-Buffering", "no")
+        .body(body)
+        .expect("SSE response built from valid parts"))
+}
+
+async fn handle_background_status(
+    method: Method,
+    state: Arc<AppState>,
+) -> Result<Response<BoxBody>, AppError> {
+    if method != Method::GET {
+        return Ok(method_not_allowed());
+    }
+    let config =
+        Config::load(state.config_path.as_ref()).map_err(|e| AppError::Internal(e.to_string()))?;
+    let status = {
+        let bg = state
+            .background
+            .lock()
+            .map_err(|_| AppError::Internal("background state mutex poisoned".into()))?;
+        background::get_background_status(&bg, &config)
+    };
+
+    if config.background_rotate {
+        let needs_fetch = {
+            let bg = state
+                .background
+                .lock()
+                .map_err(|_| AppError::Internal("background state mutex poisoned".into()))?;
+            let has_cache = bg.cached_path.is_some();
+            let is_stale = bg
+                .last_fetch
+                .map(|t| t.elapsed().as_secs() > background::ROTATION_INTERVAL_SECS)
+                .unwrap_or(true);
+            let not_in_progress = !bg.fetch_in_progress.load(Ordering::SeqCst);
+            not_in_progress && (!has_cache || is_stale)
+        };
+
+        if needs_fetch {
+            let bg = Arc::clone(&state.background);
+            let cfg = config.clone();
+            let path = Arc::clone(&state.config_path);
+            tokio::task::spawn(async move {
+                let _ = background::try_fetch_and_cache_async(bg, Arc::new(cfg), path).await;
+            });
+        }
+    }
+
+    Ok(json_response(
+        StatusCode::OK,
+        &serde_json::to_value(&status)?,
+    ))
+}
+
+async fn handle_background_photo(
+    method: Method,
+    state: Arc<AppState>,
+) -> Result<Response<BoxBody>, AppError> {
+    if method != Method::GET {
+        return Ok(method_not_allowed());
+    }
+    let cache_dir = background::get_cache_dir(state.config_path.as_ref());
+    match background::read_cached_photo(&cache_dir.join("background.jpg")) {
+        Ok(bytes) => {
+            let body = http_body_util::Full::new(Bytes::from(bytes))
+                .map_err(|never| match never {})
+                .boxed_unsync();
+            Ok(Response::builder()
+                .status(StatusCode::OK)
+                .header("Content-Type", "image/jpeg")
+                .header("Cache-Control", "no-cache")
+                .body(body)
+                .expect("photo response built from valid parts"))
+        }
+        Err(_) => {
+            let empty = http_body_util::Full::new(Bytes::new())
+                .map_err(|never| match never {})
+                .boxed_unsync();
+            Ok(Response::builder()
+                .status(StatusCode::NO_CONTENT)
+                .body(empty)
+                .expect("204 response built from valid parts"))
+        }
+    }
+}
+
+async fn handle_icon_search<B>(
+    req: Request<B>,
+    method: Method,
+    state: Arc<AppState>,
+) -> Result<Response<BoxBody>, AppError>
+where
+    B: BodyExt + Send + 'static,
+    B::Error: std::fmt::Display,
+{
+    if method != Method::GET {
+        return Ok(method_not_allowed());
+    }
+
+    // Parse `q` query parameter from the URI.
+    let query = req
+        .uri()
+        .query()
+        .and_then(|qs| {
+            qs.split('&').find_map(|pair| {
+                let mut kv = pair.splitn(2, '=');
+                match (kv.next(), kv.next()) {
+                    (Some("q"), Some(v)) => Some(v.to_string()),
+                    _ => None,
+                }
+            })
+        })
+        .unwrap_or_default();
+
+    if query.is_empty() {
+        return Ok(json_response(StatusCode::OK, &serde_json::json!([])));
+    }
+
+    // Non-blocking freshness check; spawns background refresh if stale.
+    state.icon_cache.ensure_fresh();
+
+    let results = state.icon_cache.search(&query, 50)?;
+    Ok(json_response(
+        StatusCode::OK,
+        &serde_json::to_value(&results)?,
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -878,6 +919,71 @@ mod tests {
             )),
             icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
         });
+
+        let resp = handle_request(req, state).await.unwrap();
+        assert_eq!(resp.status(), 405);
+        Ok(())
+    }
+
+    fn icon_search_state() -> Arc<AppState> {
+        let dir = std::env::temp_dir().join("strandgut_test_routes_icon_search");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create_dir_all");
+        let config_path = dir.join("config.toml");
+        Arc::new(AppState {
+            config_path: Arc::new(config_path.to_string_lossy().to_string()),
+            scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            background: Arc::new(std::sync::Mutex::new(
+                crate::background::BackgroundState::new(),
+            )),
+            icon_cache: Arc::new(crate::icons::IconCache::new(&config_path.to_string_lossy())),
+        })
+    }
+
+    #[tokio::test]
+    async fn test_icon_search_empty_query_returns_empty_list() -> Result<(), AppError> {
+        let req = Request::builder()
+            .uri("/api/icons/search")
+            .method(Method::GET)
+            .body(Full::new(Bytes::new()))
+            .unwrap();
+        let state = icon_search_state();
+
+        let resp = handle_request(req, state).await.unwrap();
+        assert_eq!(resp.status(), 200);
+
+        let body = body_to_string(resp).await?;
+        assert_eq!(body, "[]");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_icon_search_with_query_returns_json() -> Result<(), AppError> {
+        let req = Request::builder()
+            .uri("/api/icons/search?q=plex")
+            .method(Method::GET)
+            .body(Full::new(Bytes::new()))
+            .unwrap();
+        let state = icon_search_state();
+
+        let resp = handle_request(req, state).await.unwrap();
+        assert_eq!(resp.status(), 200);
+
+        let body = body_to_string(resp).await?;
+        let entries: Vec<serde_json::Value> = serde_json::from_str(&body).unwrap();
+        // No cache file exists for this temp config, so search degrades to empty.
+        assert!(entries.is_empty());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_icon_search_method_not_allowed() -> Result<(), AppError> {
+        let req = Request::builder()
+            .uri("/api/icons/search")
+            .method(Method::POST)
+            .body(Full::new(Bytes::new()))
+            .unwrap();
+        let state = icon_search_state();
 
         let resp = handle_request(req, state).await.unwrap();
         assert_eq!(resp.status(), 405);
