@@ -324,9 +324,6 @@
   min-height: 32px;
 }
 
-
-
-
 /* ─── Add Dialog ─── */
 .add-dialog-overlay {
   position: fixed;
@@ -659,11 +656,6 @@ a.scan-result-card__meta:hover {
   font-size: 0.875rem;
 }
 
-
-
-
-
-
 /* ─── Edit Panel ─── */
 .edit-panel-overlay {
   position: fixed;
@@ -800,8 +792,6 @@ a.scan-result-card__meta:hover {
 }
 
 /* ─── Utilities ─── */
-
-
 
 /* ─── Icon Picker ─── */
 .icon-picker {

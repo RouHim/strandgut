@@ -1,4 +1,4 @@
-import { addService, getServices } from './state.js';
+import { addService, getServices, GRID_COLUMNS } from './state.js';
 import { escapeHtml } from './api.js';
 import { renderGrid } from './grid.js';
 import { t } from './app.js';
@@ -348,7 +348,7 @@ function buildService(result) {
     }
   }
 
-  const cols = 4;
+  const cols = GRID_COLUMNS;
   let nextRow = maxRow;
   let nextCol = maxCol + 1;
   if (nextCol >= cols) {

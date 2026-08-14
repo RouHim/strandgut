@@ -15,7 +15,7 @@
 - **Auto-discover services on your network** — scan any host and Strandgut identifies what's running. Recognizes Home Assistant, Proxmox, Pi-hole, Synology, Portainer, Jellyfin, Plex, and Nextcloud automatically.
 - **Three scan speeds** — quick (common ports), thorough (extended range), or exhaustive (all 65,535 ports).
 - **Live results** — watch services appear in the dashboard as the scan runs.
-- **Rearrange your dashboard** — drag cards where you want them, or use arrow buttons on your phone.
+- **Rearrange your dashboard** — drag cards where you want them.
 - **Dark and light themes** — switches with your system preference, or toggle manually. No flash of the wrong theme on load.
 - **English and German** — picks up your browser language automatically.
 - **Single file, no setup** — one binary with the entire UI embedded. No runtime dependencies, no install scripts.
@@ -90,18 +90,16 @@ name = "Home Assistant"
 url = "http://192.168.1.100:8123"
 icon = "homeassistant"
 description = "Smart home control"
-category = "Smart Home"
 position = { row = 0, col = 0 }
 
 [[services]]
 name = "Pi-hole"
 url = "http://192.168.1.1:80/admin"
 icon = "pihole"
-category = "Network"
 position = { row = 1, col = 0 }
 ```
 
-Icon slugs come from [SimpleIcons](https://simpleicons.org). Omit `icon` to show a generic globe. `description` and `category` are optional. `position` determines where the card appears on the grid.
+Icon slugs come from [SimpleIcons](https://simpleicons.org). Omit `icon` to show a generic globe. `description` is optional. `position` determines where the card appears on the grid.
 
 ## Development
 

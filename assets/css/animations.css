@@ -22,13 +22,10 @@
   to { opacity: 1; }
 }
 
-
-
 @keyframes indeterminate {
   0% { transform: translateX(-250%); }
   100% { transform: translateX(250%); }
 }
-
 
 /* ─── Tile Entrance (wash-ashore stagger) ───
  * Applied only on initial page visit via .tile--entrance (see grid.js);
@@ -37,7 +34,6 @@
 .tile--entrance {
   animation: wash-ashore 0.3s cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
-
 
 /* ─── Dialog Entrance (dialog-in) ─── */
 
@@ -50,8 +46,6 @@
   animation: dialog-in 0.24s cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
 
-
-
 /* ─── Button Press Feedback ─── */
 
 .btn {
@@ -62,10 +56,6 @@
   transform: scale(0.97) translateY(0);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
-
-
-
-
 
 /* ─── Reduced Motion ─── */
 

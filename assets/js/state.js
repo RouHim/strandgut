@@ -2,6 +2,9 @@ let config = null;
 let isDirty = false;
 let isEditMode = false;
 
+/** Number of columns in the service grid (matches layout.css). */
+export const GRID_COLUMNS = 4;
+
 export function getConfig() {
   return config;
 }
@@ -34,7 +37,7 @@ export function getServices() {
 
 export function addService(service) {
   const idx = config.services.length;
-  service.position = { row: Math.floor(idx / 4), col: idx % 4 };
+  service.position = { row: Math.floor(idx / GRID_COLUMNS), col: idx % GRID_COLUMNS };
   config.services.push(service);
   isDirty = true;
   window.dispatchEvent(new CustomEvent('configchanged'));
@@ -56,7 +59,7 @@ export function reorderServices(fromIndex, toIndex) {
   const [service] = config.services.splice(fromIndex, 1);
   config.services.splice(toIndex, 0, service);
   config.services.forEach((svc, i) => {
-    svc.position = { row: Math.floor(i / 4), col: i % 4 };
+    svc.position = { row: Math.floor(i / GRID_COLUMNS), col: i % GRID_COLUMNS };
   });
   isDirty = true;
   window.dispatchEvent(new CustomEvent('configchanged'));

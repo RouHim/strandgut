@@ -272,7 +272,6 @@ position = { row = 0, col = 0 }
         fs::create_dir_all(&target).expect("failed to create target dir");
 
         let result = write_atomic(&target, "key = 'value'");
-        // Before fallback is implemented, rename fails → Err.
         // After fallback: directory removed, direct write succeeds → Ok.
         assert!(
             result.is_ok(),

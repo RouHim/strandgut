@@ -16,7 +16,6 @@ export default {
   'onboarding.skip': 'Später',
   'empty.title': 'Noch keine Dienste',
   'empty.subtitle': 'Tippe auf Hinzufügen, um einen Dienst hinzuzufügen oder scanne dein Netzwerk.',
-  'error.save': 'Config konnte nicht gespeichert werden',
   'background.rotate.label': 'Hintergrund wechseln',
   'background.rotate.aria': 'Hintergrundwechsel umschalten',
   'footer.credit.format': 'Foto von {photographer} auf Pexels',

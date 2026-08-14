@@ -243,4 +243,24 @@ mod tests {
             "no-cache"
         );
     }
+
+    #[test]
+    fn test_detect_mime_known_extensions() {
+        assert_eq!(detect_mime("js/app.js"), "application/javascript");
+        assert_eq!(detect_mime("css/style.css"), "text/css");
+        assert_eq!(detect_mime("index.html"), "text/html");
+        assert_eq!(detect_mime("img/logo.svg"), "image/svg+xml");
+        assert_eq!(detect_mime("img/background.webp"), "image/webp");
+        assert_eq!(
+            detect_mime("fonts/hanken-grotesk-latin.woff2"),
+            "font/woff2"
+        );
+    }
+
+    #[test]
+    fn test_detect_mime_unknown_extension() {
+        assert_eq!(detect_mime("data/blob.xyz"), "application/octet-stream");
+        assert_eq!(detect_mime("no-extension"), "application/octet-stream");
+        assert_eq!(detect_mime(""), "application/octet-stream");
+    }
 }
