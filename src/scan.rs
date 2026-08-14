@@ -260,6 +260,28 @@ impl Drop for ScanInProgress {
     }
 }
 
+/// Format a `found` SSE frame (`event: found\ndata: <json>\n\n`).
+fn format_found_frame(result: &ScanResult) -> Bytes {
+    let json = serde_json::to_string(result).unwrap_or_default();
+    Bytes::from(format!("event: found\ndata: {json}\n\n"))
+}
+
+/// Format a `progress` SSE frame (`event: progress\ndata: <json>\n\n`).
+fn format_progress_frame(scanned: usize, total: usize) -> Bytes {
+    Bytes::from(format!(
+        "event: progress\ndata: {}\n\n",
+        serde_json::json!({
+            "scanned": scanned,
+            "total": total
+        })
+    ))
+}
+
+/// Format the terminal `done` SSE frame (`event: done\n\n`).
+fn format_done_frame() -> Bytes {
+    Bytes::from("event: done\n\n")
+}
+
 /// Body implementation that streams scan results as SSE events.
 pub struct SseScanBody {
     rx: mpsc::Receiver<SseEvent>,
@@ -287,25 +309,18 @@ impl Body for SseScanBody {
 
         match this.rx.poll_recv(cx) {
             Poll::Ready(Some(SseEvent::Result(result))) => {
-                let json = serde_json::to_string(&result).unwrap_or_default();
-                let data = format!("event: found\ndata: {}\n\n", json);
-                return Poll::Ready(Some(Ok(Frame::data(Bytes::from(data)))));
+                return Poll::Ready(Some(Ok(Frame::data(format_found_frame(&result)))));
             }
             Poll::Ready(Some(SseEvent::Progress { scanned, total })) => {
-                let data = format!(
-                    "event: progress\ndata: {}\n\n",
-                    serde_json::json!({
-                        "scanned": scanned,
-                        "total": total
-                    })
-                );
                 this.last_emitted = scanned;
-                return Poll::Ready(Some(Ok(Frame::data(Bytes::from(data)))));
+                return Poll::Ready(Some(Ok(Frame::data(format_progress_frame(
+                    scanned, total,
+                )))));
             }
             Poll::Ready(None) => {
                 this.done = true;
                 this._guard.0.store(false, Ordering::SeqCst);
-                return Poll::Ready(Some(Ok(Frame::data(Bytes::from("event: done\n\n")))));
+                return Poll::Ready(Some(Ok(Frame::data(format_done_frame()))));
             }
             Poll::Pending => {}
         }
@@ -320,14 +335,9 @@ impl Body for SseScanBody {
                         let scanned = counter.load(Ordering::SeqCst);
                         if scanned > this.last_emitted {
                             this.last_emitted = scanned;
-                            let data = format!(
-                                "event: progress\ndata: {}\n\n",
-                                serde_json::json!({
-                                    "scanned": scanned,
-                                    "total": this.total_ports
-                                })
-                            );
-                            return Poll::Ready(Some(Ok(Frame::data(Bytes::from(data)))));
+                            return Poll::Ready(Some(Ok(Frame::data(format_progress_frame(
+                                scanned, this.total_ports,
+                            )))));
                         }
                     }
 
