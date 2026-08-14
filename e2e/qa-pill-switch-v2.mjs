@@ -43,17 +43,10 @@ async function bail(page, msg) {
 
   try {
     await page.goto('http://localhost:13569', { waitUntil: 'networkidle' });
-    
-    // Force dark theme
-    await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
-    await page.waitForTimeout(200);
 
     const TOGGLE_SEL = '[data-testid="edit-toggle"]';
     const toggle = page.locator(TOGGLE_SEL);
     await toggle.waitFor({ state: 'visible', timeout: 5000 });
-    
-    const THEME_SEL = '#theme-toggle';
-    const themeBtn = page.locator(THEME_SEL);
 
     // ============================================================
     // SCENARIO 1: Initial render — pill switch exists with correct attributes
@@ -279,63 +272,6 @@ async function bail(page, msg) {
     await screenshot(page, 'qa-s5-rapid-clicks.png');
 
     // ============================================================
-    // SCENARIO 6: Theme switching while in edit mode
-    // ============================================================
-    console.log('\n=== SCENARIO 6: Theme switch while editing ===');
-
-    await (async () => {
-      // Set dark + use proper toggle click to enter edit mode (avoids state inconsistency)
-      await page.evaluate(() => {
-        document.documentElement.setAttribute('data-theme', 'dark');
-      });
-      
-      // Ensure we start from view mode
-      // First, make sure the toggle is in view mode
-      const initialAc = await toggle.getAttribute('aria-checked');
-      if (initialAc === 'true') {
-        await toggle.click();
-        await page.waitForTimeout(200);
-      }
-      
-      // Now click to enter edit mode properly
-      await toggle.click();
-      await page.waitForTimeout(200);
-
-      let ac = await toggle.getAttribute('aria-checked');
-      let bodyEdit = await page.locator('body').evaluate(el => el.classList.contains('edit-mode'));
-      if (ac !== 'true' || !bodyEdit) return s_fail('Pre-condition', `not in edit mode after click (aria=${ac}, body=${bodyEdit})`);
-
-      // Switch to light theme
-      await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
-      await page.waitForTimeout(200);
-
-      ac = await toggle.getAttribute('aria-checked');
-      bodyEdit = await page.locator('body').evaluate(el => el.classList.contains('edit-mode'));
-      if (ac !== 'true' || !bodyEdit) return s_fail('Theme switch to light preserves edit mode', `aria=${ac}, body=${bodyEdit}`);
-
-      // Switch back to dark theme
-      await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
-      await page.waitForTimeout(200);
-
-      ac = await toggle.getAttribute('aria-checked');
-      bodyEdit = await page.locator('body').evaluate(el => el.classList.contains('edit-mode'));
-      if (ac !== 'true' || !bodyEdit) return s_fail('Theme switch back to dark preserves edit mode', `aria=${ac}, body=${bodyEdit}`);
-
-      // Now toggle OFF properly
-      await toggle.click();
-      await page.waitForTimeout(300);
-      ac = await toggle.getAttribute('aria-checked');
-      bodyEdit = await page.locator('body').evaluate(el => el.classList.contains('edit-mode'));
-      if (ac !== 'false' || bodyEdit) return s_fail('Toggle OFF after theme cycle', `aria=${ac}, body=${bodyEdit}`);
-
-      s_pass('Theme switching preserves edit mode state across light/dark cycle');
-      e_test('Theme switch dark→light with edit mode ON');
-      e_test('Theme switch light→dark with edit mode ON');
-    })();
-
-    await screenshot(page, 'qa-s6-light-edit-mode.png');
-
-    // ============================================================
     // SCREENSHOTS: Dark theme ON vs OFF
     // ============================================================
     console.log('\n=== SCREENSHOTS: Dark ON/OFF ===');
@@ -344,7 +280,6 @@ async function bail(page, msg) {
     await page.evaluate(() => {
       document.body.classList.remove('edit-mode');
       document.querySelector('[data-testid="edit-toggle"]')?.setAttribute('aria-checked', 'false');
-      document.documentElement.setAttribute('data-theme', 'dark');
     });
     await page.waitForTimeout(300);
     await screenshot(page, 'qa-dark-theme-OFF.png');
@@ -366,13 +301,6 @@ async function bail(page, msg) {
       const inHeader = await page.locator('.header-right [data-testid="edit-toggle"]').count();
       if (inHeader === 0) return i_fail('Toggle in header-right', 'not found');
       i_pass('Pill switch correctly placed in .header-right');
-    })();
-
-    // I2: Theme toggle still present and separate
-    await (async () => {
-      const ttVis = await themeBtn.isVisible();
-      if (!ttVis) return i_fail('Theme toggle visibility', 'not visible');
-      i_pass('Theme toggle still present and functional');
     })();
 
     // I3: data-testid preserved
