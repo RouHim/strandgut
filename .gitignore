@@ -6,3 +6,6 @@ node_modules/
 !Cargo.toml
 /cache/
 /test-results/
+
+# SDD scratch (ledgers, briefs, review packages)
+.superpowers/
