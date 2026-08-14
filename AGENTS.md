@@ -64,7 +64,6 @@ assets/
     edit.js         # Edit mode toggle
     add-dialog.js   # "Add service" modal dialog
     scan.js         # Network scan UI + SSE consumer
-    theme.js        # Dark/light theme toggle
     i18n/
       en.js         # English translations
       de.js         # German translations
@@ -72,7 +71,7 @@ assets/
     style.css       # Main stylesheet (imports others)
     reset.css       # CSS reset
     tokens.css      # Design tokens (colours, spacing)
-    themes.css      # Dark/light theme variables
+    themes.css      # Theme variables (single dark theme)
     layout.css      # Grid and layout
     components.css  # Buttons, cards, dialogs
     animations.css  # Transitions and keyframes
@@ -131,7 +130,7 @@ use crate::config::Config;
 
 ### DOM Conventions
 
-- IDs: `kebab-case` (e.g., `theme-toggle`)
+- IDs: `kebab-case` (e.g., `add-button`)
 - Data attributes: `data-testid` for testability, `data-i18n` for translations
 - `data-testid` attributes **required** on all user-interactive elements
 - `aria-*` attributes for accessibility (screen reader support)
@@ -139,7 +138,7 @@ use crate::config::Config;
 ### CSS Conventions
 
 - CSS custom properties (variables) in `tokens.css` and `themes.css`
-- `data-theme="dark"` / `data-theme="light"` on `<html>` for theme switching
+- Single dark theme: no `data-theme` attribute and no theme toggle (light theme removed)
 - Mobile-first responsive design (no framework)
 
 ## Configuration

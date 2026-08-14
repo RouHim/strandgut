@@ -3,14 +3,14 @@
    ═════════════════════════════════════════════════════════════════
    Architecture:
      Layer 1 — Primitives   : Raw color scales, space, radius, fonts, easings
-     Layer 2 — Semantic     : Purpose-bound tokens, light (default) + dark override
+     Layer 2 — Semantic     : Purpose-bound tokens, dark (single theme)
    ───────────────────────────────────────────────────────────────── */
 
 /* ═════════════════════════════════════════════════════════════════
-   Layer 1: Primitives + Layer 2: Semantic Light (default)
+   Layer 1: Primitives + Layer 2: Semantic Dark (single theme)
    ═════════════════════════════════════════════════════════════════ */
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 
   /* ── Spacing scale (preserved) ── */
   --space-1: 0.25rem;
@@ -39,19 +39,19 @@
   --transition-bounce: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* ──────────────────────────────────────────────────────────
-     Layer 2: Semantic — Light (default)
-     light-dark() provides automatic system-preference theming
-     ────────────────────────────────────────────────────────── */
+  /* ──────────────────────────────────────────────
+     Layer 2: Semantic — Dark (single theme)
+     Values are fixed; the light theme is removed
+     ────────────────────────────────────────────── */
 
   /* Surface hierarchy */
-  --color-surface-canvas: light-dark(#f2ede4, #0a1628);
-  --color-surface:        light-dark(rgba(255, 255, 255, 0.55), rgba(232, 224, 216, 0.07));
-  --color-surface-elevated: light-dark(rgba(255, 255, 255, 0.9), rgba(13, 28, 38, 0.9));
+  --color-surface-canvas: #0a1628;
+  --color-surface:        rgba(232, 224, 216, 0.07);
+  --color-surface-elevated: rgba(13, 28, 38, 0.9);
 
   /* Text hierarchy */
-  --color-text-primary:   light-dark(#2c2420, #e8e0d8);
-  --color-text-secondary: light-dark(#7a7268, #8b8078);
+  --color-text-primary:   #e8e0d8;
+  --color-text-secondary: #8b8078;
 
   /* Accent & status — theme-invariant */
   --color-accent: #f4a340;
@@ -59,57 +59,26 @@
   --color-danger: #c4746e;
 
   /* Borders */
-  --color-border:        light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.12));
+  --color-border:        rgba(255, 255, 255, 0.12);
 
   /* Glassmorphism recipe */
-  --color-glass-bg:       light-dark(rgba(255, 255, 255, 0.5), rgba(232, 224, 216, 0.07));
-  --color-glass-bg-hover: light-dark(rgba(255, 255, 255, 0.72), rgba(232, 224, 216, 0.12));
-  --color-glass-border:   light-dark(rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.12));
-  --color-glass-highlight: light-dark(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.1));
-  --color-glass-shadow:   light-dark(0 12px 32px -8px rgba(80, 50, 20, 0.22), 0 12px 40px -8px rgba(0, 8, 16, 0.5));
-  --shadow-tile-hover:    light-dark(0 16px 48px -8px rgba(80, 50, 20, 0.28), 0 16px 48px -8px rgba(0, 8, 16, 0.6));
-
-  /* Legacy aliases (backward compatibility) */
-  --color-text: light-dark(#2c2420, #e8e0d8);
-
-  /* Component-specific tokens */
-  --color-header-bg:     light-dark(rgba(250, 246, 238, 0.6), rgba(10, 22, 40, 0.55));
-  --color-surface-hover: light-dark(rgba(0, 0, 0, 0.06), rgba(232, 224, 216, 0.12));
-  --color-surface-raised: light-dark(rgba(255, 255, 255, 0.85), rgba(13, 28, 38, 0.88));
-  --color-button-primary-text: #0a1628;
-  --color-accent-hover: #f5b04a;
-  --color-accent-glow:  rgba(244, 163, 64, 0.4);
-  --color-overlay-bg:   light-dark(rgba(70, 50, 30, 0.35), rgba(4, 10, 18, 0.6));
-  --color-accent-ring:  light-dark(rgba(244, 163, 64, 0.28), rgba(244, 163, 64, 0.3));
-}
-
-/* ═════════════════════════════════════════════════════════════════
-   Layer 2: Semantic — Dark (explicit attribute override)
-   ═════════════════════════════════════════════════════════════════ */
-[data-theme="dark"] {
-  --color-surface-canvas: #0a1628;
-  --color-surface: rgba(232, 224, 216, 0.07);
-  --color-surface-elevated: rgba(13, 28, 38, 0.9);
-
-  --color-text-primary: #e8e0d8;
-  --color-text-secondary: #8b8078;
-
-  --color-border: rgba(255, 255, 255, 0.12);
-
-  --color-glass-bg: rgba(232, 224, 216, 0.07);
+  --color-glass-bg:       rgba(232, 224, 216, 0.07);
   --color-glass-bg-hover: rgba(232, 224, 216, 0.12);
-  --color-glass-border: rgba(255, 255, 255, 0.12);
+  --color-glass-border:   rgba(255, 255, 255, 0.12);
   --color-glass-highlight: rgba(255, 255, 255, 0.1);
-  --color-glass-shadow: 0 12px 40px -8px rgba(0, 8, 16, 0.5);
-  --shadow-tile-hover: 0 16px 48px -8px rgba(0, 8, 16, 0.6);
-  --color-accent-ring: rgba(244, 163, 64, 0.3);
-  --color-overlay-bg: rgba(4, 10, 18, 0.6);
+  --color-glass-shadow:   0 12px 40px -8px rgba(0, 8, 16, 0.5);
+  --shadow-tile-hover:    0 16px 48px -8px rgba(0, 8, 16, 0.6);
 
   /* Legacy aliases (backward compatibility) */
   --color-text: #e8e0d8;
 
-  /* Component-specific */
+  /* Component-specific tokens */
   --color-header-bg:     rgba(10, 22, 40, 0.55);
   --color-surface-hover: rgba(232, 224, 216, 0.12);
   --color-surface-raised: rgba(13, 28, 38, 0.88);
+  --color-button-primary-text: #0a1628;
+  --color-accent-hover: #f5b04a;
+  --color-accent-glow:  rgba(244, 163, 64, 0.4);
+  --color-overlay-bg:   rgba(4, 10, 18, 0.6);
+  --color-accent-ring:  rgba(244, 163, 64, 0.3);
 }
