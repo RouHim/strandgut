@@ -115,7 +115,7 @@ use crate::config::Config;
 ### Type Safety
 
 - **No `unwrap()` in production paths** — use `?` or explicit `match` handling.
-- `Option<T>` for nullable config fields (`icon`, `description`, `category` on `Service`).
+- `Option<T>` for nullable config fields (`icon`, `description` on `Service`).
 - Explicit `BoxBody` type alias for HTTP responses to avoid generics leaking everywhere.
 
 ## Frontend Code Style (JavaScript)
@@ -155,7 +155,6 @@ name = "Example"
 url = "https://example.com"
 icon = "globe"
 description = "Optional description"
-category = "Tools"
 position = { row = 0, col = 0 }
 ```
 
