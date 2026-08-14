@@ -16,7 +16,6 @@ export default {
   'onboarding.skip': 'Skip for now',
   'empty.title': 'No services yet',
   'empty.subtitle': 'Tap Add to add one or scan your network.',
-  'error.save': 'Failed to save config',
   'background.rotate.label': 'Rotate background',
   'background.rotate.aria': 'Toggle background rotation',
   'footer.credit.format': 'Photo by {photographer} on Pexels',
