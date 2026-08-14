@@ -313,9 +313,7 @@ impl Body for SseScanBody {
             }
             Poll::Ready(Some(SseEvent::Progress { scanned, total })) => {
                 this.last_emitted = scanned;
-                return Poll::Ready(Some(Ok(Frame::data(format_progress_frame(
-                    scanned, total,
-                )))));
+                return Poll::Ready(Some(Ok(Frame::data(format_progress_frame(scanned, total)))));
             }
             Poll::Ready(None) => {
                 this.done = true;
@@ -336,7 +334,8 @@ impl Body for SseScanBody {
                         if scanned > this.last_emitted {
                             this.last_emitted = scanned;
                             return Poll::Ready(Some(Ok(Frame::data(format_progress_frame(
-                                scanned, this.total_ports,
+                                scanned,
+                                this.total_ports,
                             )))));
                         }
                     }

@@ -662,10 +662,7 @@ mod tests {
 
     #[test]
     fn test_merge_icon_entries_logs_failures_and_skips() {
-        let results = vec![
-            Err("source down".into()),
-            Ok(vec![entry("Survivor")]),
-        ];
+        let results = vec![Err("source down".into()), Ok(vec![entry("Survivor")])];
         let merged = merge_icon_entries(&results);
         assert_eq!(merged.len(), 1);
         assert_eq!(merged[0].n, "Survivor");
