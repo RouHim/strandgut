@@ -174,13 +174,12 @@ fn match_score(candidate: &str, query: &str) -> u8 {
 // Cache refresh
 // ---------------------------------------------------------------------------
 
-/// Fetch all icon sources, merge, and write the cache file atomically.
-fn refresh_cache(cache_path: &PathBuf) -> Result<(), AppError> {
-    log::info!("Refreshing icon cache…");
-
-    // Fetch from all sources concurrently using std::thread::scope
-    // (this runs inside spawn_blocking, so blocking threads are fine).
-    let results = std::thread::scope(|s| {
+/// Fetch all icon sources concurrently.
+///
+/// Runs inside `std::thread::scope` (this runs inside spawn_blocking,
+/// so blocking threads are fine). Returns one result per source.
+fn fetch_all_sources() -> Vec<Result<Vec<IconEntry>, String>> {
+    std::thread::scope(|s| {
         let t1 = s.spawn(fetch_dashboard_icons);
         let t2 = s.spawn(fetch_selfhst);
         let t3 = s.spawn(fetch_simple_icons);
@@ -194,13 +193,18 @@ fn refresh_cache(cache_path: &PathBuf) -> Result<(), AppError> {
             t4.join().unwrap_or_else(|_| Err("panic".into())),
             t5.join().unwrap_or_else(|_| Err("panic".into())),
         ]
-    });
+    })
+}
 
-    // Merge + deduplicate by lowercase name (priority order: first seen wins).
+/// Merge source results into a single deduplicated, alphabetically sorted list.
+///
+/// Deduplication is by lowercase name (priority order: first seen wins).
+/// Returns an empty vector when no source produced entries.
+fn merge_icon_entries(results: &[Result<Vec<IconEntry>, String>]) -> Vec<IconEntry> {
     let mut seen = std::collections::HashSet::new();
     let mut merged: Vec<IconEntry> = Vec::new();
 
-    for result in &results {
+    for result in results {
         match result {
             Ok(entries) => {
                 for entry in entries {
@@ -216,20 +220,13 @@ fn refresh_cache(cache_path: &PathBuf) -> Result<(), AppError> {
         }
     }
 
-    if merged.is_empty() {
-        return Err(AppError::Internal("all icon sources failed".into()));
-    }
-
     // Sort alphabetically for consistent cache file (makes diffs readable).
     merged.sort_by_key(|a| a.n.to_lowercase());
+    merged
+}
 
-    log::info!(
-        "Icon cache: {} entries from {} sources",
-        merged.len(),
-        results.iter().filter(|r| r.is_ok()).count()
-    );
-
-    // Atomic write: .tmp → rename.
+/// Write the cache file atomically (.tmp → rename).
+fn write_cache_file(cache_path: &PathBuf, merged: &[IconEntry]) -> Result<(), AppError> {
     let tmp_path = cache_path.with_extension("tmp");
     if let Some(parent) = tmp_path.parent() {
         fs::create_dir_all(parent).map_err(|e| {
@@ -254,6 +251,28 @@ fn refresh_cache(cache_path: &PathBuf) -> Result<(), AppError> {
             cache_path.display()
         ))
     })?;
+
+    Ok(())
+}
+
+/// Fetch all icon sources, merge, and write the cache file atomically.
+fn refresh_cache(cache_path: &PathBuf) -> Result<(), AppError> {
+    log::info!("Refreshing icon cache…");
+
+    let results = fetch_all_sources();
+    let merged = merge_icon_entries(&results);
+
+    if merged.is_empty() {
+        return Err(AppError::Internal("all icon sources failed".into()));
+    }
+
+    log::info!(
+        "Icon cache: {} entries from {} sources",
+        merged.len(),
+        results.iter().filter(|r| r.is_ok()).count()
+    );
+
+    write_cache_file(cache_path, &merged)?;
 
     log::info!("Icon cache written to {}", cache_path.display());
     Ok(())
@@ -611,5 +630,63 @@ mod tests {
             refresh_interval: CACHE_MAX_AGE,
         };
         assert!(!cache.is_fresh());
+    }
+
+    fn entry(n: &str) -> IconEntry {
+        IconEntry {
+            n: n.into(),
+            u: format!("https://example.com/{}.svg", n.to_lowercase()),
+            s: "test".into(),
+        }
+    }
+
+    #[test]
+    fn test_merge_icon_entries_deduplicates_by_lowercase_name() {
+        let results = vec![
+            Ok(vec![entry("Plex"), entry("Emby")]),
+            Ok(vec![entry("plex"), entry("Jellyfin")]),
+        ];
+        let merged = merge_icon_entries(&results);
+        let names: Vec<&str> = merged.iter().map(|e| e.n.as_str()).collect();
+        // First-seen wins: "Plex" from source 1, duplicate "plex" dropped.
+        assert_eq!(names, ["Emby", "Jellyfin", "Plex"]);
+    }
+
+    #[test]
+    fn test_merge_icon_entries_sorted_case_insensitively() {
+        let results = vec![Ok(vec![entry("zebra"), entry("Alpha"), entry("beta")])];
+        let merged = merge_icon_entries(&results);
+        let names: Vec<&str> = merged.iter().map(|e| e.n.as_str()).collect();
+        assert_eq!(names, ["Alpha", "beta", "zebra"]);
+    }
+
+    #[test]
+    fn test_merge_icon_entries_logs_failures_and_skips() {
+        let results = vec![
+            Err("source down".into()),
+            Ok(vec![entry("Survivor")]),
+        ];
+        let merged = merge_icon_entries(&results);
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].n, "Survivor");
+    }
+
+    #[test]
+    fn test_write_cache_file_atomic() {
+        let dir = std::env::temp_dir().join("strandgut_test_icons_write");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create_dir_all");
+        let cache_path = dir.join("icons.json");
+
+        write_cache_file(&cache_path, &[entry("Plex")]).expect("write_cache_file should succeed");
+
+        let written: Vec<IconEntry> =
+            serde_json::from_slice(&fs::read(&cache_path).unwrap()).unwrap();
+        assert_eq!(written.len(), 1);
+        assert_eq!(written[0].n, "Plex");
+        // No .tmp leftover after a successful write.
+        assert!(!cache_path.with_extension("tmp").exists());
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
