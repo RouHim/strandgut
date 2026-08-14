@@ -272,9 +272,9 @@ async function bail(page, msg) {
     await screenshot(page, 'qa-s5-rapid-clicks.png');
 
     // ============================================================
-    // SCREENSHOTS: Dark theme ON vs OFF
+    // SCREENSHOTS: Edit mode OFF vs ON
     // ============================================================
-    console.log('\n=== SCREENSHOTS: Dark ON/OFF ===');
+    console.log('\n=== SCREENSHOTS: Edit mode OFF/ON ===');
 
     // OFF
     await page.evaluate(() => {
@@ -282,14 +282,14 @@ async function bail(page, msg) {
       document.querySelector('[data-testid="edit-toggle"]')?.setAttribute('aria-checked', 'false');
     });
     await page.waitForTimeout(300);
-    await screenshot(page, 'qa-dark-theme-OFF.png');
-    console.log('  📸 Dark theme OFF screenshot saved');
+    await screenshot(page, 'qa-edit-mode-OFF.png');
+    console.log('  📸 Edit mode OFF screenshot saved');
 
     // ON
     await toggle.click();
     await page.waitForTimeout(300);
-    await screenshot(page, 'qa-dark-theme-ON.png');
-    console.log('  📸 Dark theme ON screenshot saved');
+    await screenshot(page, 'qa-edit-mode-ON.png');
+    console.log('  📸 Edit mode ON screenshot saved');
 
     // ============================================================
     // INTEGRATION CHECKS

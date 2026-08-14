@@ -780,5 +780,5 @@ Expected: identical dark rendering in all three cases; no toggle button.
 
 - [ ] **Step 5: Confirm the final diff is theme-scoped**
 
-Run: `git log --oneline -4 && git diff main...HEAD --stat 2>/dev/null || true`
-Expected: the four commits from Tasks 1-4; changed files are exactly `e2e/specs/theme.spec.js`, `assets/index.html`, `assets/js/theme.js` (deleted), `src/spa.rs`, `assets/css/tokens.css`, `assets/css/themes.css`, `e2e/qa-pill-switch-v2.mjs`, `AGENTS.md`, and this plan file.
+Run: `git log --oneline -5 && git diff main...HEAD --stat 2>/dev/null || true`
+Expected: the five commits from Tasks 1-4 plus the `.gitignore` chore; changed files are exactly `e2e/specs/theme.spec.js`, `assets/index.html`, `assets/js/theme.js` (deleted), `src/spa.rs`, `assets/css/tokens.css`, `assets/css/themes.css`, `e2e/qa-pill-switch-v2.mjs`, `AGENTS.md`, `.gitignore`, and this plan file.
