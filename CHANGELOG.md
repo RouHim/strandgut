@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/RouHim/strandgut/compare/v1.5.0...v1.5.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* **e2e:** scope wash-ashore entrance to initial render ([66eaec4](https://github.com/RouHim/strandgut/commit/66eaec424a505377024a9000e1f6797476680704))
+
 # [1.5.0](https://github.com/RouHim/strandgut/compare/v1.4.0...v1.5.0) (2026-08-11)
 
 
