@@ -924,6 +924,60 @@ mod tests {
     }
 
     #[test]
+    fn test_identify_service_known_titles() {
+        assert_eq!(
+            identify_service(&Some("Proxmox VE".into())),
+            Some("Proxmox".to_string())
+        );
+        assert_eq!(
+            identify_service(&Some("Pi-hole Admin".into())),
+            Some("Pi-hole".to_string())
+        );
+        assert_eq!(
+            identify_service(&Some("pi hole dashboard".into())),
+            Some("Pi-hole".to_string())
+        );
+        assert_eq!(
+            identify_service(&Some("Synology DiskStation".into())),
+            Some("Synology".to_string())
+        );
+        assert_eq!(
+            identify_service(&Some("Portainer".into())),
+            Some("Portainer".to_string())
+        );
+        assert_eq!(
+            identify_service(&Some("Home Assistant".into())),
+            Some("Home Assistant".to_string())
+        );
+        assert_eq!(
+            identify_service(&Some("Jellyfin".into())),
+            Some("Jellyfin".to_string())
+        );
+        assert_eq!(
+            identify_service(&Some("Plex Media Server".into())),
+            Some("Plex".to_string())
+        );
+        assert_eq!(
+            identify_service(&Some("Nextcloud".into())),
+            Some("Nextcloud".to_string())
+        );
+    }
+
+    #[test]
+    fn test_identify_service_unknown_and_empty() {
+        assert_eq!(identify_service(&Some("Random App".into())), None);
+        assert_eq!(identify_service(&None), None);
+    }
+
+    #[test]
+    fn test_slugify() {
+        assert_eq!(slugify("Home Assistant"), "home-assistant");
+        assert_eq!(slugify("Proxmox"), "proxmox");
+        assert_eq!(slugify("My  App"), "my--app");
+        assert_eq!(slugify(""), "");
+    }
+
+    #[test]
     fn test_scan_result_serialization() {
         let r1 = ScanResult {
             host: "x".into(),
