@@ -109,7 +109,7 @@ async function init() {
     if (getServices().length === 0) {
       showOnboarding();
     } else {
-      renderGrid();
+      renderGrid({ entrance: true });
     }
   } catch (err) {
     console.error('Failed to load config:', err);
