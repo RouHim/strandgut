@@ -26,7 +26,7 @@ function resolveIconUrl(service) {
   };
 }
 
-export function renderGrid() {
+export function renderGrid({ entrance = false } = {}) {
   const grid = document.querySelector('[data-testid="service-grid"]');
   if (!grid) return;
 
@@ -52,8 +52,10 @@ export function renderGrid() {
     tile.className = 'tile';
     tile.setAttribute('data-testid', 'tile');
     tile.setAttribute('data-index', String(index));
-    tile.style.setProperty('--i', String(i));
-    tile.style.animationDelay = `calc(${i} * 50ms)`;
+    if (entrance) {
+      tile.classList.add('tile--entrance');
+      tile.style.animationDelay = `calc(${i} * 30ms)`;
+    }
 
     if (!isEditing()) {
       tile.href = service.url;

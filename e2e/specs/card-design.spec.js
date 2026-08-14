@@ -100,6 +100,16 @@ test('tiles render two per row at mobile viewport', async ({ page, request }) =>
   await page.goto('/');
   await skipOnboarding(page);
 
+  // The wash-ashore entrance animation translates tiles during play;
+  // wait for it to finish before measuring layout positions.
+  await page.waitForFunction(() => {
+    const tiles = [...document.querySelectorAll('[data-testid="tile"]')];
+    return tiles.length > 0 && tiles.every((t) => {
+      const tf = getComputedStyle(t).transform;
+      return tf === 'none' || tf === 'matrix(1, 0, 0, 1, 0, 0)';
+    });
+  });
+
   const tiles = page.locator('[data-testid="tile"]');
   const box0 = await tiles.nth(0).boundingBox();
   const box1 = await tiles.nth(1).boundingBox();
@@ -129,6 +139,16 @@ test('at 768px viewport at most 2 tiles appear per row', async ({ page, request 
   ]);
   await page.goto('/');
   await skipOnboarding(page);
+
+  // The wash-ashore entrance animation translates tiles during play;
+  // wait for it to finish before measuring layout positions.
+  await page.waitForFunction(() => {
+    const tiles = [...document.querySelectorAll('[data-testid="tile"]')];
+    return tiles.length > 0 && tiles.every((t) => {
+      const tf = getComputedStyle(t).transform;
+      return tf === 'none' || tf === 'matrix(1, 0, 0, 1, 0, 0)';
+    });
+  });
 
   const tiles = page.locator('[data-testid="tile"]');
   const box0 = await tiles.nth(0).boundingBox();
