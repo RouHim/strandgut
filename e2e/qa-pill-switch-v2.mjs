@@ -44,9 +44,11 @@ async function bail(page, msg) {
   try {
     await page.goto('http://localhost:13569', { waitUntil: 'networkidle' });
 
+
     const TOGGLE_SEL = '[data-testid="edit-toggle"]';
     const toggle = page.locator(TOGGLE_SEL);
     await toggle.waitFor({ state: 'visible', timeout: 5000 });
+
 
     // ============================================================
     // SCENARIO 1: Initial render — pill switch exists with correct attributes
@@ -57,16 +59,16 @@ async function bail(page, msg) {
     await (async () => {
       const visible = await toggle.isVisible();
       if (!visible) return s_fail('Toggle visibility', 'not visible');
-      
+
       const role = await toggle.getAttribute('role');
       if (role !== 'switch') return s_fail('role=switch', `got "${role}"`);
-      
+
       const ariaChecked = await toggle.getAttribute('aria-checked');
       if (ariaChecked !== 'false') return s_fail('aria-checked initial', `expected "false", got "${ariaChecked}"`);
-      
+
       const ariaLabel = await toggle.getAttribute('aria-label');
       if (!ariaLabel || ariaLabel.length < 3) return s_fail('aria-label', 'missing or too short');
-      
+
       s_pass('Pill switch visible with role=switch, aria-checked=false, aria-label present');
     })();
 
@@ -76,22 +78,22 @@ async function bail(page, msg) {
       const thumb = toggle.locator('.pill-switch__thumb');
       if (!(await track.isVisible())) return s_fail('Track visibility', 'not visible');
       if (!(await thumb.isVisible())) return s_fail('Thumb visibility', 'not visible');
-      
+
       const left = toggle.locator('.pill-switch__label--left');
       const right = toggle.locator('.pill-switch__label--right');
       const lAH = await left.getAttribute('aria-hidden');
       const rAH = await right.getAttribute('aria-hidden');
       if (lAH !== 'true' || rAH !== 'true') return s_fail('aria-hidden on labels', `left="${lAH}", right="${rAH}"`);
-      
+
       const viewText = await left.locator('.pill-switch__text').textContent();
       const editText = await right.locator('.pill-switch__text').textContent();
       if (!viewText?.trim() || !editText?.trim()) return s_fail('Label text', `view="${viewText}", edit="${editText}"`);
-      
+
       const eyeSvg = left.locator('.pill-switch__icon--view svg');
       const pencilSvg = right.locator('.pill-switch__icon--edit svg');
       if (!(await eyeSvg.isVisible())) return s_fail('Eye SVG', 'not visible');
       if (!(await pencilSvg.isVisible())) return s_fail('Pencil SVG', 'not visible');
-      
+
       s_pass('All child elements present (track, thumb, labels, icons) with correct aria-hidden');
     })();
 
@@ -99,14 +101,14 @@ async function bail(page, msg) {
     await (async () => {
       const bodyEdit = await page.locator('body').evaluate(el => el.classList.contains('edit-mode'));
       if (bodyEdit) return s_fail('body.edit-mode initial', 'should be absent in view mode');
-      
+
       const touchH = (await toggle.boundingBox()).height;
       if (touchH < 40) return s_fail('Touch target size', `${touchH}px (< 40px minimum)`);
       if (touchH < 44) finding('LOW', `Touch target ${touchH}px < 44px plan target`);
-      
+
       const userSelect = await toggle.evaluate(el => getComputedStyle(el).userSelect);
       if (userSelect !== 'none') finding('MEDIUM', `user-select=${userSelect} (expected "none", may be browser default for <button>)`);
-      
+
       s_pass('Initial view mode: body.edit-mode absent, text selection prevented');
     })();
 
@@ -114,7 +116,7 @@ async function bail(page, msg) {
     await screenshot(page, 'qa-s1-dark-off-initial.png');
 
     // ============================================================
-    // SCENARIO 2: Click ON → edit mode activates  
+    // SCENARIO 2: Click ON → edit mode activates
     // ============================================================
     console.log('\n=== SCENARIO 2: Click toggle ON ===');
 
@@ -124,10 +126,10 @@ async function bail(page, msg) {
     await (async () => {
       const ac = await toggle.getAttribute('aria-checked');
       if (ac !== 'true') return s_fail('aria-checked after click ON', `expected "true", got "${ac}"`);
-      
+
       const bodyEdit = await page.locator('body').evaluate(el => el.classList.contains('edit-mode'));
       if (!bodyEdit) return s_fail('body.edit-mode after click ON', 'class not present');
-      
+
       s_pass('Click ON: aria-checked=true, body.edit-mode present');
     })();
 
@@ -144,10 +146,10 @@ async function bail(page, msg) {
     await (async () => {
       const ac = await toggle.getAttribute('aria-checked');
       if (ac !== 'false') return s_fail('aria-checked after click OFF', `expected "false", got "${ac}"`);
-      
+
       const bodyEdit = await page.locator('body').evaluate(el => el.classList.contains('edit-mode'));
       if (bodyEdit) return s_fail('body.edit-mode after click OFF', 'class still present');
-      
+
       s_pass('Click OFF: aria-checked=false, body.edit-mode removed');
     })();
 
@@ -162,7 +164,7 @@ async function bail(page, msg) {
       // Focus the toggle
       await toggle.focus();
       await page.waitForTimeout(100);
-      
+
       const focused = await page.evaluate(() => document.activeElement?.getAttribute('data-testid'));
       if (focused !== 'edit-toggle') return s_fail('Focus on toggle', `focused on "${focused}"`);
 
@@ -171,7 +173,7 @@ async function bail(page, msg) {
       await page.waitForTimeout(300);
       let ac = await toggle.getAttribute('aria-checked');
       if (ac !== 'true') return s_fail('Space toggles ON', `aria-checked="${ac}"`);
-      
+
       // Space to OFF
       await page.keyboard.press('Space');
       await page.waitForTimeout(300);
@@ -190,15 +192,15 @@ async function bail(page, msg) {
         document.querySelector('[data-testid="edit-toggle"]')?.setAttribute('aria-checked', 'false');
       });
       await page.waitForTimeout(100);
-      
+
       // Click on body to lose any focus
       await page.locator('html').click({ position: { x: 10, y: 10 } });
       await page.waitForTimeout(100);
-      
+
       // Focus the toggle via JS (simulating keyboard navigation)
       await toggle.focus();
       await page.waitForTimeout(100);
-      
+
       const focusedEl = await page.evaluate(() => {
         const el = document.activeElement;
         return {
@@ -206,9 +208,9 @@ async function bail(page, msg) {
           outline: el ? getComputedStyle(el).outlineStyle : 'none'
         };
       });
-      
+
       if (focusedEl.testid !== 'edit-toggle') return s_fail('Toggle focusable', `focused="${focusedEl.testid}"`);
-      
+
       // In headless Chrome, :focus-visible might not match since no real keyboard was used.
       // Check that at least outline is present or the focus-visible rule exists
       console.log(`  ℹ Focus outline style: ${focusedEl.outline}`);
@@ -238,7 +240,7 @@ async function bail(page, msg) {
 
       const ac = await toggle.getAttribute('aria-checked');
       const bodyEdit = await page.locator('body').evaluate(el => el.classList.contains('edit-mode'));
-      
+
       // Both should end up OFF (first click ON, second OFF)
       const consistent = (ac === 'false' && !bodyEdit) || (ac === 'true' && bodyEdit);
       if (!consistent) return s_fail('Double-click consistency', `aria=${ac}, body=${bodyEdit}`);
@@ -261,9 +263,9 @@ async function bail(page, msg) {
       const ac = await toggle.getAttribute('aria-checked');
       const bodyEdit = await page.locator('body').evaluate(el => el.classList.contains('edit-mode'));
       const consistent = (ac === 'false' && !bodyEdit) || (ac === 'true' && bodyEdit);
-      
+
       if (!consistent) return s_fail('Triple-click consistency', `aria=${ac}, body=${bodyEdit}`);
-      
+
       console.log(`  ℹ Triple-click result: aria-checked="${ac}", body.edit-mode=${bodyEdit}`);
       s_pass('Triple-click lands in consistent state');
       e_test('Rapid triple-click');
@@ -312,7 +314,7 @@ async function bail(page, msg) {
 
     // I4: Click toggle → edit controls on tiles
     await (async () => {
-      // Use proper toggle to ensure state consistency  
+      // Use proper toggle to ensure state consistency
       // First, get to a known OFF state
       const currentAc = await toggle.getAttribute('aria-checked');
       if (currentAc === 'true') {
@@ -353,9 +355,9 @@ async function bail(page, msg) {
           ariaChecked: document.querySelector('[data-testid="edit-toggle"]')?.getAttribute('aria-checked'),
         };
       });
-      
+
       console.log(`  ℹ Edit mode indicators: ${JSON.stringify(editIndicators)}`);
-      
+
       if (editIndicators.editControlCount > 0) {
         i_pass('Edit controls appear on tiles in edit mode');
       } else {
@@ -379,10 +381,10 @@ async function bail(page, msg) {
     await (async () => {
       const leftText = await toggle.locator('.pill-switch__label--left .pill-switch__text').textContent();
       const rightText = await toggle.locator('.pill-switch__label--right .pill-switch__text').textContent();
-      
+
       const hasLabels = leftText?.trim().length > 0 && rightText?.trim().length > 0;
       if (!hasLabels) return i_fail('Visual labels', `left="${leftText}", right="${rightText}"`);
-      
+
       console.log(`  ℹ Labels: "${leftText?.trim()}" / "${rightText?.trim()}"`);
       i_pass('Visual View/Edit labels present');
     })();
@@ -399,14 +401,14 @@ async function bail(page, msg) {
         document.querySelector('[data-testid="edit-toggle"]')?.setAttribute('aria-checked', 'true');
       });
       await page.waitForTimeout(100);
-      
+
       await page.reload({ waitUntil: 'networkidle' });
       await toggle.waitFor({ state: 'visible', timeout: 5000 });
-      
+
       // After reload, should be back to view mode (state not persisted)
       const ac = await toggle.getAttribute('aria-checked');
       const bodyEdit = await page.locator('body').evaluate(el => el.classList.contains('edit-mode'));
-      
+
       if (ac === 'false' && !bodyEdit) {
         s_pass('Page reload resets to view mode');
       } else {
@@ -440,7 +442,7 @@ async function bail(page, msg) {
     console.log(`\nScenarios [${scenarioPass}/${scenarioPass + scenarioFail} pass]`);
     console.log(`Integration [${integPass}/${integPass + integFail}]`);
     console.log(`Edge Cases [${edgeTested} tested]`);
-    
+
     if (FINDINGS.length > 0) {
       console.log(`\nFindings (${FINDINGS.length}):`);
       for (const f of FINDINGS) {
@@ -455,7 +457,7 @@ async function bail(page, msg) {
     console.log('='.repeat(65));
 
     // Write findings to file
-    appendFileSync(`${EVIDENCE_DIR}/qa-findings.md`, 
+    appendFileSync(`${EVIDENCE_DIR}/qa-findings.md`,
       `# Pill Switch QA Findings\n\n` +
       `Date: ${new Date().toISOString()}\n\n` +
       `## Results\n- Scenarios: ${scenarioPass}/${scenarioPass + scenarioFail} pass\n` +
