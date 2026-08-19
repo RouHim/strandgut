@@ -19,7 +19,8 @@ use crate::error::AppError;
 use crate::scan::ScanInProgress;
 use crate::spa;
 
-// Re-export with explicit generics so both main.rs and tests can use it.
+// Type alias for the boxed body returned by handlers (also used by the
+// #[path]-included test module).
 // UnsyncBoxBody is the concrete type returned by `.boxed()` when the body
 // does not satisfy the `Send` bound (e.g. mapped Full<Bytes>).
 type BoxBody = http_body_util::combinators::UnsyncBoxBody<Bytes, hyper::Error>;

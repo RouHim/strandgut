@@ -197,11 +197,7 @@ pub fn validate_image(data: &[u8]) -> Result<(), AppError> {
 }
 
 /// Cache a downloaded photo to disk.
-pub fn cache_photo(
-    _photo: &PexelsPhoto,
-    image_data: &[u8],
-    cache_dir: &PathBuf,
-) -> Result<PathBuf, AppError> {
+pub fn cache_photo(image_data: &[u8], cache_dir: &PathBuf) -> Result<PathBuf, AppError> {
     validate_image(image_data)?;
 
     fs::create_dir_all(cache_dir).map_err(|e| {
@@ -408,7 +404,7 @@ fn do_fetch(
         .read_to_end(&mut body)
         .map_err(|e| AppError::Internal(format!("failed to read image data: {e}")))?;
 
-    let cached_path = cache_photo(&photo, &body, &cache_dir)?;
+    let cached_path = cache_photo(&body, &cache_dir)?;
 
     Ok((
         cached_path,
@@ -565,30 +561,8 @@ mod tests {
         let dir = test_dir("test_cache_photo_writes_file");
         let _ = std::fs::remove_dir_all(&dir);
 
-        let photo = PexelsPhoto {
-            id: 1,
-            width: 800,
-            height: 600,
-            url: "https://example.com/photo".into(),
-            photographer: "Test".into(),
-            photographer_url: "https://example.com".into(),
-            photographer_id: 1,
-            avg_color: "#000000".into(),
-            alt: "test".into(),
-            src: PexelsSrc {
-                original: None,
-                large2x: None,
-                large: None,
-                medium: None,
-                small: None,
-                portrait: None,
-                landscape: None,
-                tiny: None,
-            },
-        };
-
         let data = valid_jpeg_bytes();
-        let result = cache_photo(&photo, &data, &dir);
+        let result = cache_photo(&data, &dir);
         assert!(
             result.is_ok(),
             "cache_photo should succeed: {:?}",
@@ -613,30 +587,8 @@ mod tests {
         let dir = test_dir("test_cache_photo_invalid_format");
         let _ = std::fs::remove_dir_all(&dir);
 
-        let photo = PexelsPhoto {
-            id: 1,
-            width: 800,
-            height: 600,
-            url: "https://example.com/photo".into(),
-            photographer: "Test".into(),
-            photographer_url: "https://example.com".into(),
-            photographer_id: 1,
-            avg_color: "#000000".into(),
-            alt: "test".into(),
-            src: PexelsSrc {
-                original: None,
-                large2x: None,
-                large: None,
-                medium: None,
-                small: None,
-                portrait: None,
-                landscape: None,
-                tiny: None,
-            },
-        };
-
         let garbage = b"not an image";
-        let result = cache_photo(&photo, garbage, &dir);
+        let result = cache_photo(garbage, &dir);
         assert!(result.is_err(), "should reject invalid image data");
 
         assert!(
