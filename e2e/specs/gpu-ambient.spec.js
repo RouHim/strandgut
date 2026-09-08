@@ -75,3 +75,17 @@ test.describe('tile tilt fallback', () => {
     await expect(page.locator('[data-testid="gpu-canvas"]')).toHaveCount(0);
   });
 });
+
+test.describe('gpu ripple', () => {
+  // NOTE: test.info() is only valid inside a test body. Gate per-test.
+  test('serviceadded does not break the page', async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'webgpu',
+      'needs the webgpu project (SwiftShader flags)'
+    );
+    await page.goto('/');
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('serviceadded')));
+    await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
+    await expect(page.locator('[data-testid="gpu-canvas"]')).toBeVisible();
+  });
+});
