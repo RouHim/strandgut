@@ -66,8 +66,13 @@ export async function initGpuCanvas() {
     console.error('WebGPU unavailable, using static background:', err);
     return null;
   }
-  canvas = document.querySelector('[data-testid="gpu-canvas"]');
-  if (!canvas) { device.destroy(); device = null; return null; }
+  canvas = document.createElement('canvas');
+  canvas.className = 'gpu-canvas';
+  canvas.setAttribute('data-testid', 'gpu-canvas');
+  canvas.setAttribute('aria-hidden', 'true');
+  const main = document.querySelector('main');
+  if (!main || !main.parentNode) { device.destroy(); device = null; return null; }
+  main.parentNode.insertBefore(canvas, main);
   const format = navigator.gpu.getPreferredCanvasFormat();
   gpuContext = canvas.getContext('webgpu');
   try {
