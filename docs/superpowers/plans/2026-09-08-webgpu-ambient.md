@@ -448,6 +448,7 @@ export async function initGpuBackground() {
       pass.draw(3);
       pass.end();
       dev.queue.submit([encoder.finish()]);
+      window.__gpuPresented = true;
     });
   } catch (err) {
     console.error('WebGPU background failed, using static background:', err);
@@ -503,14 +504,13 @@ test.describe('gpu ambient presence', () => {
       'needs the webgpu project (SwiftShader flags)'
     );
     await page.goto('/');
-    const canvas = page.locator('[data-testid="gpu-canvas"]');
-    await expect(canvas).toBeVisible();
-    const size = await canvas.evaluate((el) => ({
-      w: el.width,
-      h: el.height,
-    }));
-    expect(size.w).toBeGreaterThan(0);
-    expect(size.h).toBeGreaterThan(0);
+    // Poll the first-frame marker, not canvas visibility: device.lost
+    // teardown may remove the canvas after frames were presented.
+    await expect
+      .poll(() => page.evaluate(() => window.__gpuPresented === true), {
+        timeout: 30000,
+      })
+      .toBe(true);
     await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
   });
 });
@@ -526,11 +526,10 @@ Run: `node --check assets/js/gpu/background.js && node --check assets/js/app.js`
 Expected: clean.
 Run: `cargo test spa && cargo clippy -- -D warnings && cargo fmt --check`
 Expected: pass (release rebuild embeds new JS: `cargo build --release`).
-Run: `CI= npx playwright test gpu-ambient --project=desktop --project=mobile` from `e2e/`
+Run: `CI= npx playwright test specs/gpu-ambient.spec.js --project=desktop --project=mobile` from `e2e/`
 Expected: absence tests pass, presence skipped.
-Run: `CI= npx playwright test gpu-ambient --project=webgpu` from `e2e/`
-Expected: absence tests pass (reduced-motion forces fallback), presence passes.
-
+Run: `CI= npx playwright test specs/gpu-ambient.spec.js --project=webgpu` from `e2e/`
+Expected: absence tests pass (reduced-motion forces fallback), presence passes via marker.
 - [ ] **Step 6: Commit**
 
 ```bash
@@ -814,8 +813,14 @@ test.describe('gpu ripple', () => {
     );
     await page.goto('/');
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('serviceadded')));
+    // Marker, not canvas visibility: device.lost teardown may remove the
+    // canvas after frames were presented (Ruling 4).
+    await expect
+      .poll(() => page.evaluate(() => window.__gpuPresented === true), {
+        timeout: 30000,
+      })
+      .toBe(true);
     await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
-    await expect(page.locator('[data-testid="gpu-canvas"]')).toBeVisible();
   });
 });
 ```
