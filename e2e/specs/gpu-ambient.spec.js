@@ -97,3 +97,31 @@ test.describe('tile tilt fallback', () => {
     await expect(page.locator('[data-testid="gpu-canvas"]')).toHaveCount(0);
   });
 });
+
+test.describe('gpu ripple', () => {
+  test('serviceadded does not break the page', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(async () => {
+      await fetch('/api/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Strandgut',
+          language: 'en',
+          scan_defaults: 'simple',
+          services: [
+            { name: 'S1', url: 'http://example.com', position: { row: 0, col: 0 } },
+          ],
+        }),
+      });
+    });
+    await page.reload();
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('serviceadded')));
+    await expect
+      .poll(() => page.evaluate(() => window.__gpuPresented === true), {
+        timeout: 30000,
+      })
+      .toBe(true);
+    await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
+  });
+});

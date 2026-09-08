@@ -6,6 +6,7 @@ import { initDrag } from './drag.js';
 import { initBackgroundToggle } from './background.js';
 import { initGpuBackground } from './gpu/background.js';
 import { initTileGlow } from './gpu/tiles.js';
+import { initParticles } from './gpu/particles.js';
 import './edit.js';
 import './pill-switch.js';
 import en from './i18n/en.js';
@@ -107,6 +108,7 @@ async function init() {
     await initBackgroundToggle();
     await initGpuBackground();
     initTileGlow();
+    initParticles();
     initDrag();
     applyTranslations();
 
