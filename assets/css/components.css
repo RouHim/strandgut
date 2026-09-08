@@ -897,3 +897,14 @@ a.scan-result-card__meta:hover {
     -webkit-box-orient: vertical;
   }
 }
+
+.tile {
+  transition: transform 0.15s ease-out;
+  will-change: transform;
+}
+
+@media (max-width: 599px) {
+  .tile {
+    transition: none;
+  }
+}
