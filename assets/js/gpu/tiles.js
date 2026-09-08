@@ -7,12 +7,12 @@ export function initTileGlow() {
   const grid = document.querySelector('[data-testid="service-grid"]');
   if (!grid) return;
   let lastTile = null;
-  grid.addEventListener('pointermove', (ev) => {
-    const tile = ev.target.closest('[data-testid="tile"]');
+  window.addEventListener('pointermove', (ev) => {
+    const tile = ev.target.closest?.('[data-testid="tile"]') ?? null;
     const api = getGlowApi();
     const nx = ev.clientX / window.innerWidth;
     const ny = ev.clientY / window.innerHeight;
-    if (api) api.setGlow(nx, ny, tile ? 0.9 : 0.0);
+    if (api) api.setGlow(nx, ny, tile ? 0.9 : 0.35);
     if (tile !== lastTile) {
       if (lastTile) lastTile.style.transform = '';
       lastTile = tile;
@@ -25,7 +25,7 @@ export function initTileGlow() {
       `perspective(600px) rotateX(${(-py * MAX_TILT_DEG).toFixed(2)}deg) ` +
       `rotateY(${(px * MAX_TILT_DEG).toFixed(2)}deg)`;
   });
-  grid.addEventListener('pointerleave', () => {
+  document.addEventListener('mouseleave', () => {
     const api = getGlowApi();
     if (api) api.clearGlow();
     lastTile = null;

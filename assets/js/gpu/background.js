@@ -18,11 +18,6 @@ uniform float u_time;
 uniform vec2 u_res;
 uniform vec3 u_glow;
 uniform float u_ripple;
-float hash(vec2 p) {
-  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-  p3 += dot(p3, p3.yzx + 33.33);
-  return fract((p3.x + p3.y) * p3.z);
-}
 void main() {
   float aspect = u_res.x / max(u_res.y, 1.0);
   vec2 uv = v_uv;
@@ -47,7 +42,6 @@ void main() {
     float ring = exp(-abs(d - r) * 22.0) * (1.0 - u_ripple / 1.2);
     col += vec3(0.12, 0.18, 0.22) * max(ring, 0.0);
   }
-  col += (hash(v_uv * u_res + fract(u_time * vec2(13.7, 7.3)) * 91.0) - 0.5) * 0.035;
   outColor = vec4(col, 1.0);
 }
 `;
