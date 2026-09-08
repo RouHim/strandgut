@@ -283,12 +283,13 @@ Add after the `"js/background.js"` arm (line 51):
 - [ ] **Step 9: Write absence e2e spec `e2e/specs/gpu-ambient.spec.js`**
 
 ```js
-import { test, expect } from '@playwright/test';
-
 test.describe('gpu ambient fallback', () => {
-  test.use({ reducedMotion: 'reduce' });
-
+  // NOTE: installed Playwright 1.62.1 drops reducedMotion from test.use and
+  // project fixtures (bundle defect, zero occurrences in the runner bundle).
+  // Emulate in-body instead — this also makes the test meaningful on the
+  // webgpu project, where the adapter exists and the gate must actively stop it.
   test('no canvas when reduced-motion is set', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
     await expect(page.locator('[data-testid="gpu-canvas"]')).toHaveCount(0);
