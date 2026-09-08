@@ -67,3 +67,33 @@ test.describe('gpu ambient presence', () => {
     await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
   });
 });
+
+test.describe('tile tilt fallback', () => {
+  test('hover tilts tile without canvas', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'needs hover-capable viewport');
+    await page.goto('/');
+    await page.evaluate(async () => {
+      await fetch('/api/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Strandgut',
+          language: 'en',
+          scan_defaults: 'simple',
+          services: [
+            { name: 'S1', url: 'http://example.com', position: { row: 0, col: 0 } },
+            { name: 'S2', url: 'http://example.com', position: { row: 0, col: 1 } },
+          ],
+        }),
+      });
+    });
+    await page.reload();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.reload();
+    const tile = page.locator('[data-testid="tile"]').first();
+    await expect(tile).toBeVisible();
+    await tile.hover();
+    expect(await tile.evaluate((el) => el.style.transform)).toContain('perspective');
+    await expect(page.locator('[data-testid="gpu-canvas"]')).toHaveCount(0);
+  });
+});
