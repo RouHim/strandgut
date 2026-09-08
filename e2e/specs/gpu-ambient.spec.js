@@ -7,6 +7,23 @@ test.describe('gpu ambient fallback', () => {
   test('no canvas when reduced-motion is set', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
+    // Seed one service: with zero services the app shows onboarding instead
+    // of the grid (Ruling 7 — tests must not depend on ambient local config).
+    await page.evaluate(async () => {
+      await fetch('/api/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Strandgut',
+          language: 'en',
+          scan_defaults: 'simple',
+          services: [
+            { name: 'S1', url: 'http://example.com', position: { row: 0, col: 0 } },
+          ],
+        }),
+      });
+    });
+    await page.reload();
     await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
     await expect(page.locator('[data-testid="gpu-canvas"]')).toHaveCount(0);
   });
