@@ -15,8 +15,8 @@ void main() {
   float speed = 0.008 + f * 0.014;
   float y = fract(g - u_time * speed);
   float x = fract(f + sin(u_time * 0.05 + f * 6.28) * 0.02);
-  float qx = (vi == 1u || vi == 4u) ? 1.0 : -1.0;
-  float qy = (vi < 2u) ? -1.0 : 1.0;
+  float qx = (vi == 1u || vi == 4u || vi == 5u) ? 1.0 : -1.0;
+  float qy = (vi == 0u || vi == 1u || vi == 4u) ? -1.0 : 1.0;
   float size = 0.0016 + f * 0.0022;
   vec2 p = vec2((x - 0.5) * 2.0 + qx * size * 2.0, (y - 0.5) * 2.0 + qy * size * 2.0);
   gl_Position = vec4(p, 0.0, 1.0);
