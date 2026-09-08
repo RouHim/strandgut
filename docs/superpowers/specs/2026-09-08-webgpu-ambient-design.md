@@ -1,0 +1,101 @@
+# WebGPU Ambient Visuals — Design
+
+Date: 2026-09-08
+Status: proposed, awaiting spec review
+Path: architectural (new rendering subsystem, no existing flow to tweak)
+
+## Goal
+
+Add subtle WebGPU-driven fanciness to the Strandgut LAN dashboard without
+weakening its minimalist feel, offline ability, or low-maintenance profile.
+Ship as three stacked, independently revertible PRs on one shared foundation.
+
+## Decisions (from brainstorming)
+
+- Surfaces: PR1 animated background, PR2 interactive tiles, PR3 ambient polish.
+- Fallback: auto-degrade silently. No UI toggle, no `config.toml` field.
+- Intensity: subtle ambient. Existing dark overlay and legibility unchanged.
+- Approach: raw WebGPU + inline WGSL, no 3D lib, no WebGL fallback (YAGNI).
+
+## Non-goals
+
+- No WebGL2 backend, no three.js/babylon, no CDN dependency (offline LAN).
+- No backend endpoint, no config schema change, no theme change.
+- No pixel-diff screenshot tests on shader output.
+
+## Architecture
+
+One fixed full-viewport canvas behind content, one shared GPU module.
+WGSL lives as inline template strings in JS modules, not separate files.
+
+```
+index.html              assets/js/gpu/            effect (PR)
++ canvas#gpu-canvas  -> detect.js (gate)      -> background (PR1)
+  (pointer-events:      context.js (device,       glow via uniform (PR2)
+   none, below grid)    half-res, pause,         particles (PR3)
+                        teardown)
+```
+
+- Canvas sits between the `background.webp` layer and the tile grid.
+- If init fails at any point, the canvas is never inserted (or is removed).
+  The page is then pixel-identical to today.
+- `spa.rs` needs no change: new JS ships through the existing
+  `include_bytes!` asset pipeline. No Rust change, binary stays <5MB.
+
+## Shared foundation (§1)
+
+- `assets/js/gpu/detect.js`: gate. Returns false when `navigator.gpu`
+  is missing OR `prefers-reduced-motion` / `prefers-reduced-transparency` /
+  `forced-colors: active` match. Single function, no UI.
+- `assets/js/gpu/context.js`: owns adapter (`powerPreference: "low-power"`),
+  device, canvas configuration, half-res sizing (render ~0.5x, CSS upscale),
+  `visibilitychange` pause, `device.lost` teardown. Uniform buffers allocated
+  once and reused; no per-frame allocations.
+- `index.html`: canvas element with `data-testid="gpu-canvas"`.
+- One CSS rule for canvas placement + print hiding.
+
+## PR slices (§2)
+
+PR1 — living background (`gpu/background.js`, new, WGSL inline):
+- Fullscreen pass: 2-3 slow sine-warped color stops from the existing dark
+  palette plus hash-based film grain. ~30s loop. Renders under the dark
+  overlay. E2E: canvas absent without WebGPU; layout unchanged with it.
+
+PR2 — tactile tiles (no new shader):
+- Tiles stay DOM. Pointer position feeds a uniform; the shared canvas paints
+  a soft radial glow behind the hovered tile. Tile itself gets a CSS
+  `transform: perspective` tilt (keeps the GPU-composited-only rule).
+  Fallback: today's static tiles; hover works with canvas disabled.
+
+PR3 — ambient polish (`gpu/particles.js`, new, WGSL inline):
+- Scan progress emits a one-shot ripple uniform; drag lift reuses the tile
+  transform; 40-60 instanced quads drift as dust motes (single draw,
+  alpha <0.08) on the same canvas. Fallback: today's CSS
+  `wash-ashore` / `dialog-in` only.
+
+## Guards (§3)
+
+- Accessibility: gate covers reduced-motion, reduced-transparency,
+  forced-colors. Print hides canvas. Overlay stays on top; contrast unchanged.
+- Performance: low-power adapter, DPR cap 1, 0.5x render + upscale, one
+  fullscreen pass + one instanced draw max, pause when hidden.
+- Errors: null adapter/device, lost device, or WGSL validation failure all
+  resolve to silent fallback (log + remove canvas). Never user-facing, never
+  blocks grid render. No new `AppError` path (frontend-only).
+- Testing: `node --check` for new modules. `cargo test` / `clippy` unaffected
+  (no Rust touched). Playwright: default project asserts graceful absence
+  (no canvas, grid identical); opt-in WebGPU project with SwiftShader flags
+  (`--enable-unsafe-webgpu`, `--use-angle=swiftshader`) asserts one presented
+  frame. DOM/layout asserts only, no shader pixel-diff. Verify CSS with a
+  fresh tab (headless cache gotcha).
+- Rollout: PR1 foundation first, PR2 and PR3 stack on it. Each revertible by
+  removing its shader wiring. No migration.
+
+## Files touched (expected)
+
+- New: `assets/js/gpu/detect.js`, `assets/js/gpu/context.js`,
+  `assets/js/gpu/background.js` (PR1), `assets/js/gpu/particles.js` (PR3).
+- Edit: `assets/index.html` (canvas), one CSS file (placement + print),
+  `assets/js/grid.js` or tile CSS (PR2 tilt), `assets/js/scan.js` (PR3 ripple
+  hook), `e2e/playwright.config.ts` + specs (opt-in WebGPU project).
+- Untouched: `src/`, `config.toml`, themes, i18n.
