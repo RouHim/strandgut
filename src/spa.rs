@@ -49,6 +49,12 @@ fn get_asset(path: &str) -> Option<AssetData> {
         "js/scan.js" => include_bytes!("../assets/js/scan.js"),
         "js/pill-switch.js" => include_bytes!("../assets/js/pill-switch.js"),
         "js/background.js" => include_bytes!("../assets/js/background.js"),
+        "js/gpu/detect.js" => include_bytes!("../assets/js/gpu/detect.js"),
+        "js/gpu/context.js" => include_bytes!("../assets/js/gpu/context.js"),
+        "js/gpu/uniforms.js" => include_bytes!("../assets/js/gpu/uniforms.js"),
+        "js/gpu/background.js" => include_bytes!("../assets/js/gpu/background.js"),
+        "js/gpu/tiles.js" => include_bytes!("../assets/js/gpu/tiles.js"),
+        "js/gpu/particles.js" => include_bytes!("../assets/js/gpu/particles.js"),
         "js/i18n/en.js" => include_bytes!("../assets/js/i18n/en.js"),
         "js/i18n/de.js" => include_bytes!("../assets/js/i18n/de.js"),
         "img/logo.svg" => include_bytes!("../assets/img/logo.svg"),
@@ -148,6 +154,12 @@ mod tests {
         assert!(get_asset("css/style.css").is_some());
         assert!(get_asset("js/app.js").is_some());
         assert!(get_asset("fonts/hanken-grotesk-latin.woff2").is_some());
+        assert!(get_asset("js/gpu/detect.js").is_some());
+        assert!(get_asset("js/gpu/context.js").is_some());
+        assert!(get_asset("js/gpu/uniforms.js").is_some());
+        assert!(get_asset("js/gpu/background.js").is_some());
+        assert!(get_asset("js/gpu/tiles.js").is_some());
+        assert!(get_asset("js/gpu/particles.js").is_some());
     }
 
     #[test]
