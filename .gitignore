@@ -9,3 +9,4 @@ node_modules/
 
 # SDD scratch (ledgers, briefs, review packages)
 .superpowers/
+.worktrees/
