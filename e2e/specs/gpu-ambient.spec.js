@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('gpu ambient fallback', () => {
-  test.use({ reducedMotion: 'reduce' });
-
   test('no canvas when reduced-motion is set', async ({ page }) => {
+    // Playwright 1.62.1 drops the reducedMotion test option (no such fixture
+    // in the runner bundle), so emulate in-body instead of test.use().
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     // Dismiss onboarding if present (hides the grid)
     const skip = page.locator('[data-testid="onboarding-skip"]');
