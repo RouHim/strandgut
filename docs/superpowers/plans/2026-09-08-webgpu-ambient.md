@@ -234,6 +234,23 @@ export async function initGpuCanvas() {
 }
 ```
 
+Re-entry guard (Ruling 3): `app.js` evaluates twice (entry `app.js?v=0.2.0` vs
+bare `./app.js` imported by `scan.js` are distinct module URLs), so `init()`
+runs twice. Guard the whole body with a shared promise so double init yields
+one canvas:
+
+```js
+let initPromise = null;
+export function initGpuCanvas() {
+  if (!initPromise) initPromise = initGpuCanvasOnce();
+  return initPromise;
+}
+```
+
+with the Step 5 body above renamed to `async function initGpuCanvasOnce()`.
+The promise stays settled (success or null) for the page lifetime — no retry
+path exists, and `device.lost` teardown needs no change.
+
 - [ ] **Step 6: No `assets/index.html` change**
 
 The canvas is created by `initGpuCanvas()` (Step 5) only after the gate and
