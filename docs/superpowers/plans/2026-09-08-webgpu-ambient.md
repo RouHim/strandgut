@@ -272,11 +272,15 @@ Append after the `.dynamic-background` block (line ~53):
 }
 
 main,
-.app-header,
 .app-footer {
   position: relative;
   z-index: 1;
 }
+
+(Ruling 5: `.app-header` is deliberately excluded — `layout.css` gives it
+`position: sticky; z-index: 100`, and `themes.css` imports last at equal
+specificity, so including it here would silently unstick the header. No
+z-index restatement: the value stays owned by `layout.css`.)
 
 @media print {
   .gpu-canvas {
@@ -452,6 +456,7 @@ export async function initGpuBackground() {
     });
   } catch (err) {
     console.error('WebGPU background failed, using static background:', err);
+    uniforms = null;
     document.querySelector('[data-testid="gpu-canvas"]')?.remove();
   }
 }
