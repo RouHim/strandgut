@@ -92,6 +92,7 @@ export async function initGpuBackground() {
     });
   } catch (err) {
     console.error('WebGPU background failed, using static background:', err);
+    uniforms = null;
     document.querySelector('[data-testid="gpu-canvas"]')?.remove();
   }
 }
