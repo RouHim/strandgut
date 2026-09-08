@@ -30,9 +30,8 @@ assets/js/gpu/detect.js      NEW  Task 1: capability + a11y gate
 assets/js/gpu/uniforms.js    NEW  Task 1: shared uniform buffer (time/size/glow/ripple)
 assets/js/gpu/context.js     NEW  Task 1: device, canvas, frame loop, teardown
 assets/js/gpu/background.js  NEW  Task 2: gradient+grain+ripple-ring pass, init entry
-assets/js/gpu/tiles.js       NEW  Task 3: DOM tilt + glow uniform writer
+assets/index.html            untouched (canvas is JS-created in Task 1 Step 5)
 assets/js/gpu/particles.js   NEW  Task 4: mote pass + serviceadded ripple trigger
-assets/index.html            EDIT Task 1: canvas element before <main>
 assets/css/themes.css        EDIT Task 1: canvas placement + print hiding
 src/spa.rs                   EDIT Task 1: 6 get_asset arms + test asserts
 assets/js/app.js             EDIT Task 2: call initGpuBackground() in init()
@@ -53,13 +52,13 @@ Shared uniform layout — `Float32Array(8)`, 32 bytes, mirrored exactly in every
 | 6 | rippleT | seconds since ripple, `-1` = idle |
 | 7 | pad | unused |
 
----
+- `index.html` untouched: the canvas is created by `initGpuCanvas()` only after gate + device succeed.
 
 ### Task 1: Shared foundation (no visual change)
 
 **Files:**
 - Create: `assets/js/gpu/detect.js`, `assets/js/gpu/uniforms.js`, `assets/js/gpu/context.js`
-- Modify: `assets/index.html` (canvas before `<main>`), `assets/css/themes.css` (placement), `src/spa.rs` (`get_asset` arms + `test_assets_embedded`)
+- Modify: `assets/css/themes.css` (placement), `src/spa.rs` (`get_asset` arms + `test_assets_embedded`)
 - Test: `src/spa.rs` tests, `e2e/specs/gpu-ambient.spec.js` (absence tests), `node --check`
 
 **Interfaces:**
@@ -202,8 +201,13 @@ export async function initGpuCanvas() {
     console.error('WebGPU unavailable, using static background:', err);
     return null;
   }
-  canvas = document.querySelector('[data-testid="gpu-canvas"]');
-  if (!canvas) { device.destroy(); device = null; return null; }
+  canvas = document.createElement('canvas');
+  canvas.className = 'gpu-canvas';
+  canvas.setAttribute('data-testid', 'gpu-canvas');
+  canvas.setAttribute('aria-hidden', 'true');
+  const main = document.querySelector('main');
+  if (!main || !main.parentNode) { device.destroy(); device = null; return null; }
+  main.parentNode.insertBefore(canvas, main);
   const format = navigator.gpu.getPreferredCanvasFormat();
   gpuContext = canvas.getContext('webgpu');
   try {
@@ -230,13 +234,28 @@ export async function initGpuCanvas() {
 }
 ```
 
-- [ ] **Step 6: Add canvas element to `assets/index.html`**
+Re-entry guard (Ruling 3): `app.js` evaluates twice (entry `app.js?v=0.2.0` vs
+bare `./app.js` imported by `scan.js` are distinct module URLs), so `init()`
+runs twice. Guard the whole body with a shared promise so double init yields
+one canvas:
 
-Insert directly before `<main>` (line 66):
-
-```html
-<canvas class="gpu-canvas" data-testid="gpu-canvas" aria-hidden="true"></canvas>
+```js
+let initPromise = null;
+export function initGpuCanvas() {
+  if (!initPromise) initPromise = initGpuCanvasOnce();
+  return initPromise;
+}
 ```
+
+with the Step 5 body above renamed to `async function initGpuCanvasOnce()`.
+The promise stays settled (success or null) for the page lifetime — no retry
+path exists, and `device.lost` teardown needs no change.
+
+- [ ] **Step 6: No `assets/index.html` change**
+
+The canvas is created by `initGpuCanvas()` (Step 5) only after the gate and
+device both succeed — per the spec, it is never inserted on the fallback
+path, so the absence assertion in Step 9 holds. `index.html` stays untouched.
 
 - [ ] **Step 7: Add placement CSS to `assets/css/themes.css`**
 
@@ -253,11 +272,15 @@ Append after the `.dynamic-background` block (line ~53):
 }
 
 main,
-.app-header,
 .app-footer {
   position: relative;
   z-index: 1;
 }
+
+(Ruling 5: `.app-header` is deliberately excluded — `layout.css` gives it
+`position: sticky; z-index: 100`, and `themes.css` imports last at equal
+specificity, so including it here would silently unstick the header. No
+z-index restatement: the value stays owned by `layout.css`.)
 
 @media print {
   .gpu-canvas {
@@ -281,12 +304,13 @@ Add after the `"js/background.js"` arm (line 51):
 - [ ] **Step 9: Write absence e2e spec `e2e/specs/gpu-ambient.spec.js`**
 
 ```js
-import { test, expect } from '@playwright/test';
-
 test.describe('gpu ambient fallback', () => {
-  test.use({ reducedMotion: 'reduce' });
-
+  // NOTE: installed Playwright 1.62.1 drops reducedMotion from test.use and
+  // project fixtures (bundle defect, zero occurrences in the runner bundle).
+  // Emulate in-body instead — this also makes the test meaningful on the
+  // webgpu project, where the adapter exists and the gate must actively stop it.
   test('no canvas when reduced-motion is set', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
     await expect(page.locator('[data-testid="gpu-canvas"]')).toHaveCount(0);
@@ -310,17 +334,17 @@ Run: `node --check assets/js/gpu/detect.js && node --check assets/js/gpu/uniform
 Expected: clean.
 Run: `cargo test spa` then `cargo clippy -- -D warnings` then `cargo fmt --check`
 Expected: all pass.
-Run (after `cargo build --release`): `CI= npx playwright test gpu-ambient` from `e2e/`
-Expected: 2 passed on desktop + mobile (webgpu project does not exist yet, so only these run).
+Run (after `cargo build --release`): `CI= npx playwright test specs/gpu-ambient.spec.js` from `e2e/`
+Expected: 2 passed on desktop + mobile (webgpu project does not exist yet, so only these run). Use the explicit spec path: the bare `gpu-ambient` filter also matches the whole suite.
 
 - [ ] **Step 11: Commit**
 
 ```bash
-git add src/spa.rs assets/index.html assets/css/themes.css assets/js/gpu/ e2e/specs/gpu-ambient.spec.js
+git add src/spa.rs assets/css/themes.css assets/js/gpu/ e2e/specs/gpu-ambient.spec.js
 git commit -m "feat(gpu): shared WebGPU foundation with silent fallback"
 ```
 
-Deliverable: canvas element + gated context exist, no visual change anywhere, Rust registry covers all 6 future modules.
+Deliverable: gated context exists, no visual change anywhere (no canvas in DOM on any path yet — Task 2 wires init), Rust registry covers all 6 future modules.
 
 ---
 
@@ -428,9 +452,11 @@ export async function initGpuBackground() {
       pass.draw(3);
       pass.end();
       dev.queue.submit([encoder.finish()]);
+      window.__gpuPresented = true;
     });
   } catch (err) {
     console.error('WebGPU background failed, using static background:', err);
+    uniforms = null;
     document.querySelector('[data-testid="gpu-canvas"]')?.remove();
   }
 }
@@ -483,14 +509,13 @@ test.describe('gpu ambient presence', () => {
       'needs the webgpu project (SwiftShader flags)'
     );
     await page.goto('/');
-    const canvas = page.locator('[data-testid="gpu-canvas"]');
-    await expect(canvas).toBeVisible();
-    const size = await canvas.evaluate((el) => ({
-      w: el.width,
-      h: el.height,
-    }));
-    expect(size.w).toBeGreaterThan(0);
-    expect(size.h).toBeGreaterThan(0);
+    // Poll the first-frame marker, not canvas visibility: device.lost
+    // teardown may remove the canvas after frames were presented.
+    await expect
+      .poll(() => page.evaluate(() => window.__gpuPresented === true), {
+        timeout: 30000,
+      })
+      .toBe(true);
     await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
   });
 });
@@ -506,11 +531,10 @@ Run: `node --check assets/js/gpu/background.js && node --check assets/js/app.js`
 Expected: clean.
 Run: `cargo test spa && cargo clippy -- -D warnings && cargo fmt --check`
 Expected: pass (release rebuild embeds new JS: `cargo build --release`).
-Run: `CI= npx playwright test gpu-ambient --project=desktop --project=mobile` from `e2e/`
+Run: `CI= npx playwright test specs/gpu-ambient.spec.js --project=desktop --project=mobile` from `e2e/`
 Expected: absence tests pass, presence skipped.
-Run: `CI= npx playwright test gpu-ambient --project=webgpu` from `e2e/`
-Expected: absence tests pass (reduced-motion forces fallback), presence passes.
-
+Run: `CI= npx playwright test specs/gpu-ambient.spec.js --project=webgpu` from `e2e/`
+Expected: absence tests pass (reduced-motion forces fallback), presence passes via marker.
 - [ ] **Step 6: Commit**
 
 ```bash
@@ -794,8 +818,14 @@ test.describe('gpu ripple', () => {
     );
     await page.goto('/');
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('serviceadded')));
+    // Marker, not canvas visibility: device.lost teardown may remove the
+    // canvas after frames were presented (Ruling 4).
+    await expect
+      .poll(() => page.evaluate(() => window.__gpuPresented === true), {
+        timeout: 30000,
+      })
+      .toBe(true);
     await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
-    await expect(page.locator('[data-testid="gpu-canvas"]')).toBeVisible();
   });
 });
 ```
