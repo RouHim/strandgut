@@ -23,3 +23,23 @@ test.describe('gpu ambient fallback', () => {
     }
   });
 });
+
+test.describe('gpu ambient presence', () => {
+  // NOTE: test.info() is only valid inside a test body. Gate per-test.
+  test('canvas presents one frame', async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'webgpu',
+      'needs the webgpu project (SwiftShader flags)'
+    );
+    await page.goto('/');
+    const canvas = page.locator('[data-testid="gpu-canvas"]');
+    await expect(canvas).toBeVisible();
+    const size = await canvas.evaluate((el) => ({
+      w: el.width,
+      h: el.height,
+    }));
+    expect(size.w).toBeGreaterThan(0);
+    expect(size.h).toBeGreaterThan(0);
+    await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
+  });
+});

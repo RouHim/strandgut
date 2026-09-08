@@ -25,6 +25,15 @@ export default defineConfig({
         ...devices['Pixel 5'],
       },
     },
+    {
+      name: 'webgpu',
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--enable-unsafe-webgpu', '--use-angle=swiftshader'],
+        },
+      },
+    },
   ],
   ...(process.env.STRANDGUT_NO_WEBSERVER
     ? {}
