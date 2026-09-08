@@ -23,6 +23,23 @@ test.describe('gpu ambient fallback', () => {
 test.describe('gpu ambient presence', () => {
   test('canvas presents one frame', async ({ page }) => {
     await page.goto('/');
+    // Seed one service: with zero services the app shows onboarding instead
+    // of the grid, so the grid assertion below needs ambient state.
+    await page.evaluate(async () => {
+      await fetch('/api/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Strandgut',
+          language: 'en',
+          scan_defaults: 'simple',
+          services: [
+            { name: 'S1', url: 'http://example.com', position: { row: 0, col: 0 } },
+          ],
+        }),
+      });
+    });
+    await page.reload();
     // Marker, not visibility: context-loss teardown may remove the canvas
     // after frames were presented.
     await expect
