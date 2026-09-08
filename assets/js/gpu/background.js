@@ -88,6 +88,7 @@ export async function initGpuBackground() {
       pass.draw(3);
       pass.end();
       dev.queue.submit([encoder.finish()]);
+      window.__gpuPresented = true;
     });
   } catch (err) {
     console.error('WebGPU background failed, using static background:', err);

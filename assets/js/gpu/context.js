@@ -55,7 +55,7 @@ export function addPass(fn) {
 
 export function getCanvas() { return canvas; }
 
-export async function initGpuCanvas() {
+async function initGpuCanvasOnce() {
   if (!isGpuAmbientAllowed()) return null;
   try {
     const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'low-power' });
@@ -96,4 +96,11 @@ export async function initGpuCanvas() {
     }
   });
   return { device, format };
+}
+
+let initPromise = null;
+
+export function initGpuCanvas() {
+  if (!initPromise) initPromise = initGpuCanvasOnce();
+  return initPromise;
 }

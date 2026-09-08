@@ -33,14 +33,7 @@ test.describe('gpu ambient presence', () => {
       'needs the webgpu project (SwiftShader flags)'
     );
     await page.goto('/');
-    const canvas = page.locator('[data-testid="gpu-canvas"]');
-    await expect(canvas).toBeVisible();
-    const size = await canvas.evaluate((el) => ({
-      w: el.width,
-      h: el.height,
-    }));
-    expect(size.w).toBeGreaterThan(0);
-    expect(size.h).toBeGreaterThan(0);
+    await expect.poll(() => page.evaluate(() => window.__gpuPresented), { timeout: 30000 }).toBe(true);
     await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
   });
 });
@@ -86,6 +79,6 @@ test.describe('gpu ripple', () => {
     await page.goto('/');
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('serviceadded')));
     await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
-    await expect(page.locator('[data-testid="gpu-canvas"]')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__gpuPresented), { timeout: 30000 }).toBe(true);
   });
 });
