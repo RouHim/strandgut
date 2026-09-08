@@ -105,3 +105,18 @@ PR3 — ambient polish (`gpu/particles.js`, new, WGSL inline):
   `e2e/playwright.config.ts` + `e2e/specs/gpu-ambient.spec.js` (opt-in WebGPU
   project). PR3 needs no `scan.js` change: it listens to `serviceadded`.
 - Untouched: `config.toml`, themes, i18n, `src/` error paths.
+
+## Pivot 2026-09-08: WebGL2-only (Ruling 6)
+
+- Constraint: the app only ever serves plain HTTP on home networks, and
+  browsers gate `navigator.gpu` to secure contexts. WebGPU can never activate
+  for LAN-IP clients (localhost exempt). Proven on Waterfox/Firefox 153 with a
+  working RADV adapter: `'gpu' in navigator === false` on the LAN URL.
+- Decision: WebGL2-only. WebGL2 has no secure-context requirement and is
+  universally present (same Waterfox: full WebGL2 on Mesa). Same effects, same
+  architecture, GLSL ES 3.00 mirrors of the WGSL shaders. No HTTPS, no per-client
+  flags, no WebGL fallback chain (WebGL2 required, silent fallback otherwise).
+- Consequences: no `webgpu` e2e project or SwiftShader flags (headless Chromium
+  does WebGL2 by default); the `test.use reducedMotion` fixture defect is moot
+  for new tests (in-body `emulateMedia` everywhere); PR #14 (WebGPU) closed
+  unmerged in favor of `feature/webgl-ambient`.
