@@ -7,6 +7,7 @@ const COUNT = 48;
 const VS = `#version 300 es
 uniform float u_time;
 out float v_a;
+out vec2 v_q;
 void main() {
   uint ii = uint(gl_InstanceID);
   uint vi = uint(gl_VertexID);
@@ -20,6 +21,7 @@ void main() {
   float size = 0.0016 + f * 0.0022;
   vec2 p = vec2((x - 0.5) * 2.0 + qx * size * 2.0, (y - 0.5) * 2.0 + qy * size * 2.0);
   gl_Position = vec4(p, 0.0, 1.0);
+  v_q = vec2(qx, qy);
   v_a = 0.08 * smoothstep(0.0, 0.15, y) * smoothstep(1.0, 0.7, y);
 }
 `;
@@ -27,9 +29,11 @@ void main() {
 const FS = `#version 300 es
 precision highp float;
 in float v_a;
+in vec2 v_q;
 out vec4 outColor;
 void main() {
-  outColor = vec4(0.55, 0.65, 0.85, v_a);
+  float circ = smoothstep(1.0, 0.25, length(v_q));
+  outColor = vec4(0.55, 0.65, 0.85, v_a * circ);
 }
 `;
 
