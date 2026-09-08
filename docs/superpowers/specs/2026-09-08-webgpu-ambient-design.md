@@ -53,7 +53,7 @@ index.html              assets/js/gpu/            effect (PR)
   device, canvas configuration, half-res sizing (render ~0.5x, CSS upscale),
   `visibilitychange` pause, `device.lost` teardown. Uniform buffers allocated
   once and reused; no per-frame allocations.
-- `index.html`: canvas element with `data-testid="gpu-canvas"`.
+- `index.html` untouched: `initGpuCanvas()` creates the canvas (with `data-testid="gpu-canvas"`) only after gate + device succeed, inserting it before `<main>`.
 - One CSS rule for canvas placement + print hiding.
 
 ## PR slices (§2)

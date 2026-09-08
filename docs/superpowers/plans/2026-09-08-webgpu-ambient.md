@@ -30,9 +30,8 @@ assets/js/gpu/detect.js      NEW  Task 1: capability + a11y gate
 assets/js/gpu/uniforms.js    NEW  Task 1: shared uniform buffer (time/size/glow/ripple)
 assets/js/gpu/context.js     NEW  Task 1: device, canvas, frame loop, teardown
 assets/js/gpu/background.js  NEW  Task 2: gradient+grain+ripple-ring pass, init entry
-assets/js/gpu/tiles.js       NEW  Task 3: DOM tilt + glow uniform writer
+assets/index.html            untouched (canvas is JS-created in Task 1 Step 5)
 assets/js/gpu/particles.js   NEW  Task 4: mote pass + serviceadded ripple trigger
-assets/index.html            EDIT Task 1: canvas element before <main>
 assets/css/themes.css        EDIT Task 1: canvas placement + print hiding
 src/spa.rs                   EDIT Task 1: 6 get_asset arms + test asserts
 assets/js/app.js             EDIT Task 2: call initGpuBackground() in init()
@@ -53,13 +52,13 @@ Shared uniform layout — `Float32Array(8)`, 32 bytes, mirrored exactly in every
 | 6 | rippleT | seconds since ripple, `-1` = idle |
 | 7 | pad | unused |
 
----
+- `index.html` untouched: the canvas is created by `initGpuCanvas()` only after gate + device succeed.
 
 ### Task 1: Shared foundation (no visual change)
 
 **Files:**
 - Create: `assets/js/gpu/detect.js`, `assets/js/gpu/uniforms.js`, `assets/js/gpu/context.js`
-- Modify: `assets/index.html` (canvas before `<main>`), `assets/css/themes.css` (placement), `src/spa.rs` (`get_asset` arms + `test_assets_embedded`)
+- Modify: `assets/css/themes.css` (placement), `src/spa.rs` (`get_asset` arms + `test_assets_embedded`)
 - Test: `src/spa.rs` tests, `e2e/specs/gpu-ambient.spec.js` (absence tests), `node --check`
 
 **Interfaces:**
@@ -202,8 +201,13 @@ export async function initGpuCanvas() {
     console.error('WebGPU unavailable, using static background:', err);
     return null;
   }
-  canvas = document.querySelector('[data-testid="gpu-canvas"]');
-  if (!canvas) { device.destroy(); device = null; return null; }
+  canvas = document.createElement('canvas');
+  canvas.className = 'gpu-canvas';
+  canvas.setAttribute('data-testid', 'gpu-canvas');
+  canvas.setAttribute('aria-hidden', 'true');
+  const main = document.querySelector('main');
+  if (!main || !main.parentNode) { device.destroy(); device = null; return null; }
+  main.parentNode.insertBefore(canvas, main);
   const format = navigator.gpu.getPreferredCanvasFormat();
   gpuContext = canvas.getContext('webgpu');
   try {
@@ -230,13 +234,11 @@ export async function initGpuCanvas() {
 }
 ```
 
-- [ ] **Step 6: Add canvas element to `assets/index.html`**
+- [ ] **Step 6: No `assets/index.html` change**
 
-Insert directly before `<main>` (line 66):
-
-```html
-<canvas class="gpu-canvas" data-testid="gpu-canvas" aria-hidden="true"></canvas>
-```
+The canvas is created by `initGpuCanvas()` (Step 5) only after the gate and
+device both succeed — per the spec, it is never inserted on the fallback
+path, so the absence assertion in Step 9 holds. `index.html` stays untouched.
 
 - [ ] **Step 7: Add placement CSS to `assets/css/themes.css`**
 
@@ -310,17 +312,17 @@ Run: `node --check assets/js/gpu/detect.js && node --check assets/js/gpu/uniform
 Expected: clean.
 Run: `cargo test spa` then `cargo clippy -- -D warnings` then `cargo fmt --check`
 Expected: all pass.
-Run (after `cargo build --release`): `CI= npx playwright test gpu-ambient` from `e2e/`
-Expected: 2 passed on desktop + mobile (webgpu project does not exist yet, so only these run).
+Run (after `cargo build --release`): `CI= npx playwright test specs/gpu-ambient.spec.js` from `e2e/`
+Expected: 2 passed on desktop + mobile (webgpu project does not exist yet, so only these run). Use the explicit spec path: the bare `gpu-ambient` filter also matches the whole suite.
 
 - [ ] **Step 11: Commit**
 
 ```bash
-git add src/spa.rs assets/index.html assets/css/themes.css assets/js/gpu/ e2e/specs/gpu-ambient.spec.js
+git add src/spa.rs assets/css/themes.css assets/js/gpu/ e2e/specs/gpu-ambient.spec.js
 git commit -m "feat(gpu): shared WebGPU foundation with silent fallback"
 ```
 
-Deliverable: canvas element + gated context exist, no visual change anywhere, Rust registry covers all 6 future modules.
+Deliverable: gated context exists, no visual change anywhere (no canvas in DOM on any path yet — Task 2 wires init), Rust registry covers all 6 future modules.
 
 ---
 
