@@ -4,6 +4,7 @@ import { openAddDialog } from './add-dialog.js';
 import { renderGrid } from './grid.js';
 import { initDrag } from './drag.js';
 import { initBackgroundToggle } from './background.js';
+import { initGpuBackground } from './gpu/background.js';
 import './edit.js';
 import './pill-switch.js';
 import en from './i18n/en.js';
@@ -103,6 +104,7 @@ async function init() {
     });
 
     await initBackgroundToggle();
+    await initGpuBackground();
     initDrag();
     applyTranslations();
 

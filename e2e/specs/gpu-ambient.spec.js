@@ -19,3 +19,17 @@ test.describe('gpu ambient fallback', () => {
     }
   });
 });
+
+test.describe('gpu ambient presence', () => {
+  test('canvas presents one frame', async ({ page }) => {
+    await page.goto('/');
+    // Marker, not visibility: context-loss teardown may remove the canvas
+    // after frames were presented.
+    await expect
+      .poll(() => page.evaluate(() => window.__gpuPresented === true), {
+        timeout: 30000,
+      })
+      .toBe(true);
+    await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
+  });
+});
