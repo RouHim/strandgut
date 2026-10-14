@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/RouHim/strandgut/compare/v1.5.13...v1.6.0) (2026-10-14)
+
+
+### Features
+
+* **ui:** surface service reachability and harden the dashboard ([15732b8](https://github.com/RouHim/strandgut/commit/15732b86866d9ce6a9e87ce4ad54e7c4ebf3ee76))
+
 ## [1.5.13](https://github.com/RouHim/strandgut/compare/v1.5.12...v1.5.13) (2026-10-13)
 
 ## [1.5.12](https://github.com/RouHim/strandgut/compare/v1.5.11...v1.5.12) (2026-10-10)
