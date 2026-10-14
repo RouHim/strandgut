@@ -601,6 +601,83 @@ fn parse_sse_events(text: &str) -> Vec<(String, String)> {
         .collect()
 }
 
+#[tokio::test]
+async fn test_status_get_reports_reachability() -> Result<(), AppError> {
+    // A bound listener accepts connections; a released port does not.
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let open_port = listener.local_addr().unwrap().port();
+    let closed_port = {
+        let l = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        l.local_addr().unwrap().port()
+    };
+
+    let path = temp_config_path("status");
+    std::fs::write(
+        &path,
+        format!(
+            r#"title = "Status Test"
+language = "en"
+scan_defaults = "simple"
+
+[[services]]
+name = "Up"
+url = "http://127.0.0.1:{open_port}"
+[services.position]
+row = 0
+col = 0
+
+[[services]]
+name = "Down"
+url = "http://127.0.0.1:{closed_port}"
+[services.position]
+row = 0
+col = 1
+"#
+        ),
+    )
+    .unwrap();
+
+    let state = Arc::new(AppState {
+        config_path: Arc::new(path.clone()),
+        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        background: Arc::new(std::sync::Mutex::new(
+            crate::background::BackgroundState::new(),
+        )),
+        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
+    });
+
+    let req = Request::builder()
+        .uri("/api/status")
+        .method(Method::GET)
+        .body(Full::new(Bytes::new()))
+        .unwrap();
+    let resp = handle_request(req, state.clone()).await.unwrap();
+    assert_eq!(resp.status(), 200);
+
+    let body = body_to_string(resp).await?;
+    let json: serde_json::Value = serde_json::from_str(&body).unwrap();
+    let services = json.get("services").unwrap().as_array().unwrap();
+    assert_eq!(services.len(), 2);
+    assert_eq!(
+        services[0].get("url").unwrap(),
+        &format!("http://127.0.0.1:{open_port}")
+    );
+    assert_eq!(services[0].get("reachable").unwrap(), true);
+    assert_eq!(services[1].get("reachable").unwrap(), false);
+
+    // The status endpoint is read-only.
+    let req = Request::builder()
+        .uri("/api/status")
+        .method(Method::PUT)
+        .body(Full::new(Bytes::new()))
+        .unwrap();
+    let resp = handle_request(req, state).await.unwrap();
+    assert_eq!(resp.status(), 405);
+
+    let _ = std::fs::remove_file(&path);
+    Ok(())
+}
+
 async fn body_to_string(resp: Response<BoxBody>) -> Result<String, AppError> {
     let body = resp
         .collect()

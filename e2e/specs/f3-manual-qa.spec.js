@@ -17,7 +17,14 @@ test.describe('F3 Manual QA: scan-reachability-check', () => {
 
   async function openScanDialog(page) {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    // Deterministic app-ready wait: either the grid has rendered tiles or the
+  // onboarding is explicitly shown. 'networkidle' never resolves reliably here
+  // (tile icons load from external CDNs; see AGENTS.md test notes).
+  await page.waitForFunction(() => {
+    const tiles = document.querySelectorAll('[data-testid="tile"]');
+    const onboarding = document.querySelector('[data-testid="onboarding"]');
+    return tiles.length > 0 || onboarding?.getAttribute('aria-hidden') === 'false';
+  });
     await page.locator('[data-testid="add-button"]').click();
     await page.waitForTimeout(300);
     await page.locator('[data-testid="add-scan-button"]').click();

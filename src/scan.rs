@@ -249,6 +249,9 @@ enum SseEvent {
     Result(ScanResult),
     /// Progress update: how many ports have been scanned so far.
     Progress { scanned: usize, total: usize },
+    /// Scan-level failure, sent instead of results; `host_not_found` is the
+    /// one code the client translates.
+    Error(String),
 }
 
 /// Guard that resets `scan_in_progress` to `false` when dropped.
@@ -275,6 +278,11 @@ fn format_progress_frame(scanned: usize, total: usize) -> Bytes {
             "total": total
         })
     ))
+}
+
+/// Format an `error` SSE frame (`event: error\ndata: <code>\n\n`).
+fn format_error_frame(code: &str) -> Bytes {
+    Bytes::from(format!("event: error\ndata: {code}\n\n"))
 }
 
 /// Format the terminal `done` SSE frame (`event: done\n\n`).
@@ -314,6 +322,11 @@ impl Body for SseScanBody {
             Poll::Ready(Some(SseEvent::Progress { scanned, total })) => {
                 this.last_emitted = scanned;
                 return Poll::Ready(Some(Ok(Frame::data(format_progress_frame(scanned, total)))));
+            }
+            Poll::Ready(Some(SseEvent::Error(code))) => {
+                this.done = true;
+                this._guard.0.store(false, Ordering::SeqCst);
+                return Poll::Ready(Some(Ok(Frame::data(format_error_frame(&code)))));
             }
             Poll::Ready(None) => {
                 this.done = true;
@@ -359,6 +372,21 @@ impl Body for SseScanBody {
 pub async fn scan_with_sse(host: String, ports: Vec<u16>, guard: ScanInProgress) -> SseScanBody {
     let (tx, rx) = mpsc::channel::<SseEvent>(128);
     let total_ports = ports.len();
+
+    // A host that does not resolve is a different sentence from a host with no
+    // services; resolve once up front and fail the scan loudly.
+    if tokio::net::lookup_host((host.as_str(), 0)).await.is_err() {
+        let _ = tx.send(SseEvent::Error("host_not_found".to_string())).await;
+        return SseScanBody {
+            rx,
+            interval: tokio::time::interval(Duration::from_secs(1)),
+            done: false,
+            _guard: guard,
+            counter: None,
+            total_ports,
+            last_emitted: 0,
+        };
+    }
 
     // Emit initial progress event for larger scans.
     if total_ports > 9 {

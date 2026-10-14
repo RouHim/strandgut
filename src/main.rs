@@ -7,6 +7,7 @@ mod icons;
 mod routes;
 mod scan;
 mod spa;
+mod status;
 
 use std::sync::Arc;
 use std::sync::Mutex;

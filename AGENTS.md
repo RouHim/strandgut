@@ -42,6 +42,19 @@ cargo test scan::tests::                       # Run tests in module
 cargo test -- --nocapture                     # Show println! output
 ```
 
+### E2E Tests (Playwright, `e2e/`)
+
+```bash
+cd e2e && npm ci && npx playwright install chromium
+npm test
+```
+
+Wait for the app deterministically (`[data-testid="tile"]` / `[data-testid="onboarding"]`).
+`page.waitForLoadState('networkidle')` is unreliable here: tile icons are fetched from external
+CDNs, so the browser may stay non-idle for a long time. The same applies while an impeccable live
+block is injected into `assets/index.html` (its SSE connection never goes idle) — the specs use
+deterministic waits and pass either way.
+
 ## Project Structure
 
 ```
@@ -52,12 +65,15 @@ src/
   error.rs          # AppError enum, HTTP status mapping, JSON error bodies
   scan.rs           # Async TCP port scanner with SSE streaming, service fingerprinting
   spa.rs            # Embedded asset serving (include_bytes!), SPA fallback
+  status.rs         # Reachability probe for the tiles (GET /api/status)
   i18n.rs           # Accept-Language parser, locale detection
 assets/
   index.html        # SPA shell
   js/               # Frontend modules (ES modules)
     app.js          # Main app logic, onboarding, event wiring
     api.js          # HTTP API wrappers (fetch)
+    i18n.js         # Language detection, t(), applyTranslations()
+    overlay.js      # Modal integrity: focus trap, inert page, scroll lock
     state.js        # Global config state, dirty tracking
     grid.js         # Service grid rendering
     drag.js         # Drag-and-drop for service cards
@@ -176,6 +192,7 @@ RUST_LOG=info                        # Logging level (env_logger)
 | GET | `/api/health` | Health check |
 | GET | `/api/readyz` | Readiness probe |
 | GET | `/api/config` | Get current config (JSON) |
+| GET | `/api/status` | Reachability of every configured service (one TCP probe per service, parallel, 1 s budget) |
 | PUT | `/api/config` | Save config (JSON) |
 | POST | `/api/scan` | Start network scan (returns SSE stream) |
 | GET | `/assets/{*path}` | Static asset serving |

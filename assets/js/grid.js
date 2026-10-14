@@ -1,6 +1,41 @@
-import { getServices, isEditing, GRID_COLUMNS } from './state.js';
+import { getServices, getServiceStatus, isEditing, GRID_COLUMNS } from './state.js';
 
 const PLACEHOLDER_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="4"/><circle cx="12" cy="12" r="4"/><path d="M8 8l8 8M16 8l-8 8"/></svg>')}`;
+
+/** Translations are registered by app.js before any tile is rendered. */
+const t = (key) => (typeof window.__t === 'function' ? window.__t(key) : key);
+
+/**
+ * Sync one tile's reachability dot with the page-load status map.
+ * `unknown` (no status for this url yet) stays silent for assistive tech.
+ */
+function syncStatusDot(dot, url) {
+  const status = getServiceStatus(url);
+  const state = status === null ? 'unknown' : status ? 'up' : 'down';
+  dot.setAttribute('data-state', state);
+  if (state === 'unknown') {
+    dot.setAttribute('aria-hidden', 'true');
+    dot.removeAttribute('role');
+    dot.removeAttribute('aria-label');
+    dot.removeAttribute('title');
+  } else {
+    const label = t(state === 'up' ? 'status.up' : 'status.down');
+    dot.removeAttribute('aria-hidden');
+    dot.setAttribute('role', 'img');
+    dot.setAttribute('aria-label', label);
+    dot.setAttribute('title', label);
+  }
+}
+
+/** Re-sync every rendered dot after the page-load status check resolves. */
+export function updateTileStatuses() {
+  const services = getServices();
+  document.querySelectorAll('[data-testid="tile"]').forEach((tile) => {
+    const dot = tile.querySelector('[data-testid="tile-status"]');
+    const service = services[Number(tile.getAttribute('data-index'))];
+    if (dot && service) syncStatusDot(dot, service.url);
+  });
+}
 /**
  * Resolve an icon URL with multi-CDN fallback chain.
  *
@@ -97,6 +132,12 @@ export function renderGrid({ entrance = false } = {}) {
 
     tile.appendChild(iconWrapper);
     tile.appendChild(info);
+
+    const statusDot = document.createElement('span');
+    statusDot.className = 'tile-status';
+    statusDot.setAttribute('data-testid', 'tile-status');
+    syncStatusDot(statusDot, service.url);
+    tile.appendChild(statusDot);
 
     if (isEditing()) {
       tile.setAttribute('draggable', 'true');

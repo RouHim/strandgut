@@ -12,7 +12,14 @@ test('tile is a real link that opens the service in a new tab', async ({ page, r
   });
 
   await page.goto('/');
-  await page.waitForLoadState('networkidle');
+  // Deterministic app-ready wait: either the grid has rendered tiles or the
+  // onboarding is explicitly shown. 'networkidle' never resolves reliably here
+  // (tile icons load from external CDNs; see AGENTS.md test notes).
+  await page.waitForFunction(() => {
+    const tiles = document.querySelectorAll('[data-testid="tile"]');
+    const onboarding = document.querySelector('[data-testid="onboarding"]');
+    return tiles.length > 0 || onboarding?.getAttribute('aria-hidden') === 'false';
+  });
 
   const skip = page.locator('[data-testid="onboarding-skip"]');
   if (await skip.isVisible().catch(() => false)) {

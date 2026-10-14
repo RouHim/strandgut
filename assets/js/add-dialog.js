@@ -1,5 +1,7 @@
 import { openScanDialog } from './scan.js';
 import { openEditPanel } from './edit.js';
+import { activateOverlay, releaseOverlayFor } from './overlay.js';
+import { t } from './i18n.js';
 
 let dialogEl = null;
 
@@ -10,26 +12,27 @@ export function openAddDialog() {
   dialogEl.className = 'add-dialog-overlay';
   dialogEl.setAttribute('role', 'dialog');
   dialogEl.setAttribute('aria-modal', 'true');
-  dialogEl.setAttribute('aria-label', 'Add Service');
+  dialogEl.setAttribute('aria-labelledby', 'add-dialog-title');
 
   dialogEl.innerHTML = `
     <div class="add-dialog" data-testid="add-dialog">
       <header class="add-dialog__header">
-        <h2 data-i18n="add.title">Add Service</h2>
-        <button type="button" class="btn btn-ghost add-dialog__close" data-testid="add-dialog-close" aria-label="Close">&times;</button>
+        <h2 id="add-dialog-title">${t('add.title')}</h2>
+        <button type="button" class="btn btn-ghost add-dialog__close" data-testid="add-dialog-close" aria-label="${t('add.close')}">&times;</button>
       </header>
       <div class="add-dialog__body">
-        <button type="button" class="btn btn-secondary add-dialog__option" data-testid="add-manual-button">
-          <span data-i18n="add.manual">Add Manually</span>
+        <button type="button" class="btn btn-secondary add-dialog__option" data-testid="add-manual-button" data-autofocus>
+          <span>${t('add.manual')}</span>
         </button>
         <button type="button" class="btn btn-secondary add-dialog__option" data-testid="add-scan-button">
-          <span data-i18n="add.scan">Scan Network</span>
+          <span>${t('add.scan')}</span>
         </button>
       </div>
     </div>
   `;
 
   document.body.appendChild(dialogEl);
+  activateOverlay(dialogEl);
 
   dialogEl.querySelector('[data-testid="add-dialog-close"]').addEventListener('click', closeAddDialog);
   dialogEl.querySelector('[data-testid="add-manual-button"]').addEventListener('click', () => {
@@ -57,6 +60,7 @@ function closeAddDialog() {
     if (dialogEl._keydownHandler) {
       document.removeEventListener('keydown', dialogEl._keydownHandler);
     }
+    releaseOverlayFor(dialogEl);
     dialogEl.remove();
     dialogEl = null;
   }

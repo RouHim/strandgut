@@ -206,6 +206,7 @@
   display: flex;
   color: inherit;
   text-decoration: none;
+  position: relative;
   flex-direction: column;
   justify-content: center;
   width: 100%;
@@ -255,6 +256,48 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+}
+
+/* ─── Tile Title Scrim ───
+   Tile titles sit above a bright band of the photograph on some grounds;
+   a bottom-weighted scrim inside the glass keeps them readable (AA 4.5:1)
+   without raising the tile's overall opacity. */
+.tile::before {
+  content: "";
+  position: absolute;
+  inset: auto 1px 1px 1px;
+  height: 42%;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: linear-gradient(to top, rgba(6, 14, 26, 0.62), rgba(6, 14, 26, 0));
+  pointer-events: none;
+}
+
+/* ─── Tile Status Dot ───
+   Reachability as checked once per page load (/api/status):
+   kelp green = answering, terracotta = not answering, invisible while
+   the page-load check is still pending. */
+.tile-status {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.tile-status[data-state="unknown"] {
+  display: none;
+}
+
+.tile-status[data-state="up"] {
+  background: var(--color-success);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.tile-status[data-state="down"] {
+  background: var(--color-danger);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 
 /* ─── Tile Icon ─── */
@@ -369,7 +412,7 @@
   width: 36px;
   height: 36px;
   padding: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   line-height: 1;
 }
 
@@ -432,7 +475,7 @@
   width: 36px;
   height: 36px;
   padding: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   line-height: 1;
 }
 
@@ -780,15 +823,16 @@ a.scan-result-card__meta:hover {
   display: block;
 }
 
-.error-msg--visible {
-  display: block;
-}
-
 .error-msg {
   display: none;
   color: var(--color-danger);
   font-size: 0.8125rem;
   margin-top: var(--space-1);
+}
+
+/* Must come after .error-msg: equal specificity, source order decides. */
+.error-msg--visible {
+  display: block;
 }
 
 /* ─── Utilities ─── */
@@ -851,7 +895,7 @@ a.scan-result-card__meta:hover {
 }
 
 .icon-picker__item-source {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-family: var(--font-mono);
   color: var(--color-text-secondary);
   flex-shrink: 0;
@@ -896,4 +940,112 @@ a.scan-result-card__meta:hover {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
+}
+
+
+/* ─── Overlay scroll lock ───
+   While a dialog or panel is open the page behind must not scroll. */
+body.overlay-open {
+  overflow: hidden;
+}
+
+/* ─── Save banner ───
+   Persistent, non-blocking: a failed auto-save keeps the user's edit on
+   screen and offers a retry instead of a native alert. */
+.save-banner {
+  position: fixed;
+  top: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: min(32rem, calc(100vw - 2 * var(--space-4)));
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-raised);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  box-shadow: var(--color-glass-shadow);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+}
+
+.save-banner[hidden] {
+  display: none;
+}
+
+/* ─── Load error ───
+   A broken backend must not look like an empty install. */
+.load-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-12) auto 0;
+  max-width: 34rem;
+  padding: var(--space-8);
+  text-align: center;
+  background: var(--color-glass-bg);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 1px 0 var(--color-glass-highlight), var(--color-glass-shadow);
+  color: var(--color-text-primary);
+}
+
+.load-error p {
+  max-width: 40ch;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+}
+
+/* ─── Scan abort confirm ───
+   Closing a running scan asks inside the dialog instead of discarding it. */
+.scan-confirm {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+}
+
+.scan-confirm p {
+  flex: 1 1 16rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Port-range hint next to the advanced field */
+.scan-hint {
+  margin: var(--space-1) 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.scan-hint[hidden] {
+  display: none;
+}
+
+/* ─── Delete confirmation ───
+   The system's own confirmation instead of a native confirm(): translated,
+   focus-trapped, styled like every other panel. */
+.confirm-panel {
+  max-width: 26rem;
+}
+
+.confirm-panel h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.35;
 }

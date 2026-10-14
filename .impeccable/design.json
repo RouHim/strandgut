@@ -1,0 +1,442 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-14T16:10:16.125685Z",
+  "title": "Design System: Strandgut",
+  "extensions": {
+    "colorMeta": {
+      "tide-amber": {
+        "role": "primary",
+        "displayName": "Tide Amber",
+        "canonical": "#f4a340",
+        "tonalRamp": [
+          "#472a06",
+          "#7d490a",
+          "#b3690e",
+          "#e98813",
+          "#f0a345",
+          "#f4be7b",
+          "#f9d9b1",
+          "#fdf3e7"
+        ]
+      },
+      "tide-amber-hover": {
+        "role": "primary",
+        "displayName": "Tide Amber Hover",
+        "canonical": "#f5b04a",
+        "tonalRamp": [
+          "#472d06",
+          "#7d4f0a",
+          "#b3700e",
+          "#e99212",
+          "#f1ab45",
+          "#f5c47b",
+          "#f9dcb1",
+          "#fdf4e7"
+        ]
+      },
+      "deep-water-navy": {
+        "role": "neutral",
+        "displayName": "Deep Water Navy",
+        "canonical": "#0a1628",
+        "tonalRamp": [
+          "#10223d",
+          "#1c3b6b",
+          "#285599",
+          "#346fc8",
+          "#608fd6",
+          "#8eb0e2",
+          "#bcd0ee",
+          "#ebf1fa"
+        ]
+      },
+      "glass-surface": {
+        "role": "neutral",
+        "displayName": "Glass Surface",
+        "canonical": "rgba(232, 224, 216, 0.07)",
+        "tonalRamp": [
+          "#31261b",
+          "#564330",
+          "#7c6145",
+          "#a17e5a",
+          "#b79b7f",
+          "#ccb8a4",
+          "#e1d5c9",
+          "#f6f2ef"
+        ]
+      },
+      "glass-surface-hover": {
+        "role": "neutral",
+        "displayName": "Glass Surface Hover",
+        "canonical": "rgba(232, 224, 216, 0.12)",
+        "tonalRamp": [
+          "#31261b",
+          "#564330",
+          "#7c6145",
+          "#a17e5a",
+          "#b79b7f",
+          "#ccb8a4",
+          "#e1d5c9",
+          "#f6f2ef"
+        ]
+      },
+      "raised-surface": {
+        "role": "neutral",
+        "displayName": "Raised Surface",
+        "canonical": "rgba(13, 28, 38, 0.9)",
+        "tonalRamp": [
+          "#132a39",
+          "#224a64",
+          "#316a90",
+          "#408abb",
+          "#6aa5cc",
+          "#95bfdb",
+          "#c1d9ea",
+          "#ecf4f9"
+        ]
+      },
+      "header-veil": {
+        "role": "neutral",
+        "displayName": "Header Veil",
+        "canonical": "rgba(10, 22, 40, 0.55)",
+        "tonalRamp": [
+          "#10223d",
+          "#1c3b6b",
+          "#285599",
+          "#346fc8",
+          "#608fd6",
+          "#8eb0e2",
+          "#bcd0ee",
+          "#ebf1fa"
+        ]
+      },
+      "beach-bone": {
+        "role": "neutral",
+        "displayName": "Beach Bone",
+        "canonical": "#e8e0d8",
+        "tonalRamp": [
+          "#31261b",
+          "#564330",
+          "#7c6145",
+          "#a17e5a",
+          "#b79b7f",
+          "#ccb8a4",
+          "#e1d5c9",
+          "#f6f2ef"
+        ]
+      },
+      "driftwood-grey": {
+        "role": "neutral",
+        "displayName": "Driftwood Grey",
+        "canonical": "#8b8078",
+        "tonalRamp": [
+          "#2b2622",
+          "#4b423b",
+          "#6c5f55",
+          "#8d7b6f",
+          "#a7998f",
+          "#c0b7b0",
+          "#dad4d0",
+          "#f4f2f1"
+        ]
+      },
+      "kelp-green": {
+        "role": "secondary",
+        "displayName": "Kelp Green (reachable)",
+        "canonical": "#6baf92",
+        "tonalRamp": [
+          "#1a3228",
+          "#2e5947",
+          "#427f65",
+          "#56a684",
+          "#7bbba0",
+          "#a1cfbb",
+          "#c8e2d7",
+          "#eef6f3"
+        ]
+      },
+      "weathered-terracotta": {
+        "role": "tertiary",
+        "displayName": "Weathered Terracotta (danger)",
+        "canonical": "#c4746e",
+        "tonalRamp": [
+          "#371816",
+          "#602a26",
+          "#8a3d37",
+          "#b44f48",
+          "#c67670",
+          "#d69e99",
+          "#e7c6c3",
+          "#f8eeed"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline Border",
+        "canonical": "rgba(255, 255, 255, 0.12)",
+        "tonalRamp": [
+          "#282424",
+          "#474040",
+          "#655c5c",
+          "#847777",
+          "#a09696",
+          "#bcb4b4",
+          "#d7d3d3",
+          "#f3f2f2"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The Strandgut wordmark and h3-scale content (1.125rem/650)."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page-scale headings: onboarding and empty-state titles (1.375rem/600)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Dialog and panel headings, close glyphs (1.25rem/600)."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Document text at 1rem; onboarding copy caps at 40ch."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Buttons, inputs, dialog options, list content (0.9375rem/500)."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels, legends, switch text, tile titles (0.875rem)."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Addresses, ports, identifiers, provenance, footer credit (0.8125rem)."
+      }
+    },
+    "shadows": [
+      {
+        "name": "glass-pane",
+        "value": "0 12px 40px -8px rgba(0, 8, 16, 0.5)",
+        "purpose": "Dialogs and the edit panel floating over the page."
+      },
+      {
+        "name": "tile-lift",
+        "value": "0 16px 48px -8px rgba(0, 8, 16, 0.6)",
+        "purpose": "Hovered service tile; pairs with translateY(-2px)."
+      },
+      {
+        "name": "button-rest",
+        "value": "0 2px 8px rgba(0, 0, 0, 0.25)",
+        "purpose": "Seat under buttons; ghost buttons carry none."
+      },
+      {
+        "name": "top-light",
+        "value": "inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+        "purpose": "1px inner highlight on every glass edge (sea light from above)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-smooth",
+        "value": "0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default state transitions (hover, border, background)."
+      },
+      {
+        "name": "ease-entry",
+        "value": "0.3s cubic-bezier(0.2, 0.8, 0.3, 1)",
+        "purpose": "wash-ashore tile entrance and dialog-in; fast-out, soft settle."
+      },
+      {
+        "name": "bounce-exception",
+        "value": "0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "purpose": "Pill-switch thumb only (The One Bounce Rule)."
+      },
+      {
+        "name": "press",
+        "value": "0.12s ease",
+        "purpose": "Button active feedback (scale 0.97)."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile-max",
+        "value": "599px"
+      },
+      {
+        "name": "tablet",
+        "value": "600px-899px"
+      },
+      {
+        "name": "desktop-min",
+        "value": "900px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Accent-filled button for the single main action of a view (Add / Save).",
+      "html": "<button type=\"button\" class=\"ds-btn-primary\">Add</button>",
+      "css": ".ds-btn-primary {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--space-2);\n  padding: var(--space-3) var(--space-5);\n  min-height: 44px;\n  font-family: inherit;\n  font-size: 0.9375rem;\n  font-weight: 500;\n  line-height: 1;\n  border: 1px solid transparent;\n  border-radius: var(--radius-md);\n  cursor: pointer;\n  transition:\n    background-color var(--transition-smooth),\n    border-color var(--transition-smooth),\n    transform var(--transition-smooth),\n    box-shadow var(--transition-smooth);\n  box-shadow: var(--shadow-button);\n  -webkit-tap-highlight-color: transparent;\n}\n.ds-btn-primary {\n  background: var(--color-accent);\n  color: var(--color-button-primary-text);\n}\n\n.ds-btn-primary:active {\n  transform: translateY(1px);\n}\n\n.ds-btn-primary:focus-visible {\n  outline: 2px solid var(--color-accent);\n  outline-offset: 2px;\n}\n\n@media (hover: hover) and (pointer: fine) {\n  .ds-btn-primary:hover {\n    background: var(--color-accent-hover);\n    box-shadow: 0 4px 12px var(--color-accent-glow);\n  }\n}"
+    },
+    {
+      "name": "Ghost button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Borderless low-emphasis button for secondary/cancel actions and icon-only toolbar buttons.",
+      "html": "<button type=\"button\" class=\"ds-btn-ghost\">Skip for now</button>",
+      "css": ".ds-btn-ghost {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--space-2);\n  padding: var(--space-3) var(--space-5);\n  min-height: 44px;\n  font-family: inherit;\n  font-size: 0.9375rem;\n  font-weight: 500;\n  line-height: 1;\n  border: 1px solid transparent;\n  border-radius: var(--radius-md);\n  cursor: pointer;\n  transition:\n    background-color var(--transition-smooth),\n    border-color var(--transition-smooth),\n    transform var(--transition-smooth),\n    box-shadow var(--transition-smooth);\n  box-shadow: var(--shadow-button);\n  -webkit-tap-highlight-color: transparent;\n}\n.ds-btn-ghost {\n  background: transparent;\n  color: var(--color-text-secondary);\n  border-color: transparent;\n  box-shadow: none;\n}\n\n.ds-btn-ghost:active {\n  transform: translateY(1px);\n}\n\n.ds-btn-ghost:focus-visible {\n  outline: 2px solid var(--color-accent);\n  outline-offset: 2px;\n}\n\n@media (hover: hover) and (pointer: fine) {\n  .ds-btn-ghost:hover {\n    color: var(--color-text-primary);\n    background: var(--color-surface);\n  }\n}"
+    },
+    {
+      "name": "Service card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Square glass tile for one service: icon tile on top, label below; lifts and brightens on hover.",
+      "html": "<a class=\"ds-card-service\" href=\"#\" aria-label=\"Grafana\"><div class=\"ds-card-service__icon\" aria-hidden=\"true\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"2\" y=\"2\" width=\"20\" height=\"20\" rx=\"4\"/><circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M8 8l8 8M16 8l-8 8\"/></svg></div><div class=\"ds-card-service__info\"><h3 class=\"ds-card-service__title\">Grafana</h3></div></a>",
+      "css": ".ds-card-service {\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n  width: 100%;\n  gap: var(--space-1);\n  min-height: 80px;\n  aspect-ratio: 1 / 1;\n  background: var(--color-glass-bg);\n  backdrop-filter: blur(20px) saturate(160%);\n  -webkit-backdrop-filter: blur(20px) saturate(160%);\n  border: 1px solid var(--color-glass-border);\n  box-shadow: inset 0 1px 0 var(--color-glass-highlight), var(--color-glass-shadow);\n  border-radius: var(--radius-lg);\n  padding: var(--space-4);\n  color: inherit;\n  text-decoration: none;\n  transition:\n    transform 200ms ease,\n    box-shadow var(--transition-smooth);\n  will-change: transform;\n}\n\n.ds-card-service:focus-visible {\n  outline: 2px solid var(--color-accent);\n  outline-offset: 3px;\n}\n\n.ds-card-service__icon {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  flex: 1;\n  min-height: 0;\n}\n\n.ds-card-service__icon svg {\n  width: 100%;\n  height: 100%;\n  max-width: 100%;\n  max-height: 100%;\n  border-radius: var(--radius-sm);\n  transition: transform 300ms ease;\n}\n\n.ds-card-service__info {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  gap: var(--space-1);\n}\n\n.ds-card-service__title {\n  font-size: 0.875rem;\n  font-weight: 600;\n  text-align: center;\n  letter-spacing: 0.01em;\n  margin: 0;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n  max-width: 100%;\n}\n\n@media (hover: hover) and (pointer: fine) {\n  .ds-card-service:hover {\n    background: var(--color-glass-bg-hover);\n    transform: translateY(-2px);\n    text-decoration: none;\n    box-shadow: inset 0 1px 0 var(--color-glass-highlight), var(--shadow-tile-hover);\n  }\n\n  .ds-card-service:hover .ds-card-service__icon svg {\n    transform: scale(1.04);\n  }\n}\n.ds-card-service::before { content: \"\"; position: absolute; inset: auto 1px 1px 1px; height: 42%; border-radius: 0 0 19px 19px; background: linear-gradient(to top, rgba(6, 14, 26, 0.62), rgba(6, 14, 26, 0)); pointer-events: none; }"
+    },
+    {
+      "name": "App header",
+      "kind": "nav",
+      "refersTo": "nav-header",
+      "description": "Sticky translucent top bar with the Strandgut beach brand mark and right-aligned header actions.",
+      "html": "<header class=\"ds-nav-header\"><div class=\"ds-nav-header__brand\"><svg class=\"ds-nav-header__mark\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"-5 11 100 100\"><g><circle fill=\"#306860\" cx=\"45\" cy=\"61\" r=\"50\"/><g><defs><circle id=\"SVGID_1_\" cx=\"45\" cy=\"61\" r=\"50\"/></defs><clipPath id=\"SVGID_2_\"><use xlink:href=\"#SVGID_1_\" overflow=\"visible\"/></clipPath><path clip-path=\"url(#SVGID_2_)\" fill=\"#E9A95E\" d=\"M5.4,97.4c0,0,3.6-3.8,3.8-7.9s3.1-7.1,5.5-8.8s6.1-5.3,6.6-8.9 s3.5-8.6,13.6-10.6s6.8-4.4,19.6-5s17.7,3.2,26.4,3s12,2,17.1,7.2s-1,39.9-35.8,48.9S5.4,97.4,5.4,97.4z\"/><g clip-path=\"url(#SVGID_2_)\"><defs><path id=\"SVGID_3_\" d=\"M5.4,97.4c0,0,3.6-3.8,3.8-7.9s3.1-7.1,5.5-8.8s6.1-5.3,6.6-8.9s3.5-8.6,13.6-10.6s6.8-4.4,19.6-5 s17.7,3.2,26.4,3s12,2,17.1,7.2s-1,39.9-35.8,48.9S5.4,97.4,5.4,97.4z\"/></defs><clipPath id=\"SVGID_4_\"><use xlink:href=\"#SVGID_3_\" overflow=\"visible\"/></clipPath><path clip-path=\"url(#SVGID_4_)\" fill=\"#F6DFB8\" d=\"M4.1,99c0,0,8.3-0.4,11.2-8.9c2.1-6.3,8.1-2.9,11.8-8.9s-0.1-6.7,4.6-12.9 s20.6-0.5,23.2-8.3s6,8.5,16.6,8.9s12.3-8.1,24.9-1.5s10.5,12,10.5,12l4.7-33.2c0,0-85.3-15.1-113.8,46.7S4.1,99,4.1,99z\"/><path clip-path=\"url(#SVGID_4_)\" fill=\"#DDB37A\" d=\"M106.3,124.3c3.5-9.7-0.8-29.6-16.5-38c-2.3-1.2-13.1,1.5-15.4,0.7 c-7-2.5-8.8,3.7-15,3.9c-10.3,0.3-18.2,1.9-20.7,8.8c-4.1,11.2,7.8,25.7,26.5,32.5C83.8,139,102.3,135.5,106.3,124.3z\"/><path clip-path=\"url(#SVGID_4_)\" fill=\"#C99B63\" d=\"M31.5,105c1.4,0,2.5-1.1,2.5-2.5s-1.1-2.5-2.5-2.5s-2.5,1.1-2.5,2.5 S30.1,105,31.5,105z M22.5,94c0.8,0,1.5-0.7,1.5-1.5S23.3,91,22.5,91S21,91.7,21,92.5S21.7,94,22.5,94z M62,88c1.1,0,2-0.9,2-2 s-0.9-2-2-2s-2,0.9-2,2S60.9,88,62,88z M39.5,83c0.8,0,1.5-0.7,1.5-1.5S40.3,80,39.5,80S38,80.7,38,81.5S38.7,83,39.5,83z M89.5,76c0.8,0,1.5-0.7,1.5-1.5S90.3,73,89.5,73S88,73.7,88,74.5S88.7,76,89.5,76z\"/><circle clip-path=\"url(#SVGID_4_)\" fill=\"#C9A06B\" cx=\"45.5\" cy=\"98.2\" r=\"1.5\"/><circle clip-path=\"url(#SVGID_4_)\" fill=\"#C9A06B\" cx=\"57.5\" cy=\"104.2\" r=\"1.5\"/></g><path clip-path=\"url(#SVGID_2_)\" fill=\"#7A5440\" d=\"M97.6,101.5c0,0-14.8-3.7-25.7-33s-5.9-4-5.9-4s-3.7,15,8.4,38.2 S97.6,101.5,97.6,101.5z\"/><g clip-path=\"url(#SVGID_2_)\"><defs><path id=\"SVGID_5_\" d=\"M97.6,101.5c0,0-14.8-3.7-25.7-33s-5.9-4-5.9-4s-3.7,15,8.4,38.2S97.6,101.5,97.6,101.5z\"/></defs><clipPath id=\"SVGID_6_\"><use xlink:href=\"#SVGID_5_\" overflow=\"visible\"/></clipPath><polygon clip-path=\"url(#SVGID_6_)\" fill=\"#634434\" points=\"82.5,83.6 78.3,94 65,90.2 62,45.3 \"/><polygon clip-path=\"url(#SVGID_6_)\" fill=\"#4A3026\" points=\"78.5,74.7 74.1,85.3 63.8,81.1 63.7,45.6 \"/></g><ellipse transform=\"matrix(0.9976 6.975632e-02 -6.975632e-02 0.9976 4.9488 -4.0485)\" clip-path=\"url(#SVGID_2_)\" fill=\"#5E8027\" cx=\"60.4\" cy=\"68.8\" rx=\"5\" ry=\"6.5\"/><ellipse transform=\"matrix(0.7771 -0.6293 0.6293 0.7771 -22.2109 61.6745)\" clip-path=\"url(#SVGID_2_)\" fill=\"#5E8027\" cx=\"76\" cy=\"62.2\" rx=\"5\" ry=\"6.5\"/><ellipse transform=\"matrix(0.9744 -0.225 0.225 0.9744 -13.2486 17.5909)\" clip-path=\"url(#SVGID_2_)\" fill=\"#62892B\" cx=\"70.6\" cy=\"66.9\" rx=\"5.3\" ry=\"7\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#7C9E3A\" d=\"M67.9,60.2c0,0-3.1,7.7-2.9,17c-3.4-3.7-4.3-9.1-5.3-12.1 c-2,1.5-7.3,8.5-7.3,14c-2.7-2.8-5-11.1-0.8-18.7c-2.4-1.3-3.2-1.7-6.4-1c0.4-3.7,3.6-8.2,14.1-8.3C60,46.6,67.2,40.4,71.5,41 c-2,3.3-1.2,6.1-1.2,6.1s11.1-2.5,16.6,3.6c-3.2,0-9.4,1.8-11,3.2c2.4,0.5,8.1,6,8.4,10.3C76.4,58.5,67.9,60.2,67.9,60.2z\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#7C9E3A\" d=\"M52.5,79.6c-0.1,0-0.3-0.1-0.4-0.2c-2.9-3.1-5-11.5-1.1-18.8 c-2.1-1.1-2.7-1.3-5.6-0.7c-0.2,0-0.3,0-0.4-0.1c-0.1-0.1-0.2-0.3-0.2-0.4c0.3-2.6,2.2-8.6,14.2-8.7c1-4.7,8.2-10.7,12.6-10.1 c0.2,0,0.3,0.1,0.4,0.3s0.1,0.3,0,0.5c-1.4,2.3-1.4,4.4-1.3,5.2c0.9-0.2,2.7-0.4,4.9-0.4c3.6,0,8.5,0.7,11.7,4.3 c0.1,0.1,0.2,0.4,0.1,0.5s-0.3,0.3-0.5,0.3h0c-2.8,0-7.7,1.4-9.9,2.5c2.8,1.4,7.4,6.2,7.8,10.3c0,0.1,0,0.1,0,0.2 c0,0.3-0.2,0.5-0.5,0.5c0,0,0,0,0,0c-0.1,0-0.2,0-0.3-0.1c-4.8-3.4-9.7-4.1-13.1-4.1c-1.2,0-2.2,0.1-2.6,0.2 c-0.5,1.4-2.9,8.4-2.8,16.5c0,0.2-0.1,0.4-0.3,0.5c-0.2,0.1-0.4,0-0.6-0.1c-2.8-3.1-4-7.3-4.8-10.3c-0.1-0.4-0.2-0.8-0.3-1.2 C57.2,68,53,74.3,53,79.1c0,0.2-0.1,0.4-0.3,0.5C52.6,79.6,52.5,79.6,52.5,79.6z M47.8,58.5c1.5,0,2.6,0.5,4.1,1.4 c0.1,0.1,0.2,0.2,0.2,0.3c0,0.1,0,0.3,0,0.4c-3.8,6.8-2.1,13.9-0.1,17.1c0.7-5.3,5.3-11.6,7.4-13.1c0.1-0.1,0.3-0.1,0.4-0.1 c0.2,0,0.3,0.2,0.3,0.3c0.2,0.6,0.4,1.2,0.6,2c0.7,2.6,1.7,6.1,3.7,8.9c0.1-8.6,2.9-15.7,2.9-15.7c0.1-0.2,0.2-0.3,0.4-0.3 c0,0,1.2-0.2,3.1-0.2c3.3,0,8,0.7,12.7,3.6c-1-3.9-5.7-8.3-7.8-8.8c-0.2,0-0.3-0.2-0.4-0.4c0-0.2,0-0.4,0.2-0.5 c1.6-1.3,6.7-2.9,10.1-3.2c-2.9-2.6-7.1-3.2-10.2-3.2c-2.9,0-5.1,0.5-5.2,0.5c-0.3,0.1-0.5-0.1-0.6-0.4c0-0.1-0.6-2.7,0.9-5.7 c-4,0.3-10.2,5.8-10.8,9.7c0,0.2-0.2,0.4-0.5,0.4c-10.5,0-12.9,4.6-13.5,7.1C46.7,58.6,47.3,58.5,47.8,58.5z\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#6FB3A2\" d=\"M-5.9,56c-0.1,0-0.1,0-0.2,0c-0.8-0.1-1.4-0.9-1.3-1.7 c0-0.1,1.6-10.9,16.5-11.7c0.8,0,1.5,0.6,1.6,1.4c0,0.8-0.6,1.5-1.4,1.6c-12.5,0.7-13.7,9-13.7,9.1C-4.6,55.5-5.2,56-5.9,56z\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#6FB3A2\" d=\"M-4.1,84.5c0,0-0.1,0-0.1,0c-0.8-0.1-1.4-0.8-1.4-1.6 C-5.3,79.6-2.7,73,5,71.5c0.8-0.2,1.6,0.4,1.8,1.2s-0.4,1.6-1.2,1.8c-7.4,1.5-8.1,8.4-8.1,8.7C-2.6,83.9-3.3,84.5-4.1,84.5z\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#6FB3A2\" d=\"M29.9,29.5c-0.3,0-0.5-0.1-0.8-0.2c-0.7-0.4-1-1.3-0.5-2.1 c0.2-0.4,5.7-9.4,19.5-7.8c0.8,0.1,1.4,0.8,1.3,1.7c-0.1,0.8-0.8,1.4-1.7,1.3c-11.9-1.4-16.5,6.3-16.6,6.4 C30.9,29.2,30.4,29.5,29.9,29.5z\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#6FB3A2\" d=\"M22.4,55.2c-0.2,0-0.4,0-0.7-0.2c-0.7-0.4-1.1-1.3-0.7-2 c0.2-0.4,5.3-10.6,19.3-9.4c0.8,0.1,1.4,0.8,1.4,1.6c-0.1,0.8-0.8,1.4-1.6,1.4c-11.9-1-16.3,7.6-16.3,7.7 C23.5,54.9,22.9,55.2,22.4,55.2z\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#6FB3A2\" d=\"M78.9,35.1c-0.4,0-0.8-0.2-1.1-0.5c-2.2-2.2-5-3.3-8.5-3.2 c-4.2,0.2-7.8,2-8.7,3c-0.5,0.6-1.5,0.7-2.1,0.2c-0.6-0.5-0.7-1.5-0.2-2.1c1.6-1.8,6.2-3.9,10.9-4.1c4.3-0.1,8,1.3,10.7,4.1 c0.6,0.6,0.6,1.5,0,2.1C79.6,35,79.2,35.1,78.9,35.1z\"/></g></g></svg><span class=\"ds-nav-header__text\">Strandgut</span></div><div class=\"ds-nav-header__actions\"><button type=\"button\" class=\"ds-btn-ghost\" aria-label=\"Add\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><line x1=\"12\" y1=\"5\" x2=\"12\" y2=\"19\"/><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"/></svg></button></div></header>",
+      "css": ".ds-btn-ghost {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--space-2);\n  padding: var(--space-3) var(--space-5);\n  min-height: 44px;\n  font-family: inherit;\n  font-size: 0.9375rem;\n  font-weight: 500;\n  line-height: 1;\n  border: 1px solid transparent;\n  border-radius: var(--radius-md);\n  cursor: pointer;\n  transition:\n    background-color var(--transition-smooth),\n    border-color var(--transition-smooth),\n    transform var(--transition-smooth),\n    box-shadow var(--transition-smooth);\n  box-shadow: var(--shadow-button);\n  -webkit-tap-highlight-color: transparent;\n}\n.ds-btn-ghost {\n  background: transparent;\n  color: var(--color-text-secondary);\n  border-color: transparent;\n  box-shadow: none;\n}\n\n.ds-btn-ghost:active {\n  transform: translateY(1px);\n}\n\n.ds-btn-ghost:focus-visible {\n  outline: 2px solid var(--color-accent);\n  outline-offset: 2px;\n}\n\n@media (hover: hover) and (pointer: fine) {\n  .ds-btn-ghost:hover {\n    color: var(--color-text-primary);\n    background: var(--color-surface);\n  }\n}\n\n.ds-nav-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: var(--space-4);\n  padding: var(--space-3) var(--space-6);\n  position: sticky;\n  top: 0;\n  z-index: 100;\n  backdrop-filter: blur(20px) saturate(140%);\n  -webkit-backdrop-filter: blur(20px) saturate(140%);\n  background: var(--color-header-bg);\n  border-bottom: 1px solid var(--color-border);\n}\n\n.ds-nav-header__brand {\n  display: flex;\n  align-items: center;\n}\n\n.ds-nav-header__mark {\n  display: block;\n  width: 36px;\n  height: 36px;\n  flex-shrink: 0;\n}\n\n.ds-nav-header__text {\n  font-weight: 650;\n  font-size: 1.125rem;\n  letter-spacing: 0.01em;\n  color: var(--color-text-primary);\n  white-space: nowrap;\n}\n\n.ds-nav-header__actions {\n  display: flex;\n  align-items: center;\n  gap: var(--space-4);\n}"
+    },
+    {
+      "name": "Pill switch (View / Edit)",
+      "kind": "input",
+      "refersTo": "pill-switch",
+      "description": "Two-label segmented toggle used as a switch; shown in the checked (Edit) state with accent track and thumb.",
+      "html": "<button type=\"button\" class=\"ds-pill-switch\" role=\"switch\" aria-checked=\"true\" aria-label=\"Toggle edit mode\"><span class=\"ds-pill-switch__track\" aria-hidden=\"true\"><span class=\"ds-pill-switch__thumb\"></span></span><span class=\"ds-pill-switch__label ds-pill-switch__label--left\" aria-hidden=\"true\"><span class=\"ds-pill-switch__icon\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg></span><span class=\"ds-pill-switch__text\">View</span></span><span class=\"ds-pill-switch__label ds-pill-switch__label--right\" aria-hidden=\"true\"><span class=\"ds-pill-switch__icon\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z\"/><path d=\"m15 5 4 4\"/></svg></span><span class=\"ds-pill-switch__text\">Edit</span></span></button>",
+      "css": ".ds-pill-switch {\n  display: inline-flex;\n  align-items: center;\n  gap: 0;\n  min-height: 44px;\n  position: relative;\n  padding: 0;\n  cursor: pointer;\n  background: none;\n  border: none;\n  font: inherit;\n  color: inherit;\n  user-select: none;\n  -webkit-tap-highlight-color: transparent;\n}\n\n.ds-pill-switch__track {\n  position: absolute;\n  inset: 0;\n  border-radius: var(--radius-xl);\n  background: rgba(255, 255, 255, 0.06);\n  border: none;\n  transition: background-color var(--transition-smooth);\n  z-index: 0;\n}\n\n.ds-pill-switch__thumb {\n  position: absolute;\n  top: 3px;\n  left: 3px;\n  width: calc(50% - 6px);\n  height: calc(100% - 6px);\n  border-radius: var(--radius-xl);\n  background: rgba(255, 255, 255, 0.08);\n  border: none;\n  transform: translateX(0);\n  transition:\n    transform var(--transition-bounce),\n    background-color var(--transition-smooth);\n  z-index: 2;\n}\n\n.ds-pill-switch__label {\n  position: relative;\n  z-index: 3;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--space-2);\n  flex: 1;\n  padding: var(--space-2) var(--space-4);\n  font-size: 0.875rem;\n  font-weight: 500;\n  color: var(--color-text-secondary);\n  pointer-events: none;\n}\n\n.ds-pill-switch__label--left,\n.ds-pill-switch__label--right {\n  color: var(--color-text-secondary);\n}\n\n.ds-pill-switch__icon {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  flex-shrink: 0;\n}\n\n.ds-pill-switch__text {\n  white-space: nowrap;\n}\n\n.ds-pill-switch[aria-checked=\"true\"] .ds-pill-switch__track {\n  background: var(--color-accent);\n}\n\n.ds-pill-switch[aria-checked=\"true\"] .ds-pill-switch__thumb {\n  background: var(--color-accent);\n  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);\n  transform: translateX(100%);\n}\n\n.ds-pill-switch[aria-checked=\"true\"] .ds-pill-switch__label--right {\n  color: var(--color-button-primary-text);\n}\n\n.ds-pill-switch:focus-visible {\n  outline: 2px solid var(--color-accent);\n  outline-offset: 3px;\n}"
+    },
+    {
+      "name": "Dialog with text field",
+      "kind": "custom",
+      "refersTo": "dialog",
+      "description": "Modal add/edit dialog shell (header, scrollable body, actions) with a labelled text input field; shown open over its dimmed overlay.",
+      "html": "<div class=\"ds-dialog-overlay\" role=\"dialog\" aria-modal=\"true\" aria-label=\"Add Service\"><div class=\"ds-dialog\"><header class=\"ds-dialog__header\"><h2>Add Service</h2><button type=\"button\" class=\"ds-dialog__close\" aria-label=\"Close\">&times;</button></header><div class=\"ds-dialog__body\"><div class=\"ds-dialog__field\"><label for=\"ds-dialog-name\">Name <span class=\"ds-dialog__required\" aria-label=\"required\">*</span></label><input type=\"text\" id=\"ds-dialog-name\" class=\"ds-input-text\" placeholder=\"e.g. Grafana\" /></div></div><div class=\"ds-dialog__footer\"><button type=\"button\" class=\"ds-btn-ghost\">Cancel</button><button type=\"button\" class=\"ds-btn-primary\">Save</button></div></div></div>",
+      "css": ".ds-btn-primary {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--space-2);\n  padding: var(--space-3) var(--space-5);\n  min-height: 44px;\n  font-family: inherit;\n  font-size: 0.9375rem;\n  font-weight: 500;\n  line-height: 1;\n  border: 1px solid transparent;\n  border-radius: var(--radius-md);\n  cursor: pointer;\n  transition:\n    background-color var(--transition-smooth),\n    border-color var(--transition-smooth),\n    transform var(--transition-smooth),\n    box-shadow var(--transition-smooth);\n  box-shadow: var(--shadow-button);\n  -webkit-tap-highlight-color: transparent;\n}\n.ds-btn-ghost {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--space-2);\n  padding: var(--space-3) var(--space-5);\n  min-height: 44px;\n  font-family: inherit;\n  font-size: 0.9375rem;\n  font-weight: 500;\n  line-height: 1;\n  border: 1px solid transparent;\n  border-radius: var(--radius-md);\n  cursor: pointer;\n  transition:\n    background-color var(--transition-smooth),\n    border-color var(--transition-smooth),\n    transform var(--transition-smooth),\n    box-shadow var(--transition-smooth);\n  box-shadow: var(--shadow-button);\n  -webkit-tap-highlight-color: transparent;\n}\n.ds-btn-primary {\n  background: var(--color-accent);\n  color: var(--color-button-primary-text);\n}\n\n.ds-btn-primary:active,\n.ds-btn-ghost:active {\n  transform: translateY(1px);\n}\n\n.ds-btn-primary:focus-visible,\n.ds-btn-ghost:focus-visible {\n  outline: 2px solid var(--color-accent);\n  outline-offset: 2px;\n}\n\n.ds-btn-ghost {\n  background: transparent;\n  color: var(--color-text-secondary);\n  border-color: transparent;\n  box-shadow: none;\n}\n\n@media (hover: hover) and (pointer: fine) {\n  .ds-btn-primary:hover {\n    background: var(--color-accent-hover);\n    box-shadow: 0 4px 12px var(--color-accent-glow);\n  }\n\n  .ds-btn-ghost:hover {\n    color: var(--color-text-primary);\n    background: var(--color-surface);\n  }\n}\n\n.ds-dialog-overlay {\n  position: fixed;\n  inset: 0;\n  z-index: 200;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: var(--space-4);\n  background: var(--color-overlay-bg);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n}\n\n.ds-dialog {\n  width: 100%;\n  max-width: 400px;\n  display: flex;\n  flex-direction: column;\n  background: var(--color-surface-raised);\n  backdrop-filter: blur(24px) saturate(160%);\n  -webkit-backdrop-filter: blur(24px) saturate(160%);\n  border: 1px solid var(--color-border);\n  border-radius: var(--radius-lg);\n  box-shadow: var(--color-glass-shadow);\n  overflow: hidden;\n}\n\n.ds-dialog__header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: var(--space-4) var(--space-5);\n  border-bottom: 1px solid var(--color-border);\n}\n\n.ds-dialog__header h2 {\n  font-size: 1.125rem;\n}\n\n.ds-dialog__close {\n  width: 36px;\n  height: 36px;\n  padding: 0;\n  font-size: 1.5rem;\n  line-height: 1;\n  background: transparent;\n  color: var(--color-text-secondary);\n  border: none;\n  border-radius: var(--radius-md);\n  cursor: pointer;\n}\n\n.ds-dialog__close:hover {\n  color: var(--color-text-primary);\n  background: var(--color-surface);\n}\n\n.ds-dialog__close:focus-visible {\n  outline: 2px solid var(--color-accent);\n  outline-offset: 2px;\n}\n\n.ds-dialog__body {\n  padding: var(--space-5);\n  display: flex;\n  flex-direction: column;\n  gap: var(--space-4);\n}\n\n.ds-dialog__field {\n  display: flex;\n  flex-direction: column;\n  gap: var(--space-2);\n}\n\n.ds-dialog__field label {\n  display: block;\n  font-size: 0.875rem;\n  font-weight: 500;\n}\n\n.ds-dialog__required {\n  color: var(--color-danger);\n}\n\n.ds-input-text {\n  width: 100%;\n  padding: var(--space-3);\n  background: var(--color-surface);\n  border: 1px solid var(--color-border);\n  border-radius: var(--radius-md);\n  color: var(--color-text-primary);\n  font-family: inherit;\n  font-size: 1rem;\n  transition: border-color var(--transition-smooth);\n}\n\n.ds-input-text:focus {\n  outline: none;\n  border-color: var(--color-accent);\n  box-shadow: 0 0 0 3px var(--color-accent-ring);\n}\n\n.ds-dialog__footer {\n  display: flex;\n  justify-content: flex-end;\n  gap: var(--space-3);\n  padding: var(--space-4) var(--space-5);\n  border-top: 1px solid var(--color-border);\n}"
+    },
+    {
+      "name": "Scan panel with progress",
+      "kind": "custom",
+      "refersTo": "scan-panel",
+      "description": "Modal network-scan panel: host field, indeterminate progress bar and live status line; shown during an active scan.",
+      "html": "<div class=\"ds-scan-panel-overlay\" role=\"dialog\" aria-modal=\"true\" aria-label=\"Network Scan\"><div class=\"ds-scan-panel\"><header class=\"ds-scan-panel__header\"><h2>Scan Network</h2><button type=\"button\" class=\"ds-scan-panel__close\" aria-label=\"Close\">&times;</button></header><div class=\"ds-scan-panel__body\"><div class=\"ds-scan-field\"><label for=\"ds-scan-host\">Host / IP</label><input type=\"text\" id=\"ds-scan-host\" class=\"ds-scan-input\" value=\"192.168.1.1\" /></div><div class=\"ds-scan-progress\"><div class=\"ds-scan-progress__track\"><div class=\"ds-scan-progress__bar\" role=\"progressbar\" aria-valuemin=\"0\" aria-valuemax=\"100\"></div></div></div><div class=\"ds-scan-status\">Scanning…</div></div><footer class=\"ds-scan-panel__footer\"><button type=\"button\" class=\"ds-btn-primary\">Start Scan</button></footer></div></div>",
+      "css": ".ds-btn-primary {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--space-2);\n  padding: var(--space-3) var(--space-5);\n  min-height: 44px;\n  font-family: inherit;\n  font-size: 0.9375rem;\n  font-weight: 500;\n  line-height: 1;\n  border: 1px solid transparent;\n  border-radius: var(--radius-md);\n  cursor: pointer;\n  transition:\n    background-color var(--transition-smooth),\n    border-color var(--transition-smooth),\n    transform var(--transition-smooth),\n    box-shadow var(--transition-smooth);\n  box-shadow: var(--shadow-button);\n  -webkit-tap-highlight-color: transparent;\n}\n.ds-btn-primary {\n  background: var(--color-accent);\n  color: var(--color-button-primary-text);\n}\n\n.ds-btn-primary:active {\n  transform: translateY(1px);\n}\n\n.ds-btn-primary:focus-visible {\n  outline: 2px solid var(--color-accent);\n  outline-offset: 2px;\n}\n\n.ds-btn-primary:hover {\n  background: var(--color-accent-hover);\n  box-shadow: 0 4px 12px var(--color-accent-glow);\n}\n\n.ds-scan-panel-overlay {\n  position: fixed;\n  inset: 0;\n  z-index: 200;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: var(--space-4);\n  background: var(--color-overlay-bg);\n  backdrop-filter: blur(8px);\n  -webkit-backdrop-filter: blur(8px);\n}\n\n.ds-scan-panel {\n  width: 100%;\n  max-width: 560px;\n  max-height: 85vh;\n  display: flex;\n  flex-direction: column;\n  background: var(--color-surface-raised);\n  backdrop-filter: blur(24px) saturate(160%);\n  -webkit-backdrop-filter: blur(24px) saturate(160%);\n  border: 1px solid var(--color-border);\n  border-radius: var(--radius-lg);\n  box-shadow: var(--color-glass-shadow);\n  overflow: hidden;\n}\n\n.ds-scan-panel__header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: var(--space-4) var(--space-5);\n  border-bottom: 1px solid var(--color-border);\n}\n\n.ds-scan-panel__header h2 {\n  font-size: 1.125rem;\n}\n\n.ds-scan-panel__close {\n  width: 36px;\n  height: 36px;\n  padding: 0;\n  font-size: 1.5rem;\n  line-height: 1;\n  background: transparent;\n  color: var(--color-text-secondary);\n  border: none;\n  border-radius: var(--radius-md);\n  cursor: pointer;\n}\n\n.ds-scan-panel__close:hover {\n  color: var(--color-text-primary);\n  background: var(--color-surface);\n}\n\n.ds-scan-panel__close:focus-visible {\n  outline: 2px solid var(--color-accent);\n  outline-offset: 2px;\n}\n\n.ds-scan-panel__body {\n  flex: 1;\n  overflow-y: auto;\n  padding: var(--space-5);\n  display: flex;\n  flex-direction: column;\n  gap: var(--space-4);\n}\n\n.ds-scan-panel__footer {\n  display: flex;\n  flex-wrap: wrap;\n  gap: var(--space-3);\n  padding: var(--space-4) var(--space-5);\n  border-top: 1px solid var(--color-border);\n}\n\n.ds-scan-field {\n  display: flex;\n  flex-direction: column;\n  gap: var(--space-2);\n}\n\n.ds-scan-field label {\n  font-size: 0.875rem;\n  font-weight: 500;\n  color: var(--color-text-secondary);\n}\n\n.ds-scan-input {\n  padding: var(--space-3) var(--space-4);\n  background: var(--color-surface);\n  border: 1px solid var(--color-border);\n  border-radius: var(--radius-md);\n  color: var(--color-text-primary);\n  font-family: inherit;\n  font-size: 0.9375rem;\n  transition: border-color var(--transition-smooth);\n}\n\n.ds-scan-input:focus {\n  outline: none;\n  border-color: var(--color-accent);\n  box-shadow: 0 0 0 3px var(--color-accent-ring);\n}\n\n.ds-scan-progress {\n  width: 100%;\n}\n\n.ds-scan-progress__track {\n  width: 100%;\n  height: 6px;\n  background: var(--color-surface);\n  border-radius: var(--radius-sm);\n  overflow: hidden;\n}\n\n.ds-scan-progress__bar {\n  height: 100%;\n  width: 40%;\n  background: var(--color-accent);\n  border-radius: var(--radius-sm);\n  animation: ds-scan-indeterminate 1.5s ease-in-out infinite;\n}\n\n@keyframes ds-scan-indeterminate {\n  0% { transform: translateX(-250%); }\n  100% { transform: translateX(250%); }\n}\n\n.ds-scan-status {\n  font-size: 0.875rem;\n  color: var(--color-text-secondary);\n  min-height: 1.5em;\n}"
+    },
+    {
+      "name": "Empty state",
+      "kind": "custom",
+      "refersTo": "empty-state",
+      "description": "Onboarding placeholder shown when no services exist yet, with beach mark, headline and add/skip actions.",
+      "html": "<section class=\"ds-empty-state\"><svg class=\"ds-empty-state__mark\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"-5 11 100 100\"><g><circle fill=\"#306860\" cx=\"45\" cy=\"61\" r=\"50\"/><g><defs><circle id=\"SVGID_1_\" cx=\"45\" cy=\"61\" r=\"50\"/></defs><clipPath id=\"SVGID_2_\"><use xlink:href=\"#SVGID_1_\" overflow=\"visible\"/></clipPath><path clip-path=\"url(#SVGID_2_)\" fill=\"#E9A95E\" d=\"M5.4,97.4c0,0,3.6-3.8,3.8-7.9s3.1-7.1,5.5-8.8s6.1-5.3,6.6-8.9 s3.5-8.6,13.6-10.6s6.8-4.4,19.6-5s17.7,3.2,26.4,3s12,2,17.1,7.2s-1,39.9-35.8,48.9S5.4,97.4,5.4,97.4z\"/><g clip-path=\"url(#SVGID_2_)\"><defs><path id=\"SVGID_3_\" d=\"M5.4,97.4c0,0,3.6-3.8,3.8-7.9s3.1-7.1,5.5-8.8s6.1-5.3,6.6-8.9s3.5-8.6,13.6-10.6s6.8-4.4,19.6-5 s17.7,3.2,26.4,3s12,2,17.1,7.2s-1,39.9-35.8,48.9S5.4,97.4,5.4,97.4z\"/></defs><clipPath id=\"SVGID_4_\"><use xlink:href=\"#SVGID_3_\" overflow=\"visible\"/></clipPath><path clip-path=\"url(#SVGID_4_)\" fill=\"#F6DFB8\" d=\"M4.1,99c0,0,8.3-0.4,11.2-8.9c2.1-6.3,8.1-2.9,11.8-8.9s-0.1-6.7,4.6-12.9 s20.6-0.5,23.2-8.3s6,8.5,16.6,8.9s12.3-8.1,24.9-1.5s10.5,12,10.5,12l4.7-33.2c0,0-85.3-15.1-113.8,46.7S4.1,99,4.1,99z\"/><path clip-path=\"url(#SVGID_4_)\" fill=\"#DDB37A\" d=\"M106.3,124.3c3.5-9.7-0.8-29.6-16.5-38c-2.3-1.2-13.1,1.5-15.4,0.7 c-7-2.5-8.8,3.7-15,3.9c-10.3,0.3-18.2,1.9-20.7,8.8c-4.1,11.2,7.8,25.7,26.5,32.5C83.8,139,102.3,135.5,106.3,124.3z\"/><path clip-path=\"url(#SVGID_4_)\" fill=\"#C99B63\" d=\"M31.5,105c1.4,0,2.5-1.1,2.5-2.5s-1.1-2.5-2.5-2.5s-2.5,1.1-2.5,2.5 S30.1,105,31.5,105z M22.5,94c0.8,0,1.5-0.7,1.5-1.5S23.3,91,22.5,91S21,91.7,21,92.5S21.7,94,22.5,94z M62,88c1.1,0,2-0.9,2-2 s-0.9-2-2-2s-2,0.9-2,2S60.9,88,62,88z M39.5,83c0.8,0,1.5-0.7,1.5-1.5S40.3,80,39.5,80S38,80.7,38,81.5S38.7,83,39.5,83z M89.5,76c0.8,0,1.5-0.7,1.5-1.5S90.3,73,89.5,73S88,73.7,88,74.5S88.7,76,89.5,76z\"/><circle clip-path=\"url(#SVGID_4_)\" fill=\"#C9A06B\" cx=\"45.5\" cy=\"98.2\" r=\"1.5\"/><circle clip-path=\"url(#SVGID_4_)\" fill=\"#C9A06B\" cx=\"57.5\" cy=\"104.2\" r=\"1.5\"/></g><path clip-path=\"url(#SVGID_2_)\" fill=\"#7A5440\" d=\"M97.6,101.5c0,0-14.8-3.7-25.7-33s-5.9-4-5.9-4s-3.7,15,8.4,38.2 S97.6,101.5,97.6,101.5z\"/><g clip-path=\"url(#SVGID_2_)\"><defs><path id=\"SVGID_5_\" d=\"M97.6,101.5c0,0-14.8-3.7-25.7-33s-5.9-4-5.9-4s-3.7,15,8.4,38.2S97.6,101.5,97.6,101.5z\"/></defs><clipPath id=\"SVGID_6_\"><use xlink:href=\"#SVGID_5_\" overflow=\"visible\"/></clipPath><polygon clip-path=\"url(#SVGID_6_)\" fill=\"#634434\" points=\"82.5,83.6 78.3,94 65,90.2 62,45.3 \"/><polygon clip-path=\"url(#SVGID_6_)\" fill=\"#4A3026\" points=\"78.5,74.7 74.1,85.3 63.8,81.1 63.7,45.6 \"/></g><ellipse transform=\"matrix(0.9976 6.975632e-02 -6.975632e-02 0.9976 4.9488 -4.0485)\" clip-path=\"url(#SVGID_2_)\" fill=\"#5E8027\" cx=\"60.4\" cy=\"68.8\" rx=\"5\" ry=\"6.5\"/><ellipse transform=\"matrix(0.7771 -0.6293 0.6293 0.7771 -22.2109 61.6745)\" clip-path=\"url(#SVGID_2_)\" fill=\"#5E8027\" cx=\"76\" cy=\"62.2\" rx=\"5\" ry=\"6.5\"/><ellipse transform=\"matrix(0.9744 -0.225 0.225 0.9744 -13.2486 17.5909)\" clip-path=\"url(#SVGID_2_)\" fill=\"#62892B\" cx=\"70.6\" cy=\"66.9\" rx=\"5.3\" ry=\"7\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#7C9E3A\" d=\"M67.9,60.2c0,0-3.1,7.7-2.9,17c-3.4-3.7-4.3-9.1-5.3-12.1 c-2,1.5-7.3,8.5-7.3,14c-2.7-2.8-5-11.1-0.8-18.7c-2.4-1.3-3.2-1.7-6.4-1c0.4-3.7,3.6-8.2,14.1-8.3C60,46.6,67.2,40.4,71.5,41 c-2,3.3-1.2,6.1-1.2,6.1s11.1-2.5,16.6,3.6c-3.2,0-9.4,1.8-11,3.2c2.4,0.5,8.1,6,8.4,10.3C76.4,58.5,67.9,60.2,67.9,60.2z\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#7C9E3A\" d=\"M52.5,79.6c-0.1,0-0.3-0.1-0.4-0.2c-2.9-3.1-5-11.5-1.1-18.8 c-2.1-1.1-2.7-1.3-5.6-0.7c-0.2,0-0.3,0-0.4-0.1c-0.1-0.1-0.2-0.3-0.2-0.4c0.3-2.6,2.2-8.6,14.2-8.7c1-4.7,8.2-10.7,12.6-10.1 c0.2,0,0.3,0.1,0.4,0.3s0.1,0.3,0,0.5c-1.4,2.3-1.4,4.4-1.3,5.2c0.9-0.2,2.7-0.4,4.9-0.4c3.6,0,8.5,0.7,11.7,4.3 c0.1,0.1,0.2,0.4,0.1,0.5s-0.3,0.3-0.5,0.3h0c-2.8,0-7.7,1.4-9.9,2.5c2.8,1.4,7.4,6.2,7.8,10.3c0,0.1,0,0.1,0,0.2 c0,0.3-0.2,0.5-0.5,0.5c0,0,0,0,0,0c-0.1,0-0.2,0-0.3-0.1c-4.8-3.4-9.7-4.1-13.1-4.1c-1.2,0-2.2,0.1-2.6,0.2 c-0.5,1.4-2.9,8.4-2.8,16.5c0,0.2-0.1,0.4-0.3,0.5c-0.2,0.1-0.4,0-0.6-0.1c-2.8-3.1-4-7.3-4.8-10.3c-0.1-0.4-0.2-0.8-0.3-1.2 C57.2,68,53,74.3,53,79.1c0,0.2-0.1,0.4-0.3,0.5C52.6,79.6,52.5,79.6,52.5,79.6z M47.8,58.5c1.5,0,2.6,0.5,4.1,1.4 c0.1,0.1,0.2,0.2,0.2,0.3c0,0.1,0,0.3,0,0.4c-3.8,6.8-2.1,13.9-0.1,17.1c0.7-5.3,5.3-11.6,7.4-13.1c0.1-0.1,0.3-0.1,0.4-0.1 c0.2,0,0.3,0.2,0.3,0.3c0.2,0.6,0.4,1.2,0.6,2c0.7,2.6,1.7,6.1,3.7,8.9c0.1-8.6,2.9-15.7,2.9-15.7c0.1-0.2,0.2-0.3,0.4-0.3 c0,0,1.2-0.2,3.1-0.2c3.3,0,8,0.7,12.7,3.6c-1-3.9-5.7-8.3-7.8-8.8c-0.2,0-0.3-0.2-0.4-0.4c0-0.2,0-0.4,0.2-0.5 c1.6-1.3,6.7-2.9,10.1-3.2c-2.9-2.6-7.1-3.2-10.2-3.2c-2.9,0-5.1,0.5-5.2,0.5c-0.3,0.1-0.5-0.1-0.6-0.4c0-0.1-0.6-2.7,0.9-5.7 c-4,0.3-10.2,5.8-10.8,9.7c0,0.2-0.2,0.4-0.5,0.4c-10.5,0-12.9,4.6-13.5,7.1C46.7,58.6,47.3,58.5,47.8,58.5z\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#6FB3A2\" d=\"M-5.9,56c-0.1,0-0.1,0-0.2,0c-0.8-0.1-1.4-0.9-1.3-1.7 c0-0.1,1.6-10.9,16.5-11.7c0.8,0,1.5,0.6,1.6,1.4c0,0.8-0.6,1.5-1.4,1.6c-12.5,0.7-13.7,9-13.7,9.1C-4.6,55.5-5.2,56-5.9,56z\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#6FB3A2\" d=\"M-4.1,84.5c0,0-0.1,0-0.1,0c-0.8-0.1-1.4-0.8-1.4-1.6 C-5.3,79.6-2.7,73,5,71.5c0.8-0.2,1.6,0.4,1.8,1.2s-0.4,1.6-1.2,1.8c-7.4,1.5-8.1,8.4-8.1,8.7C-2.6,83.9-3.3,84.5-4.1,84.5z\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#6FB3A2\" d=\"M29.9,29.5c-0.3,0-0.5-0.1-0.8-0.2c-0.7-0.4-1-1.3-0.5-2.1 c0.2-0.4,5.7-9.4,19.5-7.8c0.8,0.1,1.4,0.8,1.3,1.7c-0.1,0.8-0.8,1.4-1.7,1.3c-11.9-1.4-16.5,6.3-16.6,6.4 C30.9,29.2,30.4,29.5,29.9,29.5z\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#6FB3A2\" d=\"M22.4,55.2c-0.2,0-0.4,0-0.7-0.2c-0.7-0.4-1.1-1.3-0.7-2 c0.2-0.4,5.3-10.6,19.3-9.4c0.8,0.1,1.4,0.8,1.4,1.6c-0.1,0.8-0.8,1.4-1.6,1.4c-11.9-1-16.3,7.6-16.3,7.7 C23.5,54.9,22.9,55.2,22.4,55.2z\"/><path clip-path=\"url(#SVGID_2_)\" fill=\"#6FB3A2\" d=\"M78.9,35.1c-0.4,0-0.8-0.2-1.1-0.5c-2.2-2.2-5-3.3-8.5-3.2 c-4.2,0.2-7.8,2-8.7,3c-0.5,0.6-1.5,0.7-2.1,0.2c-0.6-0.5-0.7-1.5-0.2-2.1c1.6-1.8,6.2-3.9,10.9-4.1c4.3-0.1,8,1.3,10.7,4.1 c0.6,0.6,0.6,1.5,0,2.1C79.6,35,79.2,35.1,78.9,35.1z\"/></g></g></svg><h2>Nothing washed ashore yet</h2><p>Let's find your services!</p><button type=\"button\" class=\"ds-btn-primary\">Add</button><button type=\"button\" class=\"ds-btn-ghost\">Skip for now</button></section>",
+      "css": ".ds-btn-primary {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--space-2);\n  padding: var(--space-3) var(--space-5);\n  min-height: 44px;\n  font-family: inherit;\n  font-size: 0.9375rem;\n  font-weight: 500;\n  line-height: 1;\n  border: 1px solid transparent;\n  border-radius: var(--radius-md);\n  cursor: pointer;\n  transition:\n    background-color var(--transition-smooth),\n    border-color var(--transition-smooth),\n    transform var(--transition-smooth),\n    box-shadow var(--transition-smooth);\n  box-shadow: var(--shadow-button);\n  -webkit-tap-highlight-color: transparent;\n}\n.ds-btn-ghost {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--space-2);\n  padding: var(--space-3) var(--space-5);\n  min-height: 44px;\n  font-family: inherit;\n  font-size: 0.9375rem;\n  font-weight: 500;\n  line-height: 1;\n  border: 1px solid transparent;\n  border-radius: var(--radius-md);\n  cursor: pointer;\n  transition:\n    background-color var(--transition-smooth),\n    border-color var(--transition-smooth),\n    transform var(--transition-smooth),\n    box-shadow var(--transition-smooth);\n  box-shadow: var(--shadow-button);\n  -webkit-tap-highlight-color: transparent;\n}\n.ds-btn-primary {\n  background: var(--color-accent);\n  color: var(--color-button-primary-text);\n}\n\n.ds-btn-primary:active,\n.ds-btn-ghost:active {\n  transform: translateY(1px);\n}\n\n.ds-btn-primary:focus-visible,\n.ds-btn-ghost:focus-visible {\n  outline: 2px solid var(--color-accent);\n  outline-offset: 2px;\n}\n\n.ds-btn-ghost {\n  background: transparent;\n  color: var(--color-text-secondary);\n  border-color: transparent;\n  box-shadow: none;\n}\n\n@media (hover: hover) and (pointer: fine) {\n  .ds-btn-primary:hover {\n    background: var(--color-accent-hover);\n    box-shadow: 0 4px 12px var(--color-accent-glow);\n  }\n\n  .ds-btn-ghost:hover {\n    color: var(--color-text-primary);\n    background: var(--color-surface);\n  }\n}\n\n.ds-empty-state {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  gap: var(--space-4);\n  padding: var(--space-12) var(--space-6);\n  text-align: center;\n}\n\n.ds-empty-state__mark {\n  width: 64px;\n  height: 64px;\n  opacity: 0.95;\n}\n\n.ds-empty-state h2 {\n  color: var(--color-text);\n}\n\n.ds-empty-state p {\n  margin: 0;\n  max-width: 40ch;\n  line-height: 1.5;\n  color: var(--color-text-secondary);\n}"
+    },
+    {
+      "name": "Icon picker cell",
+      "kind": "chip",
+      "refersTo": "icon-cell",
+      "description": "Selectable row in the icon picker dropdown: preview icon, icon name and source label; highlights on hover/active.",
+      "html": "<button type=\"button\" class=\"ds-icon-cell\" role=\"option\" aria-selected=\"false\"><span class=\"ds-icon-cell__preview\" aria-hidden=\"true\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 3v18M3 12h18\"/></svg></span><span class=\"ds-icon-cell__name\">Grafana</span><span class=\"ds-icon-cell__source\">dashboard-icons</span></button>",
+      "css": ".ds-icon-cell {\n  display: flex;\n  align-items: center;\n  gap: var(--space-3);\n  width: 100%;\n  padding: var(--space-2) var(--space-3);\n  border: none;\n  background: none;\n  color: var(--color-text-primary);\n  font-family: inherit;\n  font-size: 0.875rem;\n  cursor: pointer;\n  text-align: left;\n  transition: background-color 0.1s ease;\n}\n\n.ds-icon-cell:hover,\n.ds-icon-cell--active {\n  background: var(--color-surface-hover);\n}\n\n.ds-icon-cell:focus-visible {\n  outline: 2px solid var(--color-accent);\n  outline-offset: -2px;\n}\n\n.ds-icon-cell__preview {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 20px;\n  height: 20px;\n  flex-shrink: 0;\n  border-radius: 2px;\n}\n\n.ds-icon-cell__preview svg {\n  width: 100%;\n  height: 100%;\n}\n\n.ds-icon-cell__name {\n  flex: 1;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.ds-icon-cell__source {\n  font-size: 0.75rem;\n  font-family: var(--font-mono);\n  color: var(--color-text-secondary);\n  flex-shrink: 0;\n}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Gut der Nachtflut",
+    "overview": "The network is dark water; Strandgut is what the night tide leaves on the shore. The canvas is deep water navy, the tiles are panes of tinted glass, and a single amber lamp marks everything you can touch. The voice is a quiet maritime workshop: weathered, warm-utilitarian, unhurried; surfaces are translucent layers of beach bone over the photographic ground, so the sea light is always faintly present behind the work.",
+    "keyCharacteristics": [
+      "Deep water navy ground, beach-bone text, one amber voice.",
+      "Depth from layered translucency (glass), not from stacked shadows.",
+      "Tactile and quiet: panes you can press, presses you can feel.",
+      "Square service tiles on a centered auto-fit grid; everything else is a hairline-bordered pane.",
+      "Motion is short, purposeful, and settles — one deliberate bounce, everywhere else smooth decay."
+    ],
+    "rules": [
+      {
+        "name": "The One Lamp Rule",
+        "body": "Amber marks only what is actionable or active — buttons, focus, the checked switch, scan progress, drag targets. It never decorates.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tinted Glass Rule",
+        "body": "Surfaces are beach-bone translucency over the ground (7% at rest, 12% hovered), never opaque grey fills; the photographic ground must stay faintly visible through them.",
+        "section": "colors"
+      },
+      {
+        "name": "The Status Earns Color Rule",
+        "body": "Kelp green and terracotta appear only where a real state exists (reachable, error); never for emphasis or decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Canvas Rule",
+        "body": "The painted page background is the token value (--color-surface-canvas); there is exactly one night blue. A second hardcoded navy under the photo drifts from the palette and silently changes every contrast calculation.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two-Voice Rule",
+        "body": "Grotesk speaks, Mono records: prose in Hanken Grotesk, addresses/numbers/identifiers/provenance in JetBrains Mono.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Step Rule",
+        "body": "Headings move in one step from body (1.25rem vs 1rem); hierarchy comes from weight and spacing, not a size ladder. 1.375rem is the largest text on any screen.",
+        "section": "typography"
+      },
+      {
+        "name": "The Glass Panes Rule",
+        "body": "Depth is translucency plus blur; shadows are reserved for floating panes and hover lift.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Light From Above Rule",
+        "body": "Every glass edge carries its inset top highlight; never simulate light from below or the sides.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Reading Surface Rule",
+        "body": "Copy that sits on the photographic ground gets its own surface: a tinted-glass pane, or the header/footer veil. Never rely on the global photo scrim to make text legible.",
+        "section": "layout"
+      },
+      {
+        "name": "The Square Find Rule",
+        "body": "A service always lands as a square; its icon scales inside, the tile never changes aspect to fit content.",
+        "section": "layout"
+      },
+      {
+        "name": "The One Bounce Rule",
+        "body": "The pill-switch thumb is the single legitimate bounce in the system; every other transition decays smoothly.",
+        "section": "components"
+      },
+      {
+        "name": "The Keep It Short Rule",
+        "body": "Motion is <= 0.3s and animates only transform, opacity, and background color — never layout properties.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do keep the canvas Deep Water Navy (#0a1628) and text Beach Bone (#e8e0d8); every new pane is a translucency of the same bone, not a new grey.",
+      "Do hold amber to interactive and active states (The One Lamp Rule), including 2px focus outlines with 2-3px offset.",
+      "Do build service entries as square tiles on the auto-fit 160px shelf; let the icon scale, not the tile.",
+      "Do put addresses, ports, identifiers, and credits in JetBrains Mono at 0.8125rem.",
+      "Do keep motion <= 0.3s on transform/opacity, keep wash-ashore for first paint, and respect prefers-reduced-motion.",
+      "Do respect the existing fallbacks: forced-colors, reduced-transparency (glass degrades to solid navy), and print.",
+      "Do give text on the photograph its own pane or veil (The Reading Surface Rule) and keep every text/ground pair at AA or better."
+    ],
+    "donts": [
+      "Don't fill surfaces with opaque greys or remove backdrop blur without the reduced-transparency fallback.",
+      "Don't add resting drop shadows to tiles; they are glass at rest and only lift on hover.",
+      "Don't use bounce or elastic easing anywhere but the pill-switch thumb (The One Bounce Rule).",
+      "Don't tint headings, borders, or icons in Tide Amber; if it is not actionable or active, it is neutral.",
+      "Don't introduce a display-size headline or a third type family.",
+      "Don't use Kelp Green or Terracotta for anything without a reachable/error meaning.",
+      "Don't introduce a second canvas colour or place body copy straight on the photo ground."
+    ]
+  }
+}

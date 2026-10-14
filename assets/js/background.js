@@ -1,5 +1,5 @@
 import { getConfig, setConfig } from './state.js';
-import { t } from './app.js';
+import { t } from './i18n.js';
 import { escapeHtml } from './api.js';
 
 const ROTATION_INTERVAL_MS = 60 * 60 * 1000;

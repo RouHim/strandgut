@@ -13,10 +13,10 @@
 ## Features
 
 - **Auto-discover services on your network** — scan any host and Strandgut identifies what's running. Recognizes Home Assistant, Proxmox, Pi-hole, Synology, Portainer, Jellyfin, Plex, and Nextcloud automatically.
-- **Three scan speeds** — quick (common ports), thorough (extended range), or exhaustive (all 65,535 ports).
-- **Live results** — watch services appear in the dashboard as the scan runs.
+- **Three scan depths** — Simple (common ports), Medium (extended range), or Deep (all 65,535 ports), with progress and results in the scan dialog.
+- **See what is up** — every tile carries a reachability dot: the page checks each service when it loads (green = answering, red = not).
 - **Rearrange your dashboard** — drag cards where you want them.
-- **Dark and light themes** — switches with your system preference, or toggle manually. No flash of the wrong theme on load.
+- **Dark theme** — one composed dark theme; no theme flash, no light-mode drift.
 - **English and German** — picks up your browser language automatically.
 - **Single file, no setup** — one binary with the entire UI embedded. No runtime dependencies, no install scripts.
 

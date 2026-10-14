@@ -6,6 +6,8 @@ import {
   isEditing,
 } from './state.js';
 import { escapeHtml } from './api.js';
+import { activateOverlay, releaseOverlayFor } from './overlay.js';
+import { t } from './i18n.js';
 import { renderGrid } from './grid.js';
 import { initIconPicker } from './icon-picker.js';
 
@@ -40,13 +42,13 @@ export function renderEditMode() {
         type="button"
         class="btn btn-ghost"
         data-testid="edit-tile"
-        aria-label="Edit service"
+        aria-label="${t('edit.editService')}"
       ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
       <button
         type="button"
         class="btn btn-ghost"
         data-testid="delete-tile"
-        aria-label="Delete service"
+        aria-label="${t('edit.deleteService')}"
       ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
     `;
 
@@ -87,20 +89,20 @@ export function openEditPanel(index) {
   panelElement.className = 'edit-panel-overlay';
   panelElement.setAttribute('role', 'dialog');
   panelElement.setAttribute('aria-modal', 'true');
-  panelElement.setAttribute('aria-label', isNew ? 'Add service' : 'Edit service');
+  panelElement.setAttribute('aria-labelledby', 'edit-panel-title');
 
   const panel = document.createElement('div');
   panel.className = 'edit-panel';
 
-  const heading = isNew ? 'Add Service' : 'Edit Service';
+  const heading = isNew ? t('edit.title.add') : t('edit.title.edit');
   panel.innerHTML = `
-    <h2>${escapeHtml(heading)}</h2>
+    <h2 id="edit-panel-title">${escapeHtml(heading)}</h2>
 
     <form id="edit-form" novalidate data-testid="edit-form">
       <div class="edit-panel__fields">
         <div class="form-field">
           <label for="edit-name">
-            Name <span aria-label="required" class="required">*</span>
+            ${t('edit.name')} <span aria-label="${t('edit.required')}" class="required">*</span>
           </label>
           <input
             type="text"
@@ -116,7 +118,7 @@ export function openEditPanel(index) {
 
         <div class="form-field">
           <label for="edit-url">
-            URL <span aria-label="required" class="required">*</span>
+            URL <span aria-label="${t('edit.required')}" class="required">*</span>
           </label>
           <div class="edit-panel__url-row">
             <input
@@ -127,14 +129,14 @@ export function openEditPanel(index) {
               class="edit-input edit-input--url"
               value="${escapeHtml(service.url || '')}"
               required
-              placeholder="https://example.com"
+              placeholder="${t('edit.url.placeholder')}"
             />
             <button
               type="button"
               id="edit-url-open"
               class="btn btn-ghost edit-panel__url-open"
               data-testid="edit-url-open"
-              aria-label="Open URL in new tab"
+              aria-label="${t('edit.openUrl')}"
             ><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
           </div>
           <span class="error-msg" data-field="url" data-testid="edit-url-error"></span>
@@ -142,7 +144,7 @@ export function openEditPanel(index) {
 
         <div class="form-field">
           <label for="edit-icon">
-            Icon
+            ${t('edit.icon')}
           </label>
           <div class="edit-panel__icon-row">
             <input
@@ -152,7 +154,7 @@ export function openEditPanel(index) {
               data-testid="edit-icon"
               class="edit-input edit-input--icon"
               value="${escapeHtml(service.icon || '')}"
-              placeholder="e.g. github"
+              placeholder="${t('edit.icon.placeholder')}"
             />
             <img
               id="icon-preview"
@@ -165,7 +167,7 @@ export function openEditPanel(index) {
 
         <div class="form-field">
           <label for="edit-description">
-            Description
+            ${t('edit.description')}
           </label>
           <input
             type="text"
@@ -185,21 +187,26 @@ export function openEditPanel(index) {
         class="btn btn-ghost"
         data-testid="edit-cancel"
         id="edit-cancel"
-      >Cancel</button>
+      >${t('edit.cancel')}</button>
       <button
         type="button"
         class="btn btn-primary"
         data-testid="edit-save"
         id="edit-save"
-      >Save</button>
+      >${t('edit.save')}</button>
     </div>
   `;
 
   panelElement.appendChild(panel);
   document.body.appendChild(panelElement);
 
+  activateOverlay(panelElement);
+
   const nameInput = panel.querySelector('#edit-name');
-  nameInput?.focus();
+  if (nameInput) {
+    nameInput.setAttribute('data-autofocus', '');
+    nameInput.focus();
+  }
 
   const iconInput = panel.querySelector('#edit-icon');
   const iconPreview = panel.querySelector('#icon-preview');
@@ -259,6 +266,7 @@ export function openEditPanel(index) {
 
 function closePanel() {
   if (panelElement) {
+    releaseOverlayFor(panelElement);
     panelElement.remove();
     panelElement = null;
   }
@@ -272,7 +280,7 @@ function validateForm(panel) {
   const nameValue = nameInput.value.trim();
 
   if (!nameValue) {
-    nameError.textContent = 'Name is required.';
+    nameError.textContent = t('edit.error.name');
     nameError.classList.add('error-msg--visible');
     nameInput.classList.add('form-field--error');
     valid = false;
@@ -286,12 +294,12 @@ function validateForm(panel) {
   const urlValue = urlInput.value.trim();
 
   if (!urlValue) {
-    urlError.textContent = 'URL is required.';
+    urlError.textContent = t('edit.error.url');
     urlError.classList.add('error-msg--visible');
     urlInput.classList.add('form-field--error');
     valid = false;
   } else if (!/^https?:\/\//i.test(urlValue)) {
-    urlError.textContent = 'URL must start with http:// or https://.';
+    urlError.textContent = t('edit.error.urlScheme');
     urlError.classList.add('error-msg--visible');
     urlInput.classList.add('form-field--error');
     valid = false;
@@ -307,16 +315,51 @@ function validateForm(panel) {
  * Deletes a service after confirmation.
  * @param {number} index
  */
-function deleteService(index) {
+async function deleteService(index) {
   const services = getServices();
-  const svc = services[index];
-  const name = svc?.name || 'this service';
+  const name = services[index]?.name || `${services[index]?.url || ''}`;
 
-  if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+  if (!(await confirmDelete(name))) return;
 
   removeService(index);
   renderGrid();
   renderEditMode();
+}
+
+/** In-system delete confirmation — no native confirm(), translated, trapped. */
+function confirmDelete(name) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'edit-panel-overlay';
+    overlay.setAttribute('role', 'alertdialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'confirm-delete-title');
+    overlay.innerHTML = `
+      <div class="edit-panel confirm-panel">
+        <h2 id="confirm-delete-title">${escapeHtml(t('edit.confirmDelete').replace('{name}', name))}</h2>
+        <div class="edit-panel__actions">
+          <button type="button" class="btn btn-ghost" data-testid="confirm-delete-cancel" data-autofocus>${escapeHtml(t('edit.cancel'))}</button>
+          <button type="button" class="btn btn-primary" data-testid="confirm-delete-ok">${escapeHtml(t('edit.confirmDelete.button'))}</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    activateOverlay(overlay);
+
+    const done = (answer) => {
+      releaseOverlayFor(overlay);
+      overlay.remove();
+      resolve(answer);
+    };
+    overlay.querySelector('[data-testid="confirm-delete-cancel"]').addEventListener('click', () => done(false));
+    overlay.querySelector('[data-testid="confirm-delete-ok"]').addEventListener('click', () => done(true));
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) done(false);
+    });
+    overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') done(false);
+    });
+  });
 }
 
 window.addEventListener('editmodechange', () => {

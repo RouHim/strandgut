@@ -139,6 +139,32 @@ async fn collect_sse_body_poll(mut body: SseScanBody) -> Vec<String> {
     chunks
 }
 
+#[tokio::test]
+async fn test_unresolvable_host_emits_error_event_instead_of_empty_scan() {
+    let running = Arc::new(AtomicBool::new(true));
+    let body = scan_with_sse(
+        "does-not-exist.invalid".into(),
+        vec![80, 443],
+        ScanInProgress(running.clone()),
+    )
+    .await;
+    let chunks = collect_sse_body_poll(body).await;
+    let text = chunks.join("");
+
+    assert!(
+        text.contains("event: error\ndata: host_not_found"),
+        "expected a host_not_found error frame, got: {text}"
+    );
+    assert!(
+        !text.contains("event: found"),
+        "an unresolvable host must not report results: {text}"
+    );
+    assert!(
+        !running.load(Ordering::SeqCst),
+        "the scan guard must be released after the error"
+    );
+}
+
 fn parse_sse_events(text: &str) -> Vec<(String, String)> {
     text.split("\n\n")
         .filter(|s| !s.trim().is_empty())

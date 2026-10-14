@@ -102,7 +102,7 @@ test.describe('Scan Progress QA', () => {
     await expect(page.locator('[data-testid="scan-result-card"]')).toHaveCount(0);
   });
 
-  // ─── SCENARIO 4: German locale → "Scanning…" / "Keine Dienste gefunden" ───
+  // ─── SCENARIO 4: German locale → "Scanne…" / "Keine Dienste gefunden" ───
   test('Scenario 4: German locale shows correct strings', async ({ page }) => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, 'language', { value: 'de', configurable: true });
@@ -111,7 +111,7 @@ test.describe('Scan Progress QA', () => {
     await page.route('/api/scan', async (route) => {
       if (route.request().method() !== 'POST') return route.continue();
 
-      // Hold the stream open briefly so the transient "Scanning…" status is
+      // Hold the stream open briefly so the transient "Scanne…" status is
       // observable before `done` flips it to "Keine Dienste gefunden".
       await new Promise((resolve) => setTimeout(resolve, 750));
 
@@ -136,8 +136,8 @@ test.describe('Scan Progress QA', () => {
     await page.click('[data-testid="scan-depth-medium"]');
     await page.click('[data-testid="scan-start-button"]');
 
-    await expect(page.locator('[data-testid="scan-status"]')).toContainText('Scanning…', { timeout: 5000 });
-    console.log('[Scenario 4] ✓ "Scanning…" found');
+    await expect(page.locator('[data-testid="scan-status"]')).toContainText('Scanne…', { timeout: 5000 });
+    console.log('[Scenario 4] ✓ "Scanne…" found');
 
     await page.waitForFunction(() => {
       const status = document.querySelector('[data-testid="scan-status"]');

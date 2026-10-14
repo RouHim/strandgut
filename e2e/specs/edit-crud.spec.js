@@ -74,11 +74,13 @@ test('delete service', async ({ page, request }) => {
     },
   });
   await page.goto('/');
-  page.on('dialog', dialog => dialog.accept());
   await page.locator('[data-testid="edit-toggle"]').click();
   const deleteBtn = page.locator('[data-testid="delete-tile"]').first();
-  const savePromise = page.waitForResponse(response => response.url().includes('/api/config') && response.request().method() === 'PUT');
   await deleteBtn.click();
+  // The confirmation is part of the app now, not a native dialog.
+  await expect(page.locator('[data-testid="confirm-delete-ok"]')).toBeVisible();
+  const savePromise = page.waitForResponse(response => response.url().includes('/api/config') && response.request().method() === 'PUT');
+  await page.locator('[data-testid="confirm-delete-ok"]').click();
   await savePromise;
   await page.reload();
   const onboarding = page.locator('[data-testid="onboarding"]');

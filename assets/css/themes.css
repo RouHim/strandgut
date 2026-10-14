@@ -14,7 +14,7 @@ body {
      Dark is the default theme. The beach photo is darkened with a semi-transparent
      overlay so text remains legible. */
 html {
-  background-color: #1a1a2e;
+  background-color: var(--color-surface-canvas);
   background-image: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55));
   background-repeat: no-repeat;
   background-position: center center;
@@ -55,11 +55,11 @@ body::before {
 @media (prefers-reduced-transparency: reduce) {
   html {
     background-image: none !important;
-    background-color: var(--color-surface-canvas, #1a1a2e) !important;
+    background-color: var(--color-surface-canvas) !important;
   }
 
   body {
-    background-color: var(--color-surface-canvas, #1a1a2e) !important;
+    background-color: var(--color-surface-canvas) !important;
   }
 
   body::before {
@@ -67,6 +67,7 @@ body::before {
   }
 
   .app-header,
+  .app-footer,
   .tile,
   .scan-dialog-overlay,
   .scan-dialog,
@@ -76,8 +77,9 @@ body::before {
     -webkit-backdrop-filter: none !important;
   }
 
-  .app-header {
-    background: var(--color-surface-canvas, #1a1a2e) !important;
+  .app-header,
+  .app-footer {
+    background: var(--color-surface-canvas) !important;
   }
 
   .tile,
@@ -114,6 +116,7 @@ body::before {
   }
 
   .app-header,
+  .app-footer,
   .tile,
   .scan-dialog,
   .scan-dialog-overlay,

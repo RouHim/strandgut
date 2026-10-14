@@ -31,7 +31,6 @@ h1, h2, h3, h4 {
   color: var(--color-text);
 }
 
-h1 { font-size: 1.75rem; }
 h2 { font-size: 1.375rem; }
 h3 { font-size: 1.125rem; }
 

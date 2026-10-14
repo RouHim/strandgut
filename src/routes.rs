@@ -34,6 +34,7 @@ enum Route {
     Health,
     Readyz,
     ConfigGet,
+    StatusGet,
     ScanStart,
     Assets,
     SpaFallback,
@@ -53,6 +54,9 @@ fn build_router() -> Router<Route> {
     router
         .insert("/api/config", Route::ConfigGet)
         .expect("route /api/config already registered");
+    router
+        .insert("/api/status", Route::StatusGet)
+        .expect("route /api/status already registered");
     router
         .insert("/api/scan", Route::ScanStart)
         .expect("route /api/scan already registered");
@@ -145,6 +149,8 @@ where
 
         Route::ConfigGet => handle_config_get(req, method, state).await,
 
+        Route::StatusGet => handle_status_get(method, state).await,
+
         Route::ScanStart => handle_scan_start(req, state).await,
 
         Route::Assets => {
@@ -196,6 +202,27 @@ where
     } else {
         Ok(method_not_allowed())
     }
+}
+
+/// Reachability of every configured service, checked once per dashboard load.
+///
+/// The browser asks this on page build; the server probes each service URL
+/// with one parallel TCP connect. No timer, no caching: a reload is a fresh
+/// answer, and nothing here writes to `config.toml`.
+async fn handle_status_get(
+    method: Method,
+    state: Arc<AppState>,
+) -> Result<Response<BoxBody>, AppError> {
+    if method != Method::GET {
+        return Ok(method_not_allowed());
+    }
+    let config =
+        Config::load(state.config_path.as_ref()).map_err(|e| AppError::Internal(e.to_string()))?;
+    let services = crate::status::probe_services(&config.services).await;
+    Ok(json_response(
+        StatusCode::OK,
+        &serde_json::json!({ "services": services }),
+    ))
 }
 
 async fn handle_scan_start<B>(

@@ -1,6 +1,8 @@
 let config = null;
 let isDirty = false;
 let isEditMode = false;
+/** url -> reachable, filled once per page load from /api/status. */
+let serviceStatuses = new Map();
 
 /** Number of columns in the service grid (matches layout.css). */
 export const GRID_COLUMNS = 4;
@@ -33,6 +35,15 @@ export function toggleEditMode() {
 
 export function getServices() {
   return config?.services || [];
+}
+
+/** Statuses come only from the page-load check; a reload is a fresh answer. */
+export function setServiceStatuses(list) {
+  serviceStatuses = new Map((list || []).map((s) => [s.url, !!s.reachable]));
+}
+
+export function getServiceStatus(url) {
+  return serviceStatuses.has(url) ? serviceStatuses.get(url) : null;
 }
 
 export function addService(service) {

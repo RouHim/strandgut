@@ -1,7 +1,8 @@
 import { addService, getServices, GRID_COLUMNS } from './state.js';
 import { escapeHtml } from './api.js';
 import { renderGrid } from './grid.js';
-import { t } from './app.js';
+import { t } from './i18n.js';
+import { activateOverlay, releaseOverlayFor } from './overlay.js';
 
 let abortController = null;
 let dialogEl = null;
@@ -13,46 +14,47 @@ export function openScanDialog() {
   dialogEl.className = 'scan-dialog-overlay';
   dialogEl.setAttribute('role', 'dialog');
   dialogEl.setAttribute('aria-modal', 'true');
-  dialogEl.setAttribute('aria-label', 'Network Scan');
+  dialogEl.setAttribute('aria-labelledby', 'scan-dialog-title');
 
   const defaultHost = escapeHtml(window.location.hostname || '192.168.1.1');
 
   dialogEl.innerHTML = `
     <div class="scan-dialog" data-testid="scan-dialog">
       <header class="scan-dialog__header">
-        <h2 data-i18n="scan.title">Scan Network</h2>
-        <button type="button" class="btn btn-ghost scan-dialog__close" data-testid="scan-dialog-close" aria-label="Close">&times;</button>
+        <h2 id="scan-dialog-title">${t('scan.title')}</h2>
+        <button type="button" class="btn btn-ghost scan-dialog__close" data-testid="scan-dialog-close" aria-label="${t('scan.close')}">&times;</button>
       </header>
 
       <div class="scan-dialog__body">
         <div class="scan-field">
-          <label for="scan-host">Host / IP</label>
-          <input type="text" id="scan-host" class="scan-input" value="${defaultHost}" data-testid="scan-host-input">
+          <label for="scan-host">${t('scan.host.label')}</label>
+          <input type="text" id="scan-host" class="scan-input" value="${defaultHost}" data-testid="scan-host-input" data-autofocus>
         </div>
 
         <fieldset class="scan-fieldset">
-          <legend>Scan Depth</legend>
+          <legend>${t('scan.depth.label')}</legend>
           <div class="scan-radio-group">
             <label class="scan-radio">
               <input type="radio" name="scan-depth" value="simple" checked data-testid="scan-depth-simple">
-              <span>Simple</span>
+              <span>${t('scan.depth.simple')}</span>
             </label>
             <label class="scan-radio">
               <input type="radio" name="scan-depth" value="medium" data-testid="scan-depth-medium">
-              <span>Medium</span>
+              <span>${t('scan.depth.medium')}</span>
             </label>
             <label class="scan-radio">
               <input type="radio" name="scan-depth" value="deep" data-testid="scan-depth-deep">
-              <span>Deep</span>
+              <span>${t('scan.depth.deep')}</span>
             </label>
           </div>
         </fieldset>
 
         <details class="scan-advanced" data-testid="scan-advanced-toggle">
-          <summary>Advanced</summary>
+          <summary>${t('scan.advanced')}</summary>
           <div class="scan-field">
-            <label for="scan-ports">Port Range (comma-separated)</label>
-            <input type="text" id="scan-ports" class="scan-input" placeholder="e.g. 80,443,8080" data-testid="scan-ports-input">
+            <label for="scan-ports">${t('scan.ports.label')}</label>
+            <input type="text" id="scan-ports" class="scan-input" placeholder="${t('scan.ports.placeholder')}" data-testid="scan-ports-input">
+            <p class="scan-hint" data-testid="scan-ports-hint" hidden>${t('scan.ports.hint')}</p>
           </div>
         </details>
 
@@ -69,7 +71,7 @@ export function openScanDialog() {
       <footer class="scan-dialog__footer">
         <button type="button" class="btn btn-primary" data-testid="scan-start-button">${t('scan.start')}</button>
         <button type="button" class="btn btn-secondary" data-testid="scan-add-all-button" hidden>${t('scan.addAll')}</button>
-        <button type="button" class="btn btn-secondary" data-testid="scan-close-button" hidden>Close</button>
+        <button type="button" class="btn btn-secondary" data-testid="scan-close-button" hidden>${t('scan.close')}</button>
       </footer>
     </div>
   `;
@@ -93,9 +95,22 @@ export function openScanDialog() {
   }
 
   const hostInput = dialogEl.querySelector('#scan-host');
-  hostInput.focus();
+  activateOverlay(dialogEl);
   hostInput.select();
   hostInput.addEventListener('click', () => hostInput.select());
+
+  const portsInput = dialogEl.querySelector('#scan-ports');
+  const depthRadios = dialogEl.querySelectorAll('input[name="scan-depth"]');
+  const portsHint = dialogEl.querySelector('[data-testid="scan-ports-hint"]');
+  const syncPortsOverride = () => {
+    const overrides = portsInput.value.trim() !== '';
+    depthRadios.forEach((radio) => {
+      radio.disabled = overrides;
+    });
+    portsHint.hidden = !overrides;
+  };
+  portsInput.addEventListener('input', syncPortsOverride);
+  syncPortsOverride();
 
   const handleKeydown = (e) => {
     if (e.key === 'Escape') closeScanDialog();
@@ -144,7 +159,7 @@ async function startScan() {
 
   const host = hostInput.value.trim();
   if (!host) {
-    statusEl.textContent = 'Please enter a host or IP address.';
+    statusEl.textContent = t('scan.enterHost');
     return;
   }
 
@@ -157,7 +172,7 @@ async function startScan() {
       .map((p) => parseInt(p.trim(), 10))
       .filter((p) => !isNaN(p) && p > 0 && p <= 65535);
     if (ports.length === 0) {
-      statusEl.textContent = 'Please enter valid port numbers.';
+      statusEl.textContent = t('scan.invalidPorts');
       return;
     }
     body = JSON.stringify({ host, ports });
@@ -177,7 +192,7 @@ async function startScan() {
   startBtn.disabled = true;
   progressEl.hidden = false;
   statusEl.className = 'scan-status';
-  statusEl.textContent = 'Scanning…';
+  statusEl.textContent = t('scan.scanning');
   resultsEl.innerHTML = '';
 
   const scanState = { hasFoundResults: false };
@@ -227,11 +242,11 @@ async function startScan() {
     }
 
     if (!statusEl.textContent.startsWith('Error')) {
-      statusEl.textContent = scanState.hasFoundResults ? 'Scan complete.' : t('scan.noServices');
+      statusEl.textContent = scanState.hasFoundResults ? t('scan.complete') : t('scan.noServices');
     }
   } catch (err) {
     if (err.name !== 'AbortError') {
-      statusEl.textContent = 'Error: ' + err.message;
+      statusEl.textContent = t('scan.errorPrefix') + err.message;
       statusEl.className = 'scan-status scan-status--error';
       finishProgressBar(progressBar, 'var(--color-danger, #c4746e)');
     }
@@ -239,7 +254,6 @@ async function startScan() {
     startBtn.disabled = false;
     startBtn.hidden = false;
     closeBtn.hidden = false;
-    statusEl.className = 'scan-status';
     const addAllBtn = dialogEl.querySelector('[data-testid="scan-add-all-button"]');
     if (addAllBtn && scanState && scanState.hasFoundResults) addAllBtn.hidden = false;
     abortController = null;
@@ -261,7 +275,7 @@ function handleScanEvent(event, data, progressBar, statusEl, resultsEl, scanStat
       break;
     }
     case 'done': {
-      statusEl.textContent = scanState && !scanState.hasFoundResults ? t('scan.noServices') : 'Scan complete.';
+      statusEl.textContent = scanState && !scanState.hasFoundResults ? t('scan.noServices') : t('scan.complete');
       statusEl.className = 'scan-status scan-status--success';
       finishProgressBar(progressBar, 'var(--color-success, #6baf92)');
       const closeBtn = dialogEl.querySelector('[data-testid="scan-close-button"]');
@@ -269,7 +283,8 @@ function handleScanEvent(event, data, progressBar, statusEl, resultsEl, scanStat
       break;
     }
     case 'error': {
-      statusEl.textContent = 'Error: ' + (data || 'Unknown error');
+      const detail = data === 'host_not_found' ? t('scan.error.hostNotFound') : data || t('scan.unknownError');
+      statusEl.textContent = t('scan.errorPrefix') + detail;
       statusEl.className = 'scan-status scan-status--error';
       finishProgressBar(progressBar, 'var(--color-danger, #c4746e)');
       const closeBtn = dialogEl.querySelector('[data-testid="scan-close-button"]');
@@ -294,10 +309,15 @@ function createResultCard(result) {
   card.className = 'scan-result-card';
   card.dataset.testid = 'scan-result-card';
 
-  const reachableDot = result.reachable ? '<span class="scan-result-card__reachable" title="Reachable"></span>' : '';
+  const reachableDot = result.reachable
+    ? `<span class="scan-result-card__reachable" role="img" aria-label="${t('status.up')}" title="${t('status.up')}"></span>`
+    : '';
   const name = escapeHtml(result.service_name || result.title || `${result.host}:${result.port}`);
   const hostPort = escapeHtml(`${result.host}:${result.port}`);
-  const titleLine = result.title ? `<span class="scan-result-card__title">${escapeHtml(result.title)}</span>` : '';
+  const titleLine =
+    result.title && result.title !== (result.service_name || '')
+      ? `<span class="scan-result-card__title">${escapeHtml(result.title)}</span>`
+      : '';
 
   card.innerHTML = `
     <div class="scan-result-card__info">
@@ -306,7 +326,7 @@ function createResultCard(result) {
       ${titleLine}
     </div>
     <button type="button" class="btn btn-secondary scan-result-card__add" data-testid="scan-add-service" ${isDuplicate ? 'disabled' : ''}>
-      ${isDuplicate ? 'Added' : 'Add to Dashboard'}
+      ${isDuplicate ? t('scan.added') : t('scan.addToDashboard')}
     </button>
   `;
 
@@ -318,7 +338,7 @@ function createResultCard(result) {
       renderGrid();
       window.dispatchEvent(new CustomEvent('serviceadded'));
       addBtn.disabled = true;
-      addBtn.textContent = 'Added';
+      addBtn.textContent = t('scan.added');
     });
   }
 
@@ -365,7 +385,36 @@ function buildService(result) {
   };
 }
 
-function closeScanDialog() {
+function showAbortConfirm() {
+  if (!dialogEl) return;
+  if (dialogEl.querySelector('[data-testid="scan-abort-confirm"]')) return;
+
+  const footer = dialogEl.querySelector('.scan-dialog__footer');
+  const row = document.createElement('div');
+  row.className = 'scan-confirm';
+  row.setAttribute('data-testid', 'scan-abort-confirm');
+  row.setAttribute('role', 'alertdialog');
+  row.innerHTML = `
+    <p>${t('scan.abort.confirm')}</p>
+    <button type="button" class="btn btn-secondary" data-testid="scan-abort-keep">${t('scan.abort.keep')}</button>
+    <button type="button" class="btn btn-primary" data-testid="scan-abort-close">${t('scan.abort.close')}</button>
+  `;
+  footer.appendChild(row);
+
+  const keep = row.querySelector('[data-testid="scan-abort-keep"]');
+  keep.addEventListener('click', () => row.remove());
+  row.querySelector('[data-testid="scan-abort-close"]').addEventListener('click', () => {
+    closeScanDialog({ force: true });
+  });
+  keep.focus();
+}
+
+function closeScanDialog({ force = false } = {}) {
+  // A running scan is not silently discarded: ask inside the dialog first.
+  if (abortController && !force) {
+    showAbortConfirm();
+    return;
+  }
   if (abortController) {
     abortController.abort();
     abortController = null;
@@ -374,6 +423,7 @@ function closeScanDialog() {
     if (dialogEl._keydownHandler) {
       document.removeEventListener('keydown', dialogEl._keydownHandler);
     }
+    releaseOverlayFor(dialogEl);
     dialogEl.remove();
     dialogEl = null;
   }
