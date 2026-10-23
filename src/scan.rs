@@ -1,7 +1,7 @@
 //! Async TCP port scanner with service fingerprinting.
 
 use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::task::{Context, Poll};
 use std::time::Duration;
@@ -9,9 +9,8 @@ use std::time::Duration;
 use hyper::body::{Body, Bytes, Frame};
 use serde::Serialize;
 use tokio::net::TcpStream;
-use tokio::sync::Semaphore;
 use tokio::sync::mpsc;
-use tokio::time::{Interval, timeout};
+use tokio::time::timeout;
 
 use crate::error::AppError;
 
@@ -62,71 +61,29 @@ pub fn get_ports(depth: &str) -> Vec<u16> {
     }
 }
 
-/// Scan a host on the given ports, returning all open ports with service info.
-#[cfg(test)]
-async fn scan_host(host: &str, ports: &[u16], timeout_ms: u64) -> Vec<ScanResult> {
-    let semaphore = Arc::new(Semaphore::new(50));
+/// Scan one chunk of ports concurrently.
+///
+/// The chunk size is the scanner's concurrency budget; `run_scan` feeds
+/// chunks of at most 50 ports.
+async fn scan_chunk(host: &str, ports: &[u16], timeout_ms: u64) -> Vec<ScanResult> {
+    let mut handles = Vec::with_capacity(ports.len());
+
+    for &port in ports {
+        let host = host.to_string();
+        handles.push(tokio::spawn(async move {
+            scan_port(&host, port, timeout_ms).await
+        }));
+    }
+
     let mut results = Vec::new();
-
-    for chunk in ports.chunks(50) {
-        let mut handles = Vec::with_capacity(chunk.len());
-        for &port in chunk {
-            let host = host.to_string();
-            let Ok(permit) = semaphore.clone().acquire_owned().await else {
-                continue;
-            };
-
-            handles.push(tokio::spawn(async move {
-                let _permit = permit;
-                scan_port(&host, port, timeout_ms).await
-            }));
-        }
-        for handle in handles {
-            if let Ok(Some(result)) = handle.await {
-                results.push(result);
-            }
+    for handle in handles {
+        if let Ok(Some(result)) = handle.await {
+            results.push(result);
         }
     }
 
     results.sort_by_key(|r| r.port);
     results
-}
-
-/// Scan a host on the given ports with progress tracking.
-async fn scan_host_with_progress(
-    host: &str,
-    ports: &[u16],
-    timeout_ms: u64,
-) -> (Vec<ScanResult>, Arc<AtomicUsize>) {
-    let counter = Arc::new(AtomicUsize::new(0));
-    let semaphore = Arc::new(Semaphore::new(50));
-    let mut results = Vec::new();
-
-    for chunk in ports.chunks(50) {
-        let mut handles = Vec::with_capacity(chunk.len());
-        for &port in chunk {
-            let host = host.to_string();
-            let Ok(permit) = semaphore.clone().acquire_owned().await else {
-                continue;
-            };
-            let counter = counter.clone();
-
-            handles.push(tokio::spawn(async move {
-                let _permit = permit;
-                let result = scan_port(&host, port, timeout_ms).await;
-                counter.fetch_add(1, Ordering::SeqCst);
-                result
-            }));
-        }
-        for handle in handles {
-            if let Ok(Some(result)) = handle.await {
-                results.push(result);
-            }
-        }
-    }
-
-    results.sort_by_key(|r| r.port);
-    (results, counter)
 }
 
 async fn scan_port(host: &str, port: u16, timeout_ms: u64) -> Option<ScanResult> {
@@ -254,8 +211,24 @@ enum SseEvent {
     Error(String),
 }
 
+/// The scan gate is already held by another scan.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ScanBusy;
+
 /// Guard that resets `scan_in_progress` to `false` when dropped.
-pub struct ScanInProgress(pub Arc<AtomicBool>);
+pub struct ScanInProgress(Arc<AtomicBool>);
+
+impl ScanInProgress {
+    /// Atomically acquire the scan gate.
+    ///
+    /// Acquire before parsing the request so every early return releases the
+    /// gate through `Drop`.
+    pub fn try_acquire(flag: Arc<AtomicBool>) -> Result<Self, ScanBusy> {
+        flag.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .map(|_| Self(flag))
+            .map_err(|_| ScanBusy)
+    }
+}
 
 impl Drop for ScanInProgress {
     fn drop(&mut self) {
@@ -291,14 +264,13 @@ fn format_done_frame() -> Bytes {
 }
 
 /// Body implementation that streams scan results as SSE events.
+///
+/// The producer owns the scan lifecycle; this body only turns events into
+/// frames and releases the in-progress guard when dropped.
 pub struct SseScanBody {
     rx: mpsc::Receiver<SseEvent>,
-    interval: Interval,
     done: bool,
     _guard: ScanInProgress,
-    counter: Option<Arc<AtomicUsize>>,
-    total_ports: usize,
-    last_emitted: usize,
 }
 
 impl Body for SseScanBody {
@@ -317,105 +289,83 @@ impl Body for SseScanBody {
 
         match this.rx.poll_recv(cx) {
             Poll::Ready(Some(SseEvent::Result(result))) => {
-                return Poll::Ready(Some(Ok(Frame::data(format_found_frame(&result)))));
+                Poll::Ready(Some(Ok(Frame::data(format_found_frame(&result)))))
             }
             Poll::Ready(Some(SseEvent::Progress { scanned, total })) => {
-                this.last_emitted = scanned;
-                return Poll::Ready(Some(Ok(Frame::data(format_progress_frame(scanned, total)))));
+                Poll::Ready(Some(Ok(Frame::data(format_progress_frame(scanned, total)))))
             }
             Poll::Ready(Some(SseEvent::Error(code))) => {
                 this.done = true;
-                this._guard.0.store(false, Ordering::SeqCst);
-                return Poll::Ready(Some(Ok(Frame::data(format_error_frame(&code)))));
+                Poll::Ready(Some(Ok(Frame::data(format_error_frame(&code)))))
             }
             Poll::Ready(None) => {
                 this.done = true;
-                this._guard.0.store(false, Ordering::SeqCst);
-                return Poll::Ready(Some(Ok(Frame::data(format_done_frame()))));
+                Poll::Ready(Some(Ok(Frame::data(format_done_frame()))))
             }
-            Poll::Pending => {}
+            Poll::Pending => Poll::Pending,
         }
-
-        // Emit progress events on the interval tick.
-        let mut interval = Pin::new(&mut this.interval);
-        let mut polled = false;
-        loop {
-            match interval.poll_tick(cx) {
-                Poll::Ready(_) => {
-                    if let Some(ref counter) = this.counter {
-                        let scanned = counter.load(Ordering::SeqCst);
-                        if scanned > this.last_emitted {
-                            this.last_emitted = scanned;
-                            return Poll::Ready(Some(Ok(Frame::data(format_progress_frame(
-                                scanned,
-                                this.total_ports,
-                            )))));
-                        }
-                    }
-
-                    polled = true;
-                }
-                Poll::Pending => {
-                    if polled {
-                        return Poll::Pending;
-                    }
-                    break;
-                }
-            }
-        }
-
-        Poll::Pending
     }
 }
 
-/// Run a scan and return a streaming body that yields SSE events.
-pub async fn scan_with_sse(host: String, ports: Vec<u16>, guard: ScanInProgress) -> SseScanBody {
+/// Run a scan and return a streaming body that yields events immediately.
+///
+/// The HTTP response can be sent before the first port is scanned; the
+/// producer writes progress and results into the channel as it goes.
+pub fn scan_with_sse(host: String, ports: Vec<u16>, guard: ScanInProgress) -> SseScanBody {
     let (tx, rx) = mpsc::channel::<SseEvent>(128);
+    tokio::spawn(run_scan(host, ports, tx));
+    SseScanBody {
+        rx,
+        done: false,
+        _guard: guard,
+    }
+}
+
+async fn run_scan(host: String, ports: Vec<u16>, tx: mpsc::Sender<SseEvent>) {
     let total_ports = ports.len();
 
     // A host that does not resolve is a different sentence from a host with no
     // services; resolve once up front and fail the scan loudly.
     if tokio::net::lookup_host((host.as_str(), 0)).await.is_err() {
         let _ = tx.send(SseEvent::Error("host_not_found".to_string())).await;
-        return SseScanBody {
-            rx,
-            interval: tokio::time::interval(Duration::from_secs(1)),
-            done: false,
-            _guard: guard,
-            counter: None,
-            total_ports,
-            last_emitted: 0,
-        };
+        return;
     }
 
-    // Emit initial progress event for larger scans.
-    if total_ports > 9 {
-        let _ = tx
+    // Emit an initial progress event for larger scans.
+    if total_ports > 9
+        && tx
             .send(SseEvent::Progress {
                 scanned: 0,
                 total: total_ports,
             })
-            .await;
+            .await
+            .is_err()
+    {
+        return;
     }
 
-    let (results, counter) = scan_host_with_progress(&host, &ports, 2000).await;
+    let mut scanned = 0;
+    for chunk in ports.chunks(50) {
+        let results = scan_chunk(&host, chunk, 2000).await;
+        scanned += chunk.len();
 
-    tokio::spawn(async move {
         for result in results {
             if tx.send(SseEvent::Result(result)).await.is_err() {
                 return;
             }
         }
-    });
 
-    SseScanBody {
-        rx,
-        interval: tokio::time::interval(Duration::from_secs(1)),
-        done: false,
-        _guard: guard,
-        counter: if total_ports > 9 { Some(counter) } else { None },
-        total_ports,
-        last_emitted: 0,
+        if total_ports > 9
+            && tx
+                .send(SseEvent::Progress {
+                    scanned,
+                    total: total_ports,
+                })
+                .await
+                .is_err()
+        {
+            return;
+        }
     }
 }
 

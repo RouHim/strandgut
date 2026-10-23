@@ -1,28 +1,14 @@
-let config = null;
-let isDirty = false;
+/**
+ * UI state that is not part of the persisted dashboard config.
+ *
+ * Services and config live in `store.js`; this module owns edit mode and the
+ * page-load reachability map.
+ */
+
 let isEditMode = false;
+
 /** url -> reachable, filled once per page load from /api/status. */
 let serviceStatuses = new Map();
-
-/** Number of columns in the service grid (matches layout.css). */
-export const GRID_COLUMNS = 4;
-
-export function getConfig() {
-  return config;
-}
-
-export function setConfig(newConfig) {
-  config = newConfig;
-  isDirty = true;
-}
-
-export function isConfigDirty() {
-  return isDirty;
-}
-
-export function markClean() {
-  isDirty = false;
-}
 
 export function isEditing() {
   return isEditMode;
@@ -33,45 +19,11 @@ export function toggleEditMode() {
   window.dispatchEvent(new CustomEvent('editmodechange'));
 }
 
-export function getServices() {
-  return config?.services || [];
-}
-
 /** Statuses come only from the page-load check; a reload is a fresh answer. */
 export function setServiceStatuses(list) {
-  serviceStatuses = new Map((list || []).map((s) => [s.url, !!s.reachable]));
+  serviceStatuses = new Map((list || []).map((status) => [status.url, !!status.reachable]));
 }
 
 export function getServiceStatus(url) {
   return serviceStatuses.has(url) ? serviceStatuses.get(url) : null;
-}
-
-export function addService(service) {
-  const idx = config.services.length;
-  service.position = { row: Math.floor(idx / GRID_COLUMNS), col: idx % GRID_COLUMNS };
-  config.services.push(service);
-  isDirty = true;
-  window.dispatchEvent(new CustomEvent('configchanged'));
-}
-
-export function updateService(index, service) {
-  config.services[index] = service;
-  isDirty = true;
-  window.dispatchEvent(new CustomEvent('configchanged'));
-}
-
-export function removeService(index) {
-  config.services.splice(index, 1);
-  isDirty = true;
-  window.dispatchEvent(new CustomEvent('configchanged'));
-}
-
-export function reorderServices(fromIndex, toIndex) {
-  const [service] = config.services.splice(fromIndex, 1);
-  config.services.splice(toIndex, 0, service);
-  config.services.forEach((svc, i) => {
-    svc.position = { row: Math.floor(i / GRID_COLUMNS), col: i % GRID_COLUMNS };
-  });
-  isDirty = true;
-  window.dispatchEvent(new CustomEvent('configchanged'));
 }

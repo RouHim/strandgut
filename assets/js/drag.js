@@ -1,6 +1,5 @@
-import { reorderServices, isEditing } from './state.js';
-import { renderGrid } from './grid.js';
-import { renderEditMode } from './edit.js';
+import { reorderServices } from './store.js';
+import { isEditing } from './state.js';
 
 /** @type {HTMLElement|null} The service grid container. */
 let gridEl = null;
@@ -65,8 +64,6 @@ function handleDrop(e) {
 
   if (dragSourceIndex !== null && dragSourceIndex !== targetIndex) {
     reorderServices(dragSourceIndex, targetIndex);
-    renderGrid();
-    renderEditMode();
     dragSourceIndex = null;
   }
 }

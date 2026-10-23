@@ -1,9 +1,10 @@
 import { openScanDialog } from './scan.js';
 import { openEditPanel } from './edit.js';
-import { activateOverlay, releaseOverlayFor } from './overlay.js';
+import { activateOverlay } from './overlay.js';
 import { t } from './i18n.js';
 
 let dialogEl = null;
+let overlayHandle = null;
 
 export function openAddDialog() {
   if (dialogEl) return;
@@ -32,7 +33,7 @@ export function openAddDialog() {
   `;
 
   document.body.appendChild(dialogEl);
-  activateOverlay(dialogEl);
+  overlayHandle = activateOverlay(dialogEl, { onClose: closeAddDialog });
 
   dialogEl.querySelector('[data-testid="add-dialog-close"]').addEventListener('click', closeAddDialog);
   dialogEl.querySelector('[data-testid="add-manual-button"]').addEventListener('click', () => {
@@ -43,24 +44,12 @@ export function openAddDialog() {
     closeAddDialog();
     openScanDialog();
   });
-
-  dialogEl.addEventListener('click', (e) => {
-    if (e.target === dialogEl) closeAddDialog();
-  });
-
-  const handleKeydown = (e) => {
-    if (e.key === 'Escape') closeAddDialog();
-  };
-  document.addEventListener('keydown', handleKeydown);
-  dialogEl._keydownHandler = handleKeydown;
 }
 
 function closeAddDialog() {
   if (dialogEl) {
-    if (dialogEl._keydownHandler) {
-      document.removeEventListener('keydown', dialogEl._keydownHandler);
-    }
-    releaseOverlayFor(dialogEl);
+    overlayHandle?.close();
+    overlayHandle = null;
     dialogEl.remove();
     dialogEl = null;
   }

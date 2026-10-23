@@ -1,9 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test('German locale shows German text', async ({ browser }) => {
   const context = await browser.newContext({ locale: 'de-DE' });
   const page = await context.newPage();
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
   const toggleText = await page.locator('[data-testid="edit-toggle"]').textContent();
   expect(toggleText).not.toMatch(/Edit Mode/i);
@@ -13,7 +13,7 @@ test('German locale shows German text', async ({ browser }) => {
 test('English locale shows English text', async ({ browser }) => {
   const context = await browser.newContext({ locale: 'en-US' });
   const page = await context.newPage();
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   const toggleText = await page.locator('[data-testid="edit-toggle"]').textContent();
   expect(toggleText).toMatch(/Edit|View/i);
@@ -34,7 +34,7 @@ test('German locale covers the dialogs too', async ({ browser, request }) => {
 
   const context = await browser.newContext({ locale: 'de-DE' });
   const page = await context.newPage();
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
 
   // Add dialog
   await page.locator('[data-testid="add-button"]').click();

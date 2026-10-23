@@ -8,9 +8,9 @@ mod routes;
 mod scan;
 mod spa;
 mod status;
+mod store;
 
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 
 use http_body_util::BodyExt;
@@ -19,10 +19,30 @@ use tokio::net::TcpListener;
 /// Shared application state accessible from all request handlers.
 #[derive(Clone)]
 pub struct AppState {
-    pub config_path: Arc<String>,
+    pub store: Arc<crate::store::ConfigStore>,
     pub scan_in_progress: Arc<AtomicBool>,
-    pub background: Arc<Mutex<crate::background::BackgroundState>>,
+    pub background: Arc<crate::background::Background>,
     pub icon_cache: Arc<crate::icons::IconCache>,
+}
+
+impl AppState {
+    /// Build the shared state for a config store.
+    ///
+    /// The icon cache derives its path from the store's data root, so this is
+    /// the only place that wires the two together.
+    pub fn new(store: Arc<crate::store::ConfigStore>) -> Self {
+        let icon_cache = Arc::new(crate::icons::IconCache::new(
+            store.cache_dir().to_path_buf(),
+        ));
+        Self {
+            store: Arc::clone(&store),
+            scan_in_progress: Arc::new(AtomicBool::new(false)),
+            background: Arc::new(crate::background::Background::new(
+                store.cache_dir().to_path_buf(),
+            )),
+            icon_cache,
+        }
+    }
 }
 
 #[tokio::main]
@@ -31,9 +51,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config_path =
         std::env::var("STRANDGUT_CONFIG").unwrap_or_else(|_| "./config.toml".to_string());
+    let store = Arc::new(crate::store::ConfigStore::new(&config_path));
 
-    let icon_cache = Arc::new(crate::icons::IconCache::new(&config_path));
-    if let Err(e) = icon_cache.ensure_cache_dir() {
+    if let Err(e) = store.ensure_cache_dir() {
         log::error!(
             "Failed to create cache directory: {e}. Container runs as UID 1000:1000; \
              ensure the mounted volume is owned by the same UID \
@@ -41,44 +61,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         std::process::exit(1);
     }
-    icon_cache.ensure_fresh();
 
     // Startup write canary: verify the config directory is writable.
     // Catches cases where the cache dir exists but file writes will fail.
-    {
-        let config_dir = std::path::Path::new(&config_path)
-            .parent()
-            .unwrap_or_else(|| std::path::Path::new("."));
-        let canary_path = config_dir.join(".write-test");
-        match std::fs::write(&canary_path, b"ok")
-            .and_then(|_| std::fs::read(&canary_path))
-            .and_then(|data| {
-                let _ = std::fs::remove_file(&canary_path);
-                if data == b"ok" {
-                    Ok(())
-                } else {
-                    Err(std::io::Error::other("mismatch"))
-                }
-            }) {
-            Ok(_) => {}
-            Err(e) => {
-                log::warn!(
-                    "Write test to {} failed: {}. Config directory is not writable — \
-                     settings and cache will not persist. Container runs as UID 1000:1000; \
-                     ensure the mounted volume is owned by the same UID.",
-                    canary_path.display(),
-                    e
-                );
-            }
-        }
+    if let Err(e) = store.check_writable() {
+        log::warn!(
+            "{e}. Config directory is not writable — settings and cache will not persist. \
+             Container runs as UID 1000:1000; ensure the mounted volume is owned by the same UID."
+        );
     }
 
-    let state = Arc::new(AppState {
-        config_path: Arc::new(config_path),
-        scan_in_progress: Arc::new(AtomicBool::new(false)),
-        background: Arc::new(Mutex::new(crate::background::BackgroundState::new())),
-        icon_cache,
-    });
+    let state = Arc::new(AppState::new(store));
+    state.icon_cache.ensure_fresh();
 
     let listener = TcpListener::bind("0.0.0.0:13569").await?;
     log::info!("Strandgut listening on http://0.0.0.0:13569");
@@ -171,12 +165,9 @@ mod tests {
                 let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
                 let addr = listener.local_addr().unwrap();
                 let _ = addr_tx.send(addr);
-                let state = Arc::new(AppState {
-                    config_path: Arc::new("./config.toml".to_string()),
-                    scan_in_progress: Arc::new(AtomicBool::new(false)),
-                    background: Arc::new(Mutex::new(crate::background::BackgroundState::new())),
-                    icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-                });
+                let state = Arc::new(AppState::new(Arc::new(crate::store::ConfigStore::new(
+                    "./config.toml",
+                ))));
                 run_server(listener, state).await;
             });
         });

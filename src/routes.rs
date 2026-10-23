@@ -4,7 +4,6 @@
 //! to route variants, then dispatches to the appropriate handler.
 
 use std::sync::Arc;
-use std::sync::atomic::Ordering;
 
 use http_body_util::BodyExt;
 use hyper::body::Bytes;
@@ -13,10 +12,8 @@ use matchit::Router;
 use serde::Deserialize;
 
 use crate::AppState;
-use crate::background;
 use crate::config::Config;
 use crate::error::AppError;
-use crate::scan::ScanInProgress;
 use crate::spa;
 
 // Type alias for the boxed body returned by handlers (also used by the
@@ -186,17 +183,14 @@ where
     B::Error: std::fmt::Display,
 {
     if method == Method::GET {
-        let config = Config::load(state.config_path.as_ref())
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let config = state.store.load()?;
         let value = serde_json::to_value(&config)?;
         Ok(json_response(StatusCode::OK, &value))
     } else if method == Method::PUT {
         let body_bytes = read_body(req.into_body()).await?;
         let config: Config =
             serde_json::from_slice(&body_bytes).map_err(|e| AppError::BadRequest(e.to_string()))?;
-        config
-            .save(state.config_path.as_ref())
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+        state.store.save(&config)?;
         let value = serde_json::to_value(&config)?;
         Ok(json_response(StatusCode::OK, &value))
     } else {
@@ -216,8 +210,7 @@ async fn handle_status_get(
     if method != Method::GET {
         return Ok(method_not_allowed());
     }
-    let config =
-        Config::load(state.config_path.as_ref()).map_err(|e| AppError::Internal(e.to_string()))?;
+    let config = state.store.load()?;
     let services = crate::status::probe_services(&config.services).await;
     Ok(json_response(
         StatusCode::OK,
@@ -239,44 +232,26 @@ where
         return Ok(method_not_allowed());
     }
 
-    let was_running = state
-        .scan_in_progress
-        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-        .is_err();
-
-    if was_running {
-        return Ok(json_response(
-            StatusCode::CONFLICT,
-            &serde_json::json!({"error": "scan already in progress"}),
-        ));
-    }
-
-    let body_bytes = match read_body(req.into_body()).await {
-        Ok(b) => b,
-        Err(e) => {
-            state.scan_in_progress.store(false, Ordering::SeqCst);
-            return Err(e);
+    let guard = match crate::scan::ScanInProgress::try_acquire(state.scan_in_progress.clone()) {
+        Ok(guard) => guard,
+        Err(_) => {
+            return Ok(json_response(
+                StatusCode::CONFLICT,
+                &serde_json::json!({"error": "scan already in progress"}),
+            ));
         }
     };
 
-    let scan_req: ScanRequest = match serde_json::from_slice(&body_bytes) {
-        Ok(r) => r,
-        Err(e) => {
-            state.scan_in_progress.store(false, Ordering::SeqCst);
-            return Err(AppError::BadRequest(e.to_string()));
-        }
-    };
+    let body_bytes = read_body(req.into_body()).await?;
+
+    let scan_req: ScanRequest =
+        serde_json::from_slice(&body_bytes).map_err(|e| AppError::BadRequest(e.to_string()))?;
 
     let ports = scan_req
         .ports
         .unwrap_or_else(|| crate::scan::get_ports(&scan_req.depth));
 
-    let stream = crate::scan::scan_with_sse(
-        scan_req.host,
-        ports,
-        ScanInProgress(state.scan_in_progress.clone()),
-    )
-    .await;
+    let stream = crate::scan::scan_with_sse(scan_req.host, ports, guard);
 
     let body = stream.map_err(|never| match never {}).boxed_unsync();
 
@@ -297,40 +272,11 @@ async fn handle_background_status(
     if method != Method::GET {
         return Ok(method_not_allowed());
     }
-    let config =
-        Config::load(state.config_path.as_ref()).map_err(|e| AppError::Internal(e.to_string()))?;
-    let status = {
-        let bg = state
-            .background
-            .lock()
-            .map_err(|_| AppError::Internal("background state mutex poisoned".into()))?;
-        background::get_background_status(&bg, &config)
-    };
-
-    if config.background_rotate {
-        let needs_fetch = {
-            let bg = state
-                .background
-                .lock()
-                .map_err(|_| AppError::Internal("background state mutex poisoned".into()))?;
-            let has_cache = bg.cached_path.is_some();
-            let is_stale = bg
-                .last_fetch
-                .map(|t| t.elapsed().as_secs() > background::ROTATION_INTERVAL_SECS)
-                .unwrap_or(true);
-            let not_in_progress = !bg.fetch_in_progress.load(Ordering::SeqCst);
-            not_in_progress && (!has_cache || is_stale)
-        };
-
-        if needs_fetch {
-            let bg = Arc::clone(&state.background);
-            let cfg = config.clone();
-            let path = Arc::clone(&state.config_path);
-            tokio::task::spawn(async move {
-                let _ = background::try_fetch_and_cache_async(bg, Arc::new(cfg), path).await;
-            });
-        }
-    }
+    let config = state.store.load()?;
+    let status = state.background.status(&config);
+    state
+        .background
+        .ensure_rotation(&config, Arc::clone(&state.store));
 
     Ok(json_response(
         StatusCode::OK,
@@ -345,9 +291,8 @@ async fn handle_background_photo(
     if method != Method::GET {
         return Ok(method_not_allowed());
     }
-    let cache_dir = background::get_cache_dir(state.config_path.as_ref());
-    match background::read_cached_photo(&cache_dir.join("background.jpg")) {
-        Ok(bytes) => {
+    match state.background.photo() {
+        Some(bytes) => {
             let body = http_body_util::Full::new(Bytes::from(bytes))
                 .map_err(|never| match never {})
                 .boxed_unsync();
@@ -358,7 +303,7 @@ async fn handle_background_photo(
                 .body(body)
                 .expect("photo response built from valid parts"))
         }
-        Err(_) => {
+        None => {
             let empty = http_body_util::Full::new(Bytes::new())
                 .map_err(|never| match never {})
                 .boxed_unsync();

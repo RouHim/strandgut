@@ -1,17 +1,11 @@
-import {
-  getServices,
-  addService,
-  updateService,
-  removeService,
-  isEditing,
-} from './state.js';
-import { escapeHtml } from './api.js';
-import { activateOverlay, releaseOverlayFor } from './overlay.js';
+import { addService, updateService, removeService, getServices } from './store.js';
+import { isEditing } from './state.js';
+import { activateOverlay } from './overlay.js';
 import { t } from './i18n.js';
-import { renderGrid } from './grid.js';
 import { initIconPicker } from './icon-picker.js';
 
 let panelElement = null;
+let panelOverlay = null;
 
 /**
  * Renders edit-mode controls on each tile.
@@ -96,7 +90,7 @@ export function openEditPanel(index) {
 
   const heading = isNew ? t('edit.title.add') : t('edit.title.edit');
   panel.innerHTML = `
-    <h2 id="edit-panel-title">${escapeHtml(heading)}</h2>
+    <h2 id="edit-panel-title"></h2>
 
     <form id="edit-form" novalidate data-testid="edit-form">
       <div class="edit-panel__fields">
@@ -110,7 +104,6 @@ export function openEditPanel(index) {
             name="name"
             data-testid="edit-name"
             class="edit-input"
-            value="${escapeHtml(service.name || '')}"
             required
           />
           <span class="error-msg" data-field="name" data-testid="edit-name-error"></span>
@@ -127,7 +120,6 @@ export function openEditPanel(index) {
               name="url"
               data-testid="edit-url"
               class="edit-input edit-input--url"
-              value="${escapeHtml(service.url || '')}"
               required
               placeholder="${t('edit.url.placeholder')}"
             />
@@ -153,7 +145,6 @@ export function openEditPanel(index) {
               name="icon"
               data-testid="edit-icon"
               class="edit-input edit-input--icon"
-              value="${escapeHtml(service.icon || '')}"
               placeholder="${t('edit.icon.placeholder')}"
             />
             <img
@@ -175,7 +166,6 @@ export function openEditPanel(index) {
             name="description"
             data-testid="edit-description"
             class="edit-input"
-            value="${escapeHtml(service.description || '')}"
           />
         </div>
       </div>
@@ -200,7 +190,13 @@ export function openEditPanel(index) {
   panelElement.appendChild(panel);
   document.body.appendChild(panelElement);
 
-  activateOverlay(panelElement);
+  panelOverlay = activateOverlay(panelElement, { onClose: closePanel });
+
+  panel.querySelector('#edit-panel-title').textContent = heading;
+  panel.querySelector('#edit-name').value = service.name || '';
+  panel.querySelector('#edit-url').value = service.url || '';
+  panel.querySelector('#edit-icon').value = service.icon || '';
+  panel.querySelector('#edit-description').value = service.description || '';
 
   const nameInput = panel.querySelector('#edit-name');
   if (nameInput) {
@@ -240,33 +236,20 @@ export function openEditPanel(index) {
       description: panel.querySelector('#edit-description').value.trim() || undefined,
     };
 
+    closePanel();
+
     if (isNew) {
       addService(updated);
     } else {
       updateService(index, updated);
     }
-
-    closePanel();
-    renderGrid();
-    renderEditMode();
   });
-
-  panelElement.addEventListener('click', (e) => {
-    if (e.target === panelElement) closePanel();
-  });
-
-  const escHandler = (e) => {
-    if (e.key === 'Escape') {
-      closePanel();
-      document.removeEventListener('keydown', escHandler);
-    }
-  };
-  document.addEventListener('keydown', escHandler);
 }
 
 function closePanel() {
   if (panelElement) {
-    releaseOverlayFor(panelElement);
+    panelOverlay?.close();
+    panelOverlay = null;
     panelElement.remove();
     panelElement = null;
   }
@@ -322,8 +305,6 @@ async function deleteService(index) {
   if (!(await confirmDelete(name))) return;
 
   removeService(index);
-  renderGrid();
-  renderEditMode();
 }
 
 /** In-system delete confirmation — no native confirm(), translated, trapped. */
@@ -336,36 +317,34 @@ function confirmDelete(name) {
     overlay.setAttribute('aria-labelledby', 'confirm-delete-title');
     overlay.innerHTML = `
       <div class="edit-panel confirm-panel">
-        <h2 id="confirm-delete-title">${escapeHtml(t('edit.confirmDelete').replace('{name}', name))}</h2>
+        <h2 id="confirm-delete-title"></h2>
         <div class="edit-panel__actions">
-          <button type="button" class="btn btn-ghost" data-testid="confirm-delete-cancel" data-autofocus>${escapeHtml(t('edit.cancel'))}</button>
-          <button type="button" class="btn btn-primary" data-testid="confirm-delete-ok">${escapeHtml(t('edit.confirmDelete.button'))}</button>
+          <button type="button" class="btn btn-ghost" data-testid="confirm-delete-cancel" data-autofocus></button>
+          <button type="button" class="btn btn-primary" data-testid="confirm-delete-ok"></button>
         </div>
       </div>
     `;
+    overlay.querySelector('#confirm-delete-title').textContent = t('edit.confirmDelete').replace(
+      '{name}',
+      name,
+    );
+    overlay.querySelector('[data-testid="confirm-delete-cancel"]').textContent = t('edit.cancel');
+    overlay.querySelector('[data-testid="confirm-delete-ok"]').textContent =
+      t('edit.confirmDelete.button');
     document.body.appendChild(overlay);
-    activateOverlay(overlay);
 
+    let handle = null;
     const done = (answer) => {
-      releaseOverlayFor(overlay);
+      handle?.close();
       overlay.remove();
       resolve(answer);
     };
+    handle = activateOverlay(overlay, { onClose: () => done(false) });
+
     overlay.querySelector('[data-testid="confirm-delete-cancel"]').addEventListener('click', () => done(false));
     overlay.querySelector('[data-testid="confirm-delete-ok"]').addEventListener('click', () => done(true));
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) done(false);
-    });
-    overlay.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') done(false);
-    });
   });
 }
-
-window.addEventListener('editmodechange', () => {
-  renderGrid();
-  renderEditMode();
-});
 
 window.addEventListener('editservice', (e) => {
   const idx = e.detail?.index;
