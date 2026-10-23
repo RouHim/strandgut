@@ -32,7 +32,7 @@ function collectSession(chunks, status = 200) {
   ).done.then(() => events);
 }
 
-test('builds a depth request with the port count', () => {
+test('builds a depth request', () => {
   assert.deepEqual(buildScanRequest({ host: ' 127.0.0.1 ', depth: 'medium' }), {
     ok: true,
     request: {

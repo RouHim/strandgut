@@ -11,15 +11,6 @@ test('URL open button visible and enabled for service with URL', async ({ page, 
   });
 
   await gotoApp(page, { skipOnboarding: false });
-  // Deterministic app-ready wait: either the grid has rendered tiles or the
-  // onboarding is explicitly shown. 'networkidle' never resolves reliably here
-  // (tile icons load from external CDNs; see AGENTS.md test notes).
-  await page.waitForFunction(() => {
-    const tiles = document.querySelectorAll('[data-testid="tile"]');
-    const onboarding = document.querySelector('[data-testid="onboarding"]');
-    return tiles.length > 0 || onboarding?.getAttribute('aria-hidden') === 'false';
-  });
-
   await dismissOnboarding(page);
 
   await page.locator('[data-testid="edit-toggle"]').click();
@@ -52,15 +43,6 @@ test('URL open button disabled when URL is empty', async ({ page, request }) => 
   });
 
   await gotoApp(page, { skipOnboarding: false });
-  // Deterministic app-ready wait: either the grid has rendered tiles or the
-  // onboarding is explicitly shown. 'networkidle' never resolves reliably here
-  // (tile icons load from external CDNs; see AGENTS.md test notes).
-  await page.waitForFunction(() => {
-    const tiles = document.querySelectorAll('[data-testid="tile"]');
-    const onboarding = document.querySelector('[data-testid="onboarding"]');
-    return tiles.length > 0 || onboarding?.getAttribute('aria-hidden') === 'false';
-  });
-
   await dismissOnboarding(page);
 
   await page.locator('[data-testid="edit-toggle"]').click();

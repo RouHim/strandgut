@@ -7,6 +7,13 @@ let scanSession = null;
 let dialogEl = null;
 let overlayHandle = null;
 
+const SCAN_ERROR_KEYS = {
+  host_not_found: 'scan.error.hostNotFound',
+  busy: 'scan.error.busy',
+  stream: 'scan.error.stream',
+  transport: 'scan.error.transport',
+};
+
 export function openScanDialog() {
   if (dialogEl) return;
 
@@ -168,17 +175,8 @@ async function startScan() {
       }
     },
     onError(error) {
-      const detail =
-        error.code === 'host_not_found'
-          ? t('scan.error.hostNotFound')
-          : error.code === 'busy'
-            ? t('scan.error.busy')
-            : error.code === 'stream'
-              ? t('scan.error.stream')
-              : error.code === 'transport'
-                ? t('scan.error.transport')
-                : t('scan.unknownError');
-      statusEl.textContent = t('scan.errorPrefix') + detail;
+      const key = SCAN_ERROR_KEYS[error.code] || 'scan.unknownError';
+      statusEl.textContent = t('scan.errorPrefix') + t(key);
       statusEl.className = 'scan-status scan-status--error';
       finishProgressBar(progressBar, 'var(--color-danger, #c4746e)');
       closeBtn.hidden = false;
