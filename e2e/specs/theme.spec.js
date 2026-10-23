@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test('theme toggle is removed from the header', async ({ page }) => {
   await page.goto('/');

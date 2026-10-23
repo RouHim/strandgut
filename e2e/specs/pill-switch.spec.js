@@ -1,13 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test.describe('Pill Switch', () => {
-  async function dismissOnboarding(page) {
-    const skip = page.locator('[data-testid="onboarding-skip"]');
-    if (await skip.isVisible().catch(() => false)) {
-      await skip.click({ timeout: 3000 }).catch(() => {});
-    }
-  }
-
   test('has role="switch"', async ({ page }) => {
     await page.goto('/');
     await dismissOnboarding(page);

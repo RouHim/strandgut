@@ -5,8 +5,6 @@
  * Exports: initIconPicker(inputEl, previewEl)
  */
 
-import { escapeHtml } from './api.js';
-
 let activePicker = null;
 
 /**
@@ -185,8 +183,11 @@ export function initIconPicker(inputEl, previewEl) {
 
     const query = inputEl.value.trim();
     if (query && !/^https?:\/\//i.test(query)) {
-      // Show loading state
-      dropdown.innerHTML = `<div class="icon-picker__loading">${escapeHtml(t('icon.search.loading'))}</div>`;
+      dropdown.innerHTML = '';
+      const loading = document.createElement('div');
+      loading.className = 'icon-picker__loading';
+      loading.textContent = t('icon.search.loading');
+      dropdown.appendChild(loading);
     }
 
     dropdown.hidden = false;
@@ -274,6 +275,7 @@ export function initIconPicker(inputEl, previewEl) {
         break;
       case 'Escape':
         e.preventDefault();
+        e.stopPropagation();
         closeDropdown();
         break;
     }

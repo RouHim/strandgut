@@ -1,11 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test('scan dialog opens and has inputs', async ({ page }) => {
-  await page.goto('/');
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await gotoApp(page);
   await page.locator('[data-testid="add-button"]').click();
   await page.locator('[data-testid="add-scan-button"]').click();
   await expect(page.locator('[data-testid="scan-dialog"]')).toBeVisible();
@@ -15,11 +11,7 @@ test('scan dialog opens and has inputs', async ({ page }) => {
 });
 
 test('scan depth radios work', async ({ page }) => {
-  await page.goto('/');
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await gotoApp(page);
   await page.locator('[data-testid="add-button"]').click();
   await page.locator('[data-testid="add-scan-button"]').click();
   await page.locator('[data-testid="scan-depth-medium"]').check();
@@ -28,11 +20,7 @@ test('scan depth radios work', async ({ page }) => {
 });
 
 test('scan dialog can be closed', async ({ page }) => {
-  await page.goto('/');
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await gotoApp(page);
   await page.locator('[data-testid="add-button"]').click();
   await page.locator('[data-testid="add-scan-button"]').click();
   await page.locator('[data-testid="scan-dialog-close"]').click({ force: true });
@@ -45,11 +33,7 @@ test('dialog close during reachability ping does not error', async ({ page }) =>
   const errors = [];
   page.on('pageerror', (err) => errors.push(err));
 
-  await page.goto('/');
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await gotoApp(page);
   await page.locator('[data-testid="add-button"]').click();
   await page.locator('[data-testid="add-scan-button"]').click();
 
@@ -70,11 +54,7 @@ test('add discovered service from scan results appears in grid', async ({ page, 
   await request.put('/api/config', {
     data: { title: 'Strandgut', language: 'en', scan_defaults: 'simple', services: [] }
   });
-  await page.goto('/');
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await gotoApp(page);
 
   await page.route('/api/scan', async route => {
     const body = `event: found\ndata: {"host":"test.local","port":8080,"service_name":"Test Service","title":"Test Service","reachable":true}\n\nevent: done\ndata: {}\n\n`;
@@ -95,15 +75,35 @@ test('add discovered service from scan results appears in grid', async ({ page, 
   await expect(page.locator('[data-testid="tile"]').filter({ hasText: 'Test Service' })).toBeVisible();
 });
 
+test('adding a scan result while editing keeps edit controls on the new tile', async ({ page, request }) => {
+  await request.put('/api/config', {
+    data: { title: 'Strandgut', language: 'en', scan_defaults: 'simple', services: [] },
+  });
+  await gotoApp(page);
+
+  await page.route('/api/scan', async (route) => {
+    const body = `event: found\ndata: {"host":"test.local","port":8080,"service_name":"Test Service","title":"Test Service","reachable":true}\n\nevent: done\n\ndata: {}\n\n`;
+    await route.fulfill({ status: 200, contentType: 'text/event-stream', body });
+  });
+
+  await page.locator('[data-testid="edit-toggle"]').click();
+  await page.locator('[data-testid="add-button"]').click();
+  await page.locator('[data-testid="add-scan-button"]').click();
+  await page.locator('[data-testid="scan-start-button"]').click();
+  await page.locator('[data-testid="scan-add-service"]').click();
+
+  const tile = page.locator('[data-testid="tile"]').filter({ hasText: 'Test Service' });
+  await expect(tile).toBeVisible();
+  await expect(tile.locator('[data-testid="edit-tile"]')).toBeVisible();
+
+  await page.locator('[data-testid="scan-close-button"]').click();
+});
+
 test('scan result card shows title and reachable dot', async ({ page, request }) => {
   await request.put('/api/config', {
     data: { title: 'Strandgut', language: 'en', scan_defaults: 'simple', services: [] }
   });
-  await page.goto('/');
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await gotoApp(page);
 
   await page.route('/api/scan', async route => {
     const body = `event: found\ndata: {"host":"test.local","port":8080,"service_name":"Test Service","title":"My Dashboard","reachable":true}\n\nevent: done\ndata: {}\n\n`;
@@ -129,11 +129,7 @@ test('scan result card hides reachable dot for unreachable service', async ({ pa
   await request.put('/api/config', {
     data: { title: 'Strandgut', language: 'en', scan_defaults: 'simple', services: [] }
   });
-  await page.goto('/');
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await gotoApp(page);
 
   await page.route('/api/scan', async route => {
     const body = `event: found\ndata: {"host":"bad.local","port":9999,"service_name":null,"title":null,"reachable":false}\n\nevent: done\ndata: {}\n\n`;

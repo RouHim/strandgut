@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 // A backend that cannot be reached is not an empty install (harden).
 

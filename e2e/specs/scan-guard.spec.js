@@ -1,17 +1,4 @@
-import { test, expect } from '@playwright/test';
-
-async function seedOneService(request) {
-  await request.put('/api/config', {
-    data: {
-      title: 'Test',
-      language: 'en',
-      scan_defaults: 'simple',
-      services: [
-        { name: 'One', url: 'http://127.0.0.1:13569/api/health', icon: null, description: null, position: { row: 0, col: 0 } },
-      ],
-    },
-  });
-}
+import { test, expect, dismissOnboarding, seedConfig, service } from '../support/app.js';
 
 async function openScanDialog(page) {
   await page.locator('[data-testid="add-button"]').click();
@@ -20,7 +7,7 @@ async function openScanDialog(page) {
 }
 
 test('a port range disables the scan depth and says why', async ({ page, request }) => {
-  await seedOneService(request);
+  await seedConfig(request, [service('One', 'http://127.0.0.1:13569/api/health')]);
   await page.goto('/');
   await openScanDialog(page);
 
@@ -42,7 +29,7 @@ test('a port range disables the scan depth and says why', async ({ page, request
 });
 
 test('closing a running scan asks before discarding it', async ({ page, request }) => {
-  await seedOneService(request);
+  await seedConfig(request, [service('One', 'http://127.0.0.1:13569/api/health')]);
   await page.goto('/');
   await openScanDialog(page);
 

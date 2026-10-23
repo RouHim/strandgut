@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test('German locale shows German text', async ({ browser }) => {
   const context = await browser.newContext({ locale: 'de-DE' });

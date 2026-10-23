@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding } from '../support/app.js';
 
 test.describe('F3 Manual QA: scan-reachability-check', () => {
   let consoleErrors = [];

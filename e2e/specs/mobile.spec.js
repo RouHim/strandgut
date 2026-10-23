@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test('mobile viewport shows grid', async ({ page }) => {
   await page.goto('/');

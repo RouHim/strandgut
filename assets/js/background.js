@@ -1,6 +1,5 @@
-import { getConfig, setConfig } from './state.js';
+import { getConfig, setBackgroundRotate } from './store.js';
 import { t } from './i18n.js';
-import { escapeHtml } from './api.js';
 
 const ROTATION_INTERVAL_MS = 60 * 60 * 1000;
 const html = document.documentElement;
@@ -36,10 +35,7 @@ async function handleToggleClick() {
   const config = getConfig();
   if (!config) return;
 
-  config.background_rotate = next;
-  setConfig(config);
-
-  window.dispatchEvent(new CustomEvent('configchanged'));
+  setBackgroundRotate(next);
 
   toggle.setAttribute('aria-checked', String(next));
 
@@ -83,8 +79,20 @@ async function fetchAndApplyBackground() {
   }
 }
 
+function safeHttpUrl(value) {
+  try {
+    const url = new URL(value, window.location.href);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function applyPhoto(photo) {
-  html.style.setProperty('--bg-photo-url', `url('${escapeHtml(photo.photo_url)}')`);
+  const url = safeHttpUrl(photo.photo_url);
+  if (!url) return;
+  const escaped = url.replace(/["\\]/g, (char) => (char === '"' ? '%22' : '%5C'));
+  html.style.setProperty('--bg-photo-url', `url("${escaped}")`);
   updatePhotoCredit(photo);
 }
 
@@ -92,8 +100,18 @@ function updatePhotoCredit(photo) {
   const credit = document.querySelector('[data-testid="photo-credit"]');
   if (!credit) return;
 
-  credit.innerHTML = t('footer.credit.format')
-    .replace('{photographer}', `<a href="${escapeHtml(photo.photographer_url)}" target="_blank" rel="noopener">${escapeHtml(photo.photographer)}</a>`);
+  const photographer = document.createElement('a');
+  photographer.href = safeHttpUrl(photo.photographer_url) || 'https://www.pexels.com';
+  photographer.target = '_blank';
+  photographer.rel = 'noopener';
+  photographer.textContent = photo.photographer || 'Pexels';
+
+  const [before, after = ''] = t('footer.credit.format').split('{photographer}');
+  credit.replaceChildren(
+    document.createTextNode(before),
+    photographer,
+    document.createTextNode(after),
+  );
 }
 
 function startRotationTimer() {
@@ -119,7 +137,13 @@ function removeDynamicBackground() {
 
   const credit = document.querySelector('[data-testid="photo-credit"]');
   if (credit) {
-    credit.innerHTML = `Photo by <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>`;
+    const pexels = document.createElement('a');
+    pexels.href = 'https://www.pexels.com';
+    pexels.target = '_blank';
+    pexels.rel = 'noopener';
+    pexels.textContent = 'Pexels';
+    const [before, after = ''] = t('footer.credit.format').split('{photographer}');
+    credit.replaceChildren(document.createTextNode(before), pexels, document.createTextNode(after));
   }
 }
 

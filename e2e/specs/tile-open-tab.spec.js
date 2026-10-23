@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test('tile is a real link that opens the service in a new tab', async ({ page, request }) => {
   const origin = new URL(page.url()).origin;
@@ -21,10 +21,7 @@ test('tile is a real link that opens the service in a new tab', async ({ page, r
     return tiles.length > 0 || onboarding?.getAttribute('aria-hidden') === 'false';
   });
 
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await dismissOnboarding(page);
 
   const tile = page.locator('[data-testid="tile"]').first();
   await expect(tile).toBeVisible();

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test('URL open button visible and enabled for service with URL', async ({ page, request }) => {
   await request.put('/api/config', {
@@ -20,10 +20,7 @@ test('URL open button visible and enabled for service with URL', async ({ page, 
     return tiles.length > 0 || onboarding?.getAttribute('aria-hidden') === 'false';
   });
 
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await dismissOnboarding(page);
 
   await page.locator('[data-testid="edit-toggle"]').click();
   await page.locator('[data-testid="edit-tile"]').first().click();
@@ -64,10 +61,7 @@ test('URL open button disabled when URL is empty', async ({ page, request }) => 
     return tiles.length > 0 || onboarding?.getAttribute('aria-hidden') === 'false';
   });
 
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await dismissOnboarding(page);
 
   await page.locator('[data-testid="edit-toggle"]').click();
   await page.locator('[data-testid="edit-tile"]').first().click();

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test.describe('background rotation', { tag: '@background' }, () => {
   test('toggle is visible and initially OFF', async ({ page }) => {

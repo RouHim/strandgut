@@ -1,11 +1,11 @@
-import { addService, getServices, GRID_COLUMNS } from './state.js';
-import { escapeHtml } from './api.js';
-import { renderGrid } from './grid.js';
+import { addService, getServices } from './store.js';
+import { buildScanRequest, startScanSession } from './scan-session.js';
 import { t } from './i18n.js';
-import { activateOverlay, releaseOverlayFor } from './overlay.js';
+import { activateOverlay } from './overlay.js';
 
-let abortController = null;
+let scanSession = null;
 let dialogEl = null;
+let overlayHandle = null;
 
 export function openScanDialog() {
   if (dialogEl) return;
@@ -15,8 +15,6 @@ export function openScanDialog() {
   dialogEl.setAttribute('role', 'dialog');
   dialogEl.setAttribute('aria-modal', 'true');
   dialogEl.setAttribute('aria-labelledby', 'scan-dialog-title');
-
-  const defaultHost = escapeHtml(window.location.hostname || '192.168.1.1');
 
   dialogEl.innerHTML = `
     <div class="scan-dialog" data-testid="scan-dialog">
@@ -28,7 +26,7 @@ export function openScanDialog() {
       <div class="scan-dialog__body">
         <div class="scan-field">
           <label for="scan-host">${t('scan.host.label')}</label>
-          <input type="text" id="scan-host" class="scan-input" value="${defaultHost}" data-testid="scan-host-input" data-autofocus>
+          <input type="text" id="scan-host" class="scan-input" data-testid="scan-host-input" data-autofocus>
         </div>
 
         <fieldset class="scan-fieldset">
@@ -95,7 +93,8 @@ export function openScanDialog() {
   }
 
   const hostInput = dialogEl.querySelector('#scan-host');
-  activateOverlay(dialogEl);
+  hostInput.value = window.location.hostname || '192.168.1.1';
+  overlayHandle = activateOverlay(dialogEl, { onClose: closeScanDialog });
   hostInput.select();
   hostInput.addEventListener('click', () => hostInput.select());
 
@@ -111,82 +110,40 @@ export function openScanDialog() {
   };
   portsInput.addEventListener('input', syncPortsOverride);
   syncPortsOverride();
-
-  const handleKeydown = (e) => {
-    if (e.key === 'Escape') closeScanDialog();
-  };
-  document.addEventListener('keydown', handleKeydown);
-  dialogEl._keydownHandler = handleKeydown;
-
-  dialogEl.addEventListener('click', (e) => {
-    if (e.target === dialogEl) closeScanDialog();
-  });
 }
 
-function parseSseEvents(text) {
-  const events = [];
-  const chunks = text.split('\n\n');
-  for (const chunk of chunks) {
-    const trimmed = chunk.trim();
-    if (!trimmed) continue;
-    const lines = trimmed.split('\n');
-    let event = '';
-    let data = '';
-    for (const line of lines) {
-      if (line.startsWith('event: ')) {
-        event = line.slice(7);
-      } else if (line.startsWith('data: ')) {
-        data = line.slice(6);
-      }
-    }
-    if (event || data) {
-      events.push({ event, data });
-    }
+function selectedDepth(depthRadios) {
+  for (const radio of depthRadios) {
+    if (radio.checked) return radio.value;
   }
-  return events;
+  return 'simple';
 }
 
 async function startScan() {
+  if (!dialogEl) return;
+
   const hostInput = dialogEl.querySelector('#scan-host');
   const portsInput = dialogEl.querySelector('#scan-ports');
   const depthRadios = dialogEl.querySelectorAll('input[name="scan-depth"]');
   const startBtn = dialogEl.querySelector('[data-testid="scan-start-button"]');
   const closeBtn = dialogEl.querySelector('[data-testid="scan-close-button"]');
+  const addAllBtn = dialogEl.querySelector('[data-testid="scan-add-all-button"]');
   const progressEl = dialogEl.querySelector('.scan-progress');
   const progressBar = dialogEl.querySelector('[data-testid="scan-progress-bar"]');
   const statusEl = dialogEl.querySelector('[data-testid="scan-status"]');
   const resultsEl = dialogEl.querySelector('[data-testid="scan-results"]');
 
-  const host = hostInput.value.trim();
-  if (!host) {
-    statusEl.textContent = t('scan.enterHost');
-    return;
-  }
+  const built = buildScanRequest({
+    host: hostInput.value,
+    portsText: portsInput.value,
+    depth: selectedDepth(depthRadios),
+  });
 
-  let body;
-  let totalPorts;
-  const customPorts = portsInput.value.trim();
-  if (customPorts) {
-    const ports = customPorts
-      .split(',')
-      .map((p) => parseInt(p.trim(), 10))
-      .filter((p) => !isNaN(p) && p > 0 && p <= 65535);
-    if (ports.length === 0) {
-      statusEl.textContent = t('scan.invalidPorts');
-      return;
-    }
-    body = JSON.stringify({ host, ports });
-    totalPorts = ports.length;
-  } else {
-    let depth = 'simple';
-    for (const radio of depthRadios) {
-      if (radio.checked) {
-        depth = radio.value;
-        break;
-      }
-    }
-    body = JSON.stringify({ host, depth });
-    totalPorts = depth === 'simple' ? 9 : (depth === 'medium' ? 33 : 65535);
+  if (!built.ok) {
+    statusEl.textContent = t(
+      built.reason === 'missing_host' ? 'scan.enterHost' : 'scan.invalidPorts',
+    );
+    return;
   }
 
   startBtn.disabled = true;
@@ -196,102 +153,47 @@ async function startScan() {
   resultsEl.innerHTML = '';
 
   const scanState = { hasFoundResults: false };
-  abortController = new AbortController();
 
-  try {
-    const response = await fetch('/api/scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-      signal: abortController.signal,
-    });
-
-    if (!response.ok) {
-      let msg = `Scan failed: ${response.status}`;
-      try {
-        const json = await response.json();
-        if (json.error) msg = json.error;
-      } catch {
+  scanSession = startScanSession(built.request, {
+    onFound(result) {
+      scanState.hasFoundResults = true;
+      resultsEl.appendChild(createResultCard(result));
+    },
+    onProgress(progress) {
+      if (progress.total > 0) {
+        progressBar.setAttribute(
+          'aria-valuenow',
+          String(Math.round((progress.scanned / progress.total) * 100)),
+        );
       }
-      throw new Error(msg);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lastDoubleNewline = buffer.lastIndexOf('\n\n');
-      if (lastDoubleNewline !== -1) {
-        const complete = buffer.slice(0, lastDoubleNewline);
-        buffer = buffer.slice(lastDoubleNewline + 2);
-        const events = parseSseEvents(complete);
-        for (const { event, data } of events) {
-          handleScanEvent(event, data, progressBar, statusEl, resultsEl, scanState);
-        }
-      }
-    }
-
-    const events = parseSseEvents(buffer);
-    for (const { event, data } of events) {
-      handleScanEvent(event, data, progressBar, statusEl, resultsEl, scanState);
-    }
-
-    if (!statusEl.textContent.startsWith('Error')) {
-      statusEl.textContent = scanState.hasFoundResults ? t('scan.complete') : t('scan.noServices');
-    }
-  } catch (err) {
-    if (err.name !== 'AbortError') {
-      statusEl.textContent = t('scan.errorPrefix') + err.message;
-      statusEl.className = 'scan-status scan-status--error';
-      finishProgressBar(progressBar, 'var(--color-danger, #c4746e)');
-    }
-  } finally {
-    startBtn.disabled = false;
-    startBtn.hidden = false;
-    closeBtn.hidden = false;
-    const addAllBtn = dialogEl.querySelector('[data-testid="scan-add-all-button"]');
-    if (addAllBtn && scanState && scanState.hasFoundResults) addAllBtn.hidden = false;
-    abortController = null;
-  }
-}
-
-function handleScanEvent(event, data, progressBar, statusEl, resultsEl, scanState) {
-  switch (event) {
-    case 'found': {
-      if (scanState) scanState.hasFoundResults = true;
-      let result;
-      try {
-        result = JSON.parse(data);
-      } catch {
-        break;
-      }
-      const card = createResultCard(result);
-      resultsEl.appendChild(card);
-      break;
-    }
-    case 'done': {
-      statusEl.textContent = scanState && !scanState.hasFoundResults ? t('scan.noServices') : t('scan.complete');
-      statusEl.className = 'scan-status scan-status--success';
-      finishProgressBar(progressBar, 'var(--color-success, #6baf92)');
-      const closeBtn = dialogEl.querySelector('[data-testid="scan-close-button"]');
-      if (closeBtn) closeBtn.hidden = false;
-      break;
-    }
-    case 'error': {
-      const detail = data === 'host_not_found' ? t('scan.error.hostNotFound') : data || t('scan.unknownError');
+    },
+    onError(error) {
+      const detail =
+        error.code === 'host_not_found'
+          ? t('scan.error.hostNotFound')
+          : error.message || error.code || t('scan.unknownError');
       statusEl.textContent = t('scan.errorPrefix') + detail;
       statusEl.className = 'scan-status scan-status--error';
       finishProgressBar(progressBar, 'var(--color-danger, #c4746e)');
-      const closeBtn = dialogEl.querySelector('[data-testid="scan-close-button"]');
-      if (closeBtn) closeBtn.hidden = false;
-      break;
-    }
-  }
+      closeBtn.hidden = false;
+    },
+    onDone() {
+      statusEl.textContent = scanState.hasFoundResults
+        ? t('scan.complete')
+        : t('scan.noServices');
+      statusEl.className = 'scan-status scan-status--success';
+      finishProgressBar(progressBar, 'var(--color-success, #6baf92)');
+      closeBtn.hidden = false;
+    },
+  });
+
+  await scanSession.done;
+  scanSession = null;
+
+  startBtn.disabled = false;
+  startBtn.hidden = false;
+  closeBtn.hidden = false;
+  addAllBtn.hidden = !scanState.hasFoundResults;
 }
 
 function finishProgressBar(progressBar, color) {
@@ -303,45 +205,61 @@ function finishProgressBar(progressBar, color) {
 function createResultCard(result) {
   const existing = getServices();
   const url = buildUrl(result.host, result.port);
-  const isDuplicate = existing.some((s) => s.url === url);
+  const isDuplicate = existing.some((service) => service.url === url);
+  const name = result.service_name || result.title || `${result.host}:${result.port}`;
 
   const card = document.createElement('div');
   card.className = 'scan-result-card';
   card.dataset.testid = 'scan-result-card';
 
-  const reachableDot = result.reachable
-    ? `<span class="scan-result-card__reachable" role="img" aria-label="${t('status.up')}" title="${t('status.up')}"></span>`
-    : '';
-  const name = escapeHtml(result.service_name || result.title || `${result.host}:${result.port}`);
-  const hostPort = escapeHtml(`${result.host}:${result.port}`);
-  const titleLine =
-    result.title && result.title !== (result.service_name || '')
-      ? `<span class="scan-result-card__title">${escapeHtml(result.title)}</span>`
-      : '';
+  const info = document.createElement('div');
+  info.className = 'scan-result-card__info';
 
-  card.innerHTML = `
-    <div class="scan-result-card__info">
-      <strong>${reachableDot}${name}</strong>
-      <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="scan-result-card__meta">${hostPort}</a>
-      ${titleLine}
-    </div>
-    <button type="button" class="btn btn-secondary scan-result-card__add" data-testid="scan-add-service" ${isDuplicate ? 'disabled' : ''}>
-      ${isDuplicate ? t('scan.added') : t('scan.addToDashboard')}
-    </button>
-  `;
+  const strong = document.createElement('strong');
+  if (result.reachable) {
+    const dot = document.createElement('span');
+    dot.className = 'scan-result-card__reachable';
+    dot.setAttribute('role', 'img');
+    dot.setAttribute('aria-label', t('status.up'));
+    dot.title = t('status.up');
+    strong.appendChild(dot);
+  }
+  strong.appendChild(document.createTextNode(name));
 
-  const addBtn = card.querySelector('[data-testid="scan-add-service"]');
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.className = 'scan-result-card__meta';
+  link.textContent = `${result.host}:${result.port}`;
+
+  info.appendChild(strong);
+  info.appendChild(link);
+
+  if (result.title && result.title !== (result.service_name || '')) {
+    const title = document.createElement('span');
+    title.className = 'scan-result-card__title';
+    title.textContent = result.title;
+    info.appendChild(title);
+  }
+
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'btn btn-secondary scan-result-card__add';
+  addBtn.dataset.testid = 'scan-add-service';
+  addBtn.disabled = isDuplicate;
+  addBtn.textContent = isDuplicate ? t('scan.added') : t('scan.addToDashboard');
+
   if (!isDuplicate) {
     addBtn.addEventListener('click', () => {
-      const service = buildService(result);
-      addService(service);
-      renderGrid();
-      window.dispatchEvent(new CustomEvent('serviceadded'));
+      addService(buildService(result));
       addBtn.disabled = true;
       addBtn.textContent = t('scan.added');
     });
   }
 
+  card.appendChild(info);
+  card.appendChild(addBtn);
   return card;
 }
 
@@ -352,36 +270,11 @@ function buildUrl(host, port) {
 }
 
 function buildService(result) {
-  const url = buildUrl(result.host, result.port);
-  const existing = getServices();
-
-  let maxRow = 0;
-  let maxCol = -1;
-  for (const s of existing) {
-    if (s.position) {
-      if (s.position.row > maxRow) {
-        maxRow = s.position.row;
-        maxCol = s.position.col;
-      } else if (s.position.row === maxRow && s.position.col > maxCol) {
-        maxCol = s.position.col;
-      }
-    }
-  }
-
-  const cols = GRID_COLUMNS;
-  let nextRow = maxRow;
-  let nextCol = maxCol + 1;
-  if (nextCol >= cols) {
-    nextRow += 1;
-    nextCol = 0;
-  }
-
   return {
     name: result.service_name || result.title || `${result.host}:${result.port}`,
-    url,
+    url: buildUrl(result.host, result.port),
     icon: result.icon_slug || null,
     description: null,
-    position: { row: nextRow, col: nextCol },
   };
 }
 
@@ -411,19 +304,17 @@ function showAbortConfirm() {
 
 function closeScanDialog({ force = false } = {}) {
   // A running scan is not silently discarded: ask inside the dialog first.
-  if (abortController && !force) {
+  if (scanSession && !force) {
     showAbortConfirm();
     return;
   }
-  if (abortController) {
-    abortController.abort();
-    abortController = null;
+  if (scanSession) {
+    scanSession.abort();
+    scanSession = null;
   }
   if (dialogEl) {
-    if (dialogEl._keydownHandler) {
-      document.removeEventListener('keydown', dialogEl._keydownHandler);
-    }
-    releaseOverlayFor(dialogEl);
+    overlayHandle?.close();
+    overlayHandle = null;
     dialogEl.remove();
     dialogEl = null;
   }

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test('onboarding shows on fresh start', async ({ page, request }) => {
   await request.put('/api/config', {

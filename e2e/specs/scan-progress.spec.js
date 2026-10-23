@@ -1,11 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test('progress bar visible during medium scan', async ({ page }) => {
-  await page.goto('/');
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await gotoApp(page);
 
   await page.route('/api/scan', async route => {
     const body = 'event: done\n\n';
@@ -21,11 +17,7 @@ test('progress bar visible during medium scan', async ({ page }) => {
 });
 
 test('progress bar visible during simple scan', async ({ page }) => {
-  await page.goto('/');
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await gotoApp(page);
 
   await page.route('/api/scan', async route => {
     const body = 'event: done\n\n';
@@ -40,11 +32,7 @@ test('progress bar visible during simple scan', async ({ page }) => {
 });
 
 test('scanning status shown during scan', async ({ page }) => {
-  await page.goto('/');
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await gotoApp(page);
 
   await page.route('/api/scan', async route => {
     // Delay so the UI has time to render "Scanning…" before scan completes
