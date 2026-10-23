@@ -45,7 +45,7 @@ cargo test -- --nocapture                     # Show println! output
 ### JS Unit Tests (`node --test`)
 
 ```bash
-node --test tests/js                          # Run DOM-free frontend tests
+node --test tests/js/*.test.js                 # Run DOM-free frontend tests
 node --test tests/js/store.test.js            # Run one suite
 ```
 

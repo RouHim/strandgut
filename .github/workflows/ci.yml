@@ -70,7 +70,7 @@ jobs:
           node-version: '24'
 
       - name: Run JS unit tests
-        run: node --test tests/js
+        run: node --test tests/js/*.test.js
 
   e2e-tests:
     name: Playwright E2E Tests
