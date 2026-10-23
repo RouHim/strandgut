@@ -155,6 +155,10 @@ async function startScan() {
 
   startBtn.disabled = true;
   progressEl.hidden = false;
+  progressBar.removeAttribute('aria-valuenow');
+  progressBar.style.animation = '';
+  progressBar.style.width = '';
+  progressBar.style.background = '';
   statusEl.className = 'scan-status';
   statusEl.textContent = t('scan.scanning');
   resultsEl.innerHTML = '';
