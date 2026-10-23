@@ -82,7 +82,7 @@ copy the zero-setup path.
 
 - The product itself and its docs: `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `SECURITY.md`,
   `docs/`, `CHANGELOG.md`.
-- E2E reference screenshots in `e2e/specs/*.png` (initial, name-only cards, auto-fit centering,
+- E2E reference screenshots in `e2e/reference/*.png` (initial, name-only cards, auto-fit centering,
   mobile single column, tablet, desktop).
 - A realistic sample config and a built-in service icon set.
 - No testimonials, benchmarks, pricing, press, or customer logos exist — future work must not
