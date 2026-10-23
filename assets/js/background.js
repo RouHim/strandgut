@@ -99,14 +99,22 @@ function applyPhoto(photo) {
 function updatePhotoCredit(photo) {
   const credit = document.querySelector('[data-testid="photo-credit"]');
   if (!credit) return;
+  renderCredit(credit, photo.photographer, photo.photographer_url);
+}
 
+function renderCredit(
+  credit,
+  photographerName,
+  photographerUrl,
+  formatKey = 'footer.credit.format',
+) {
   const photographer = document.createElement('a');
-  photographer.href = safeHttpUrl(photo.photographer_url) || 'https://www.pexels.com';
+  photographer.href = safeHttpUrl(photographerUrl) || 'https://www.pexels.com';
   photographer.target = '_blank';
   photographer.rel = 'noopener';
-  photographer.textContent = photo.photographer || 'Pexels';
+  photographer.textContent = photographerName || 'Pexels';
 
-  const [before, after = ''] = t('footer.credit.format').split('{photographer}');
+  const [before, after = ''] = t(formatKey).split('{photographer}');
   credit.replaceChildren(
     document.createTextNode(before),
     photographer,
@@ -137,13 +145,7 @@ function removeDynamicBackground() {
 
   const credit = document.querySelector('[data-testid="photo-credit"]');
   if (credit) {
-    const pexels = document.createElement('a');
-    pexels.href = 'https://www.pexels.com';
-    pexels.target = '_blank';
-    pexels.rel = 'noopener';
-    pexels.textContent = 'Pexels';
-    const [before, after = ''] = t('footer.credit.format').split('{photographer}');
-    credit.replaceChildren(document.createTextNode(before), pexels, document.createTextNode(after));
+    renderCredit(credit, 'Pexels', 'https://www.pexels.com', 'footer.credit.static');
   }
 }
 

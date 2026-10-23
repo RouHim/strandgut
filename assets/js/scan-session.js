@@ -6,17 +6,13 @@
  * drive arbitrary chunk boundaries without a server.
  */
 
-export const SCAN_DEPTHS = Object.freeze({
-  simple: 9,
-  medium: 33,
-  deep: 65535,
-});
+const SCAN_DEPTHS = new Set(['simple', 'medium', 'deep']);
 
 /**
  * Build the POST body for a scan dialog submission.
  *
  * @param {{host: string, portsText?: string, depth?: string}} input
- * @returns {{ok: true, request: {host: string, body: object, totalPorts: number}}
+ * @returns {{ok: true, request: {host: string, body: object}}
  *          | {ok: false, reason: 'missing_host' | 'invalid_ports'}}
  */
 export function buildScanRequest({ host, portsText = '', depth = 'simple' } = {}) {
@@ -41,18 +37,16 @@ export function buildScanRequest({ host, portsText = '', depth = 'simple' } = {}
       request: {
         host: trimmedHost,
         body: { host: trimmedHost, ports },
-        totalPorts: ports.length,
       },
     };
   }
 
-  const scanDepth = Object.hasOwn(SCAN_DEPTHS, depth) ? depth : 'simple';
+  const scanDepth = SCAN_DEPTHS.has(depth) ? depth : 'simple';
   return {
     ok: true,
     request: {
       host: trimmedHost,
       body: { host: trimmedHost, depth: scanDepth },
-      totalPorts: SCAN_DEPTHS[scanDepth],
     },
   };
 }
@@ -63,7 +57,7 @@ export function buildScanRequest({ host, portsText = '', depth = 'simple' } = {}
  * Handlers:
  * - `onFound(result)`
  * - `onProgress({scanned, total})`
- * - `onError({code, message})` — `host_not_found` or a transport failure
+ * - `onError({code})` — `host_not_found`, `busy`, `stream`, or `transport`
  * - `onDone()`
  *
  * @returns {{abort: () => void, done: Promise<void>}}
@@ -93,14 +87,13 @@ export function startScanSession(request, handlers, { fetchImpl = fetch } = {}) 
       });
 
       if (!response.ok) {
-        const message = await readErrorMessage(response);
         finished = true;
-        handlers.onError?.({ code: 'transport', message });
+        handlers.onError?.({ code: response.status === 409 ? 'busy' : 'transport' });
         return;
       }
       if (!response.body) {
         finished = true;
-        handlers.onError?.({ code: 'transport', message: 'scan stream unavailable' });
+        handlers.onError?.({ code: 'stream' });
         return;
       }
 
@@ -117,7 +110,7 @@ export function startScanSession(request, handlers, { fetchImpl = fetch } = {}) 
         buffer = drained.rest;
         if (drained.terminal) {
           finished = true;
-          await reader.cancel();
+          await reader.cancel().catch(() => {});
           break;
         }
       }
@@ -132,26 +125,14 @@ export function startScanSession(request, handlers, { fetchImpl = fetch } = {}) 
         finished = true;
         handlers.onDone?.();
       }
-    } catch (error) {
-      if (aborted) return;
+    } catch {
+      if (aborted || finished) return;
       finished = true;
-      handlers.onError?.({
-        code: 'transport',
-        message: error instanceof Error ? error.message : String(error),
-      });
+      handlers.onError?.({ code: 'transport' });
     }
   }
 
   return handle;
-}
-
-async function readErrorMessage(response) {
-  try {
-    const body = await response.json();
-    return body.error || `scan failed: ${response.status}`;
-  } catch {
-    return `scan failed: ${response.status}`;
-  }
 }
 
 function drainFrames(buffer, handlers) {
@@ -183,7 +164,7 @@ function parseFrame(chunk) {
     }
   }
 
-  if (data.length === 0) return null;
+  if (event === 'message' && data.length === 0) return null;
   return { event, data: data.join('\n') };
 }
 

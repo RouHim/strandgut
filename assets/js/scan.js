@@ -171,7 +171,13 @@ async function startScan() {
       const detail =
         error.code === 'host_not_found'
           ? t('scan.error.hostNotFound')
-          : error.message || error.code || t('scan.unknownError');
+          : error.code === 'busy'
+            ? t('scan.error.busy')
+            : error.code === 'stream'
+              ? t('scan.error.stream')
+              : error.code === 'transport'
+                ? t('scan.error.transport')
+                : t('scan.unknownError');
       statusEl.textContent = t('scan.errorPrefix') + detail;
       statusEl.className = 'scan-status scan-status--error';
       finishProgressBar(progressBar, 'var(--color-danger, #c4746e)');

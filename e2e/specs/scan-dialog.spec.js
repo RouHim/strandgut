@@ -1,4 +1,4 @@
-import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
+import { test, expect, dismissOnboarding, gotoApp, stubScan } from '../support/app.js';
 
 test('scan dialog opens and has inputs', async ({ page }) => {
   await gotoApp(page);
@@ -56,14 +56,8 @@ test('add discovered service from scan results appears in grid', async ({ page, 
   });
   await gotoApp(page);
 
-  await page.route('/api/scan', async route => {
-    const body = `event: found\ndata: {"host":"test.local","port":8080,"service_name":"Test Service","title":"Test Service","reachable":true}\n\nevent: done\ndata: {}\n\n`;
-    route.fulfill({
-      status: 200,
-      contentType: 'text/event-stream',
-      body,
-    });
-  });
+  const body = `event: found\ndata: {"host":"test.local","port":8080,"service_name":"Test Service","title":"Test Service","reachable":true}\n\nevent: done\ndata: {}\n\n`;
+  await stubScan(page, body);
 
   await page.locator('[data-testid="add-button"]').click();
   await page.locator('[data-testid="add-scan-button"]').click();
@@ -81,10 +75,8 @@ test('adding a scan result while editing keeps edit controls on the new tile', a
   });
   await gotoApp(page);
 
-  await page.route('/api/scan', async (route) => {
-    const body = `event: found\ndata: {"host":"test.local","port":8080,"service_name":"Test Service","title":"Test Service","reachable":true}\n\nevent: done\n\ndata: {}\n\n`;
-    await route.fulfill({ status: 200, contentType: 'text/event-stream', body });
-  });
+  const body = `event: found\ndata: {"host":"test.local","port":8080,"service_name":"Test Service","title":"Test Service","reachable":true}\n\nevent: done\n\ndata: {}\n\n`;
+  await stubScan(page, body);
 
   await page.locator('[data-testid="edit-toggle"]').click();
   await page.locator('[data-testid="add-button"]').click();
@@ -105,10 +97,8 @@ test('scan result card shows title and reachable dot', async ({ page, request })
   });
   await gotoApp(page);
 
-  await page.route('/api/scan', async route => {
-    const body = `event: found\ndata: {"host":"test.local","port":8080,"service_name":"Test Service","title":"My Dashboard","reachable":true}\n\nevent: done\ndata: {}\n\n`;
-    route.fulfill({ status: 200, contentType: 'text/event-stream', body });
-  });
+  const body = `event: found\ndata: {"host":"test.local","port":8080,"service_name":"Test Service","title":"My Dashboard","reachable":true}\n\nevent: done\ndata: {}\n\n`;
+  await stubScan(page, body);
 
   await page.locator('[data-testid="add-button"]').click();
   await page.locator('[data-testid="add-scan-button"]').click();
@@ -131,10 +121,8 @@ test('scan result card hides reachable dot for unreachable service', async ({ pa
   });
   await gotoApp(page);
 
-  await page.route('/api/scan', async route => {
-    const body = `event: found\ndata: {"host":"bad.local","port":9999,"service_name":null,"title":null,"reachable":false}\n\nevent: done\ndata: {}\n\n`;
-    route.fulfill({ status: 200, contentType: 'text/event-stream', body });
-  });
+  const body = `event: found\ndata: {"host":"bad.local","port":9999,"service_name":null,"title":null,"reachable":false}\n\nevent: done\ndata: {}\n\n`;
+  await stubScan(page, body);
 
   await page.locator('[data-testid="add-button"]').click();
   await page.locator('[data-testid="add-scan-button"]').click();

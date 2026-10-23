@@ -8,7 +8,7 @@ const activeInside = (selector) =>
 
 test('add dialog owns focus, traps Tab, and hands focus back on close', async ({ page, request }) => {
   await seedConfig(request, [service('One', 'http://127.0.0.1:13569/api/health')]);
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
 
   const opener = page.locator('[data-testid="add-button"]');
   await opener.click();
@@ -47,7 +47,7 @@ test('add dialog owns focus, traps Tab, and hands focus back on close', async ({
 
 test('edit panel owns focus and returns it to the tile edit control', async ({ page, request }) => {
   await seedConfig(request, [service('One', 'http://127.0.0.1:13569/api/health')]);
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
 
   await page.locator('[data-testid="edit-toggle"]').click();
   await page.locator('[data-testid="edit-tile"]').first().click();

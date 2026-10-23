@@ -4,8 +4,7 @@
 // One overlay session owns focus, inert page regions, scroll lock, Escape,
 // backdrop clicks, listener cleanup, and focus restoration. Overlays nest: a
 // confirmation can open over an edit panel and the panel resumes afterwards.
-// Scope is exactly the app's own regions — the impeccable live bar and other
-// body-level guests stay interactive.
+// Scope is exactly the app's own regions — body-level guests stay interactive.
 
 const FOCUSABLE = [
   'a[href]',
@@ -31,18 +30,10 @@ let inertedRegions = [];
  */
 export function activateOverlay(root, { onClose = null } = {}) {
   const previous = stack[stack.length - 1] || null;
-
   if (previous) {
     previous.root.inert = true;
   } else {
-    for (const selector of APP_REGIONS) {
-      const element = document.querySelector(selector);
-      if (element && !element.inert) {
-        element.inert = true;
-        inertedRegions.push(element);
-      }
-    }
-    document.body.classList.add('overlay-open');
+    inertPage();
   }
 
   const entry = {
@@ -55,14 +46,35 @@ export function activateOverlay(root, { onClose = null } = {}) {
     closed: false,
   };
 
-  const focusable = () =>
-    Array.from(root.querySelectorAll(FOCUSABLE)).filter(
-      (element) => element.offsetParent !== null || element === document.activeElement,
-    );
+  installFocusTrap(entry);
+  installDismissal(entry);
+  document.addEventListener('keydown', entry.onTab, true);
+  document.addEventListener('keydown', entry.onEscape);
+  root.addEventListener('click', entry.onClick);
+  stack.push(entry);
+  prepareFocus(entry);
 
+  return {
+    close: () => closeOverlay(entry),
+    root,
+  };
+}
+
+function isTop(entry) {
+  return stack[stack.length - 1] === entry;
+}
+
+function focusableWithin(root) {
+  return Array.from(root.querySelectorAll(FOCUSABLE)).filter(
+    (element) => element.offsetParent !== null || element === document.activeElement,
+  );
+}
+
+function installFocusTrap(entry) {
   entry.onTab = (event) => {
-    if (event.key !== 'Tab' || stack[stack.length - 1] !== entry) return;
-    const items = focusable();
+    if (event.key !== 'Tab' || !isTop(entry)) return;
+
+    const items = focusableWithin(entry.root);
     if (items.length === 0) {
       event.preventDefault();
       return;
@@ -70,7 +82,7 @@ export function activateOverlay(root, { onClose = null } = {}) {
     const first = items[0];
     const last = items[items.length - 1];
     const active = document.activeElement;
-    if (!root.contains(active)) {
+    if (!entry.root.contains(active)) {
       event.preventDefault();
       (event.shiftKey ? last : first).focus();
       return;
@@ -83,41 +95,50 @@ export function activateOverlay(root, { onClose = null } = {}) {
       first.focus();
     }
   };
+}
 
+function installDismissal(entry) {
   entry.onEscape = (event) => {
-    if (
-      event.key !== 'Escape' ||
-      event.defaultPrevented ||
-      stack[stack.length - 1] !== entry
-    ) {
-      return;
-    }
+    if (event.key !== 'Escape' || event.defaultPrevented || !isTop(entry)) return;
     event.preventDefault();
-    if (entry.onClose) entry.onClose();
-    else closeOverlay(entry);
+    dismiss(entry);
   };
 
   entry.onClick = (event) => {
-    if (event.target !== root || stack[stack.length - 1] !== entry) return;
-    if (entry.onClose) entry.onClose();
-    else closeOverlay(entry);
+    if (event.target !== entry.root || !isTop(entry)) return;
+    dismiss(entry);
   };
+}
 
-  document.addEventListener('keydown', entry.onTab, true);
-  document.addEventListener('keydown', entry.onEscape);
-  root.addEventListener('click', entry.onClick);
-  stack.push(entry);
+function dismiss(entry) {
+  if (entry.onClose) entry.onClose();
+  else closeOverlay(entry);
+}
 
-  if (!root.hasAttribute('tabindex')) {
-    root.setAttribute('tabindex', '-1');
+function prepareFocus(entry) {
+  if (!entry.root.hasAttribute('tabindex')) {
+    entry.root.setAttribute('tabindex', '-1');
   }
-  const initial = root.querySelector('[data-autofocus]') || focusable()[0] || root;
+  const initial =
+    entry.root.querySelector('[data-autofocus]') || focusableWithin(entry.root)[0] || entry.root;
   window.requestAnimationFrame(() => initial.focus?.());
+}
 
-  return {
-    close: () => closeOverlay(entry),
-    root,
-  };
+function inertPage() {
+  for (const selector of APP_REGIONS) {
+    const element = document.querySelector(selector);
+    if (element && !element.inert) {
+      element.inert = true;
+      inertedRegions.push(element);
+    }
+  }
+  document.body.classList.add('overlay-open');
+}
+
+function restorePage() {
+  for (const element of inertedRegions) element.inert = false;
+  inertedRegions = [];
+  document.body.classList.remove('overlay-open');
 }
 
 function closeOverlay(entry) {
@@ -139,9 +160,6 @@ function closeOverlay(entry) {
     return;
   }
 
-  for (const element of inertedRegions) element.inert = false;
-  inertedRegions = [];
-  document.body.classList.remove('overlay-open');
-
+  restorePage();
   if (entry.opener?.isConnected) entry.opener.focus?.();
 }

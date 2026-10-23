@@ -4,7 +4,7 @@ import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test('a config load failure shows an error state, not the onboarding', async ({ page }) => {
   await page.route('**/api/config', (route) => route.abort());
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
 
   const error = page.locator('[data-testid="load-error"]');
   await expect(error).toBeVisible();
@@ -44,7 +44,7 @@ test('a failed auto-save surfaces a banner with retry instead of an alert', asyn
     return route.continue();
   });
 
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
 
   // Enter edit mode and delete the service: that PUT fails while blocked.
   await page.locator('[data-testid="edit-toggle"]').click();
@@ -59,16 +59,4 @@ test('a failed auto-save surfaces a banner with retry instead of an alert', asyn
   putBlocked = false;
   await page.locator('[data-testid="save-retry"]').click();
   await expect(banner).toBeHidden();
-
-  // Leave the shared config non-empty: later specs in the suite rely on it.
-  await request.put('/api/config', {
-    data: {
-      title: 'Test',
-      language: 'en',
-      scan_defaults: 'simple',
-      services: [
-        { name: 'One', url: 'http://127.0.0.1:13569/api/health', icon: null, description: null, position: { row: 0, col: 0 } },
-      ],
-    },
-  });
 });

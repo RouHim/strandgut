@@ -1,4 +1,4 @@
-import { test, expect, dismissOnboarding, seedConfig, service } from '../support/app.js';
+import { test, expect, dismissOnboarding, gotoApp, seedConfig, service } from '../support/app.js';
 
 async function openScanDialog(page) {
   await page.locator('[data-testid="add-button"]').click();
@@ -8,7 +8,7 @@ async function openScanDialog(page) {
 
 test('a port range disables the scan depth and says why', async ({ page, request }) => {
   await seedConfig(request, [service('One', 'http://127.0.0.1:13569/api/health')]);
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
   await openScanDialog(page);
 
   const hint = page.locator('[data-testid="scan-ports-hint"]');
@@ -30,7 +30,7 @@ test('a port range disables the scan depth and says why', async ({ page, request
 
 test('closing a running scan asks before discarding it', async ({ page, request }) => {
   await seedConfig(request, [service('One', 'http://127.0.0.1:13569/api/health')]);
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
   await openScanDialog(page);
 
   // An unroutable host with three ports keeps the scan in flight for ~2 s.

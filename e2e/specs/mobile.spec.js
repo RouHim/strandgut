@@ -1,7 +1,8 @@
-import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
+import { test, expect, dismissOnboarding, gotoApp, seedConfig, service } from '../support/app.js';
 
-test('mobile viewport shows grid', async ({ page }) => {
-  await page.goto('/');
+test('mobile viewport shows grid', async ({ page, request }) => {
+  await seedConfig(request, [service('Mobile', 'http://mobile.local')]);
+  await gotoApp(page);
   const grid = page.locator('[data-testid="service-grid"]');
   await expect(grid).toBeVisible();
 });
@@ -17,7 +18,7 @@ test('mobile edit mode enables drag and shows controls', async ({ page, request 
       ],
     },
   });
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
 
   const tile = page.locator('[data-testid="tile"]').first();
   await expect(tile).not.toHaveAttribute('draggable');

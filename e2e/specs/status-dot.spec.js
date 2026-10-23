@@ -1,4 +1,4 @@
-import { test, expect, dismissOnboarding, seedConfig, service } from '../support/app.js';
+import { test, expect, dismissOnboarding, gotoApp, seedConfig, service } from '../support/app.js';
 
 // The default view checks reachability once per page load (`GET /api/status`):
 // the server opens one TCP connection per configured service URL, the tiles
@@ -11,7 +11,7 @@ test('tiles show reachability after the page-load check', async ({ page, request
     service('Down', 'http://127.0.0.1:1/', 1),
   ]);
 
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
 
   const tiles = page.locator('[data-testid="tile"]');
   await expect(tiles).toHaveCount(2);
@@ -39,7 +39,7 @@ test('reachability is checked once per page load, not while editing', async ({ p
     if (r.url().includes('/api/status')) statusCalls += 1;
   });
 
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
   const dot = page.locator('[data-testid="tile-status"]').first();
   await expect(dot).toHaveAttribute('data-state', 'up');
   expect(statusCalls).toBe(1);

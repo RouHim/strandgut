@@ -11,7 +11,7 @@ test('tile is a real link that opens the service in a new tab', async ({ page, r
     }
   });
 
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
   // Deterministic app-ready wait: either the grid has rendered tiles or the
   // onboarding is explicitly shown. 'networkidle' never resolves reliably here
   // (tile icons load from external CDNs; see AGENTS.md test notes).

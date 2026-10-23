@@ -116,6 +116,10 @@ function renderDashboard() {
   renderEditMode();
 }
 
+function markAppReady() {
+  document.documentElement.dataset.appReady = 'true';
+}
+
 async function init() {
   try {
     const cfg = await loadConfig();
@@ -156,6 +160,7 @@ async function init() {
       renderGrid({ entrance: true });
       renderEditMode();
     }
+    markAppReady();
 
     // Reachability is checked once per page load — no polling, no refresh.
     try {
@@ -168,6 +173,7 @@ async function init() {
   } catch (err) {
     console.error('Failed to load config:', err);
     showLoadError();
+    markAppReady();
   }
 }
 

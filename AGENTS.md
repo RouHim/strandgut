@@ -59,12 +59,14 @@ npm test
 ```
 
 Specs import `test`/`expect` from `../support/app.js`. That fixture resets the server config
-after every test and fails the test on uncaught page errors, so spec files no longer depend on
-execution order. Use its `gotoApp`, `seedConfig`, `service`, and `stubScan` helpers instead of
-copying setup. `page.waitForLoadState('networkidle')` is unreliable here: tile icons are fetched
-from external CDNs, so the browser may stay non-idle for a long time. Use the fixture's
-deterministic readiness wait instead. Manual QA scripts and reference screenshots live under
-`e2e/manual/` and `e2e/reference/`, outside the default `testDir`.
+after every test (including request-only tests) and fails the test on uncaught page errors, so
+spec files no longer depend on execution order. `app.js` sets
+`document.documentElement.dataset.appReady = "true"` after its first init pass; use the fixture's
+`waitForApp`/`gotoApp` instead of ad-hoc readiness selectors. Use `seedConfig`, `service`, and
+`stubScan` instead of copying setup. `page.waitForLoadState('networkidle')` is unreliable here:
+tile icons are fetched from external CDNs, so the browser may stay non-idle for a long time.
+Manual QA scripts and reference screenshots live under `e2e/manual/` and `e2e/reference/`,
+outside the default `testDir`.
 
 ## Project Structure
 
@@ -161,10 +163,10 @@ use crate::config::Config;
 ### Patterns
 
 - ES modules with explicit `import`/`export` (no bundler).
-- Global `state` object in `state.js` for application state.
+- Persisted dashboard state lives in `store.js`; UI-only state (edit mode, statuses) in `state.js`.
 - Functions prefixed by purpose: `fetch*`, `render*`, `handle*`, `init*`
-- Custom events for cross-module communication (`serviceadded`, `configsaved`, etc.).
-- `escapeHtml()` from `api.js` for all user-provided content in templates.
+- Store subscriptions drive redraw and persistence; window events are only for `editmodechange` and `editservice`.
+- Build DOM nodes and assign `textContent`/properties for user values. Never interpolate user values into HTML strings; there is no `escapeHtml` helper.
 
 ### DOM Conventions
 

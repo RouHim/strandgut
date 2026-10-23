@@ -10,7 +10,7 @@ test('URL open button visible and enabled for service with URL', async ({ page, 
     }
   });
 
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
   // Deterministic app-ready wait: either the grid has rendered tiles or the
   // onboarding is explicitly shown. 'networkidle' never resolves reliably here
   // (tile icons load from external CDNs; see AGENTS.md test notes).
@@ -51,7 +51,7 @@ test('URL open button disabled when URL is empty', async ({ page, request }) => 
     }
   });
 
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
   // Deterministic app-ready wait: either the grid has rendered tiles or the
   // onboarding is explicitly shown. 'networkidle' never resolves reliably here
   // (tile icons load from external CDNs; see AGENTS.md test notes).

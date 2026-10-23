@@ -25,7 +25,7 @@ test('edit controls survive toggle off and on', async ({ page, request }) => {
       ],
     },
   });
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
   const toggle = page.locator('[data-testid="edit-toggle"]');
   await toggle.click();
   await expect(page.locator('[data-testid="edit-tile"]')).toBeVisible();
@@ -61,7 +61,7 @@ test('delete service', async ({ page, request }) => {
       ],
     },
   });
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
   await page.locator('[data-testid="edit-toggle"]').click();
   const deleteBtn = page.locator('[data-testid="delete-tile"]').first();
   await deleteBtn.click();
@@ -86,7 +86,7 @@ test('edit existing service and persist', async ({ page, request }) => {
       ],
     },
   });
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
   await page.locator('[data-testid="edit-toggle"]').click();
   await page.locator('[data-testid="edit-tile"]').first().click();
   await page.locator('[data-testid="edit-name"]').fill('Edited Name');

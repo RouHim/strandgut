@@ -9,22 +9,19 @@ export const EMPTY_CONFIG = {
 };
 
 /**
- * Wait until the app has rendered either tiles or the onboarding pane.
+ * Wait until `app.js` has completed its first init pass.
  * `networkidle` is unreliable because tile icons load from external CDNs.
  */
 export async function waitForApp(page) {
-  await page.waitForFunction(() => {
-    const tiles = document.querySelectorAll('[data-testid="tile"]');
-    const onboarding = document.querySelector('[data-testid="onboarding"]');
-    return tiles.length > 0 || onboarding?.getAttribute('aria-hidden') === 'false';
-  });
+  await page.waitForFunction(() => document.documentElement.dataset.appReady === 'true');
 }
 
-/** Tolerantly dismiss onboarding when it is visible. */
+/** Dismiss onboarding when it is visible, after the app is ready. */
 export async function dismissOnboarding(page) {
+  await waitForApp(page);
   const skip = page.locator('[data-testid="onboarding-skip"]');
   if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
+    await skip.click({ timeout: 3000 });
   }
 }
 
@@ -62,17 +59,23 @@ export async function stubScan(page, body, status = 200) {
 }
 
 /**
- * Fixture seam: every spec gets a page whose uncaught errors fail the test and
- * whose config is reset afterwards, so spec files stop depending on each other.
+ * Fixture seam: every test resets the server config, every page collects
+ * uncaught errors, so spec files stop depending on execution order.
  */
 export const test = base.extend({
-  page: async ({ page, request }, use) => {
+  configReset: [
+    async ({ request }, use) => {
+      await use();
+      await request.put('/api/config', { data: EMPTY_CONFIG });
+    },
+    { auto: true },
+  ],
+  page: async ({ page }, use) => {
     const pageErrors = [];
     page.on('pageerror', (error) => pageErrors.push(error));
 
     await use(page);
 
-    await request.put('/api/config', { data: EMPTY_CONFIG });
     expect(pageErrors, 'uncaught page errors').toEqual([]);
   },
 });

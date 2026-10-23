@@ -38,7 +38,6 @@ test('builds a depth request with the port count', () => {
     request: {
       host: '127.0.0.1',
       body: { host: '127.0.0.1', depth: 'medium' },
-      totalPorts: 33,
     },
   });
 });
@@ -48,7 +47,6 @@ test('builds a custom port request and filters invalid ports', () => {
 
   assert.equal(result.ok, true);
   assert.deepEqual(result.request.body.ports, [80, 443]);
-  assert.equal(result.request.totalPorts, 2);
 });
 
 test('rejects a missing host and an empty port list', () => {
@@ -88,7 +86,16 @@ test('reports an SSE error code and does not emit done', async () => {
   ]);
 });
 
-test('reports a non-OK response as a transport error', async () => {
+test('a done frame terminates before later frames are parsed', async () => {
+  const events = await collectSession([
+    'event: done\n\n',
+    'event: found\ndata: {"host":"127.0.0.1","port":80}\n\n',
+  ]);
+
+  assert.deepEqual(events, [{ type: 'done' }]);
+});
+
+test('reports a 409 response as a busy scan', async () => {
   const fetchImpl = async () =>
     new Response(JSON.stringify({ error: 'scan already in progress' }), {
       status: 409,
@@ -105,7 +112,7 @@ test('reports a non-OK response as a transport error', async () => {
     { fetchImpl },
   ).done;
 
-  assert.deepEqual(events, [{ code: 'transport', message: 'scan already in progress' }]);
+  assert.deepEqual(events, [{ code: 'busy' }]);
 });
 
 test('aborting rejects the fetch without reporting an error', async () => {

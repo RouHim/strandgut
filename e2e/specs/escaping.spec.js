@@ -1,4 +1,4 @@
-import { test, expect, seedConfig, service } from '../support/app.js';
+import { test, expect, gotoApp, seedConfig, service, stubScan } from '../support/app.js';
 
 const trickyName = 'He said "hi" <b>bold</b>';
 const trickyDescription = 'line "one" & <two>';
@@ -10,7 +10,7 @@ test('tile names are text, not markup', async ({ page, request }) => {
       description: trickyDescription,
     }),
   ]);
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
 
   const title = page.locator('[data-testid="tile"] .tile-title');
   await expect(title).toHaveText(trickyName);
@@ -24,7 +24,7 @@ test('edit inputs preserve quotes and angle brackets', async ({ page, request })
       description: trickyDescription,
     }),
   ]);
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
 
   await page.locator('[data-testid="edit-toggle"]').click();
   await page.locator('[data-testid="edit-tile"]').first().click();
@@ -49,10 +49,8 @@ test('scan result cards render host, name and title as text', async ({ page, req
   };
   const body = `event: found\ndata: ${JSON.stringify(result)}\n\nevent: done\n\n`;
 
-  await page.route('**/api/scan', (route) =>
-    route.fulfill({ status: 200, contentType: 'text/event-stream', body }),
-  );
-  await page.goto('/');
+  await stubScan(page, body);
+  await gotoApp(page, { skipOnboarding: false });
   await page.locator('[data-testid="add-button"]').click();
   await page.locator('[data-testid="add-scan-button"]').click();
   await page.locator('[data-testid="scan-start-button"]').click();
