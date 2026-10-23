@@ -47,40 +47,14 @@ pub struct IconCache {
 }
 
 impl IconCache {
-    /// Create a new cache, deriving the cache path from the config path.
+    /// Create a cache rooted at `cache_dir`.
     ///
-    /// Does not create the cache directory — call [`ensure_cache_dir`](Self::ensure_cache_dir)
-    /// before first use.
-    pub fn new(config_path: &str) -> Self {
-        let config = std::path::Path::new(config_path);
-        let cache_dir = config
-            .parent()
-            .map(|p| p.join("cache"))
-            .unwrap_or_else(|| PathBuf::from("./cache"));
-        let cache_path = cache_dir.join("icons.json");
+    /// The store owns the data root; this module only appends its filename.
+    pub fn new(cache_dir: PathBuf) -> Self {
         IconCache {
-            cache_path,
+            cache_path: cache_dir.join("icons.json"),
             refresh_interval: CACHE_MAX_AGE,
         }
-    }
-
-    /// Ensure the cache directory exists. Returns an error if it cannot be created.
-    pub fn ensure_cache_dir(&self) -> Result<(), AppError> {
-        let dir = self.cache_dir();
-        fs::create_dir_all(&dir).map_err(|e| {
-            AppError::Internal(format!(
-                "failed to create cache directory {}: {e}",
-                dir.display()
-            ))
-        })
-    }
-
-    /// Return the cache directory path (parent of the icons.json cache file).
-    fn cache_dir(&self) -> PathBuf {
-        self.cache_path
-            .parent()
-            .map(|p| p.to_path_buf())
-            .unwrap_or_else(|| PathBuf::from("./cache"))
     }
 
     /// Check whether the cache file exists and is fresh (within the refresh interval).
@@ -525,26 +499,26 @@ mod tests {
 
     #[test]
     fn test_cache_new() {
-        let cache = IconCache::new("/data/config.toml");
+        let cache = IconCache::new(PathBuf::from("/data/cache"));
         assert_eq!(cache.cache_path, PathBuf::from("/data/cache/icons.json"));
     }
 
     #[test]
     fn test_cache_new_no_parent() {
-        let cache = IconCache::new("config.toml");
+        let cache = IconCache::new(PathBuf::from("cache"));
         assert_eq!(cache.cache_path, PathBuf::from("cache/icons.json"));
     }
 
     #[test]
     fn test_search_empty_query() {
-        let cache = IconCache::new("/tmp/nonexistent/config.toml");
+        let cache = IconCache::new(PathBuf::from("/tmp/nonexistent"));
         let results = cache.search("", 50).unwrap();
         assert!(results.is_empty());
     }
 
     #[test]
     fn test_search_missing_cache_file() {
-        let cache = IconCache::new("/tmp/nonexistent_icons_test/config.toml");
+        let cache = IconCache::new(PathBuf::from("/tmp/nonexistent_icons_test"));
         let results = cache.search("plex", 50).unwrap();
         assert!(results.is_empty());
     }

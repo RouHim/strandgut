@@ -2,6 +2,19 @@ use super::*;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
+/// Test adapter over the production chunk scanner.
+///
+/// This exists so port-level tests can inspect results without going through
+/// SSE framing; it does not reimplement the pipeline.
+async fn scan_host(host: &str, ports: &[u16], timeout_ms: u64) -> Vec<ScanResult> {
+    let mut results = Vec::new();
+    for chunk in ports.chunks(50) {
+        results.extend(scan_chunk(host, chunk, timeout_ms).await);
+    }
+    results.sort_by_key(|result| result.port);
+    results
+}
+
 #[tokio::test]
 async fn test_detect_open_port() {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -141,13 +154,12 @@ async fn collect_sse_body_poll(mut body: SseScanBody) -> Vec<String> {
 
 #[tokio::test]
 async fn test_unresolvable_host_emits_error_event_instead_of_empty_scan() {
-    let running = Arc::new(AtomicBool::new(true));
+    let running = Arc::new(AtomicBool::new(false));
     let body = scan_with_sse(
         "does-not-exist.invalid".into(),
         vec![80, 443],
-        ScanInProgress(running.clone()),
-    )
-    .await;
+        ScanInProgress::try_acquire(running.clone()).expect("scan gate free"),
+    );
     let chunks = collect_sse_body_poll(body).await;
     let text = chunks.join("");
 
@@ -207,64 +219,6 @@ async fn test_concurrency_limit() {
 }
 
 #[tokio::test]
-async fn test_progress_counter_matches_port_count() {
-    let mut listeners = Vec::new();
-    let mut ports = Vec::new();
-    for _ in 0..3 {
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        ports.push(listener.local_addr().unwrap().port());
-        listeners.push(listener);
-    }
-
-    for listener in listeners {
-        tokio::spawn(async move {
-            let (mut stream, _) = listener.accept().await.unwrap();
-            let mut buf = [0u8; 1024];
-            let _ = stream.read(&mut buf).await;
-        });
-    }
-
-    let (_results, counter) = scan_host_with_progress("127.0.0.1", &ports, 1000).await;
-    let final_count = counter.load(std::sync::atomic::Ordering::SeqCst);
-    assert_eq!(final_count, 3);
-}
-
-#[tokio::test]
-async fn test_progress_counter_is_atomic() {
-    let mut listeners_a = Vec::new();
-    let mut ports_a = Vec::new();
-    for _ in 0..2 {
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        ports_a.push(listener.local_addr().unwrap().port());
-        listeners_a.push(listener);
-    }
-
-    let mut listeners_b = Vec::new();
-    let mut ports_b = Vec::new();
-    for _ in 0..3 {
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        ports_b.push(listener.local_addr().unwrap().port());
-        listeners_b.push(listener);
-    }
-
-    for listener in listeners_a.into_iter().chain(listeners_b) {
-        tokio::spawn(async move {
-            let (mut stream, _) = listener.accept().await.unwrap();
-            let mut buf = [0u8; 1024];
-            let _ = stream.read(&mut buf).await;
-        });
-    }
-
-    let (_, counter_a) = scan_host_with_progress("127.0.0.1", &ports_a, 1000).await;
-    let (_, counter_b) = scan_host_with_progress("127.0.0.1", &ports_b, 1000).await;
-
-    let count_a = counter_a.load(std::sync::atomic::Ordering::SeqCst);
-    let count_b = counter_b.load(std::sync::atomic::Ordering::SeqCst);
-    assert_eq!(count_a, 2);
-    assert_eq!(count_b, 3);
-}
-
-#[tokio::test]
 async fn test_sse_stream_includes_progress_events() {
     let mut listeners = Vec::new();
     let mut ports = Vec::new();
@@ -286,8 +240,9 @@ async fn test_sse_stream_includes_progress_events() {
         });
     }
 
-    let guard = ScanInProgress(Arc::new(AtomicBool::new(true)));
-    let body = scan_with_sse("127.0.0.1".into(), ports.clone(), guard).await;
+    let guard =
+        ScanInProgress::try_acquire(Arc::new(AtomicBool::new(false))).expect("scan gate free");
+    let body = scan_with_sse("127.0.0.1".into(), ports.clone(), guard);
     let chunks = collect_sse_body_poll(body).await;
     let text = chunks.join("");
     let events = parse_sse_events(&text);
@@ -335,8 +290,9 @@ async fn test_sse_stream_initial_progress_event() {
         });
     }
 
-    let guard = ScanInProgress(Arc::new(AtomicBool::new(true)));
-    let body = scan_with_sse("127.0.0.1".into(), ports.clone(), guard).await;
+    let guard =
+        ScanInProgress::try_acquire(Arc::new(AtomicBool::new(false))).expect("scan gate free");
+    let body = scan_with_sse("127.0.0.1".into(), ports.clone(), guard);
     let chunks = collect_sse_body_poll(body).await;
     let text = chunks.join("");
     let events = parse_sse_events(&text);
@@ -361,6 +317,70 @@ async fn test_sse_stream_initial_progress_event() {
     assert!(
         parsed["total"].as_u64().is_some_and(|t| t > 0),
         "first progress event must have total>0, got: {parsed}"
+    );
+}
+
+#[tokio::test]
+async fn test_sse_event_order_and_progress_are_monotonic() {
+    let mut listeners = Vec::new();
+    let mut ports = Vec::new();
+    for _ in 0..10 {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        ports.push(listener.local_addr().unwrap().port());
+        listeners.push(listener);
+    }
+
+    for listener in listeners {
+        tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut buf = vec![0u8; 1024];
+            let n = stream.read(&mut buf).await.unwrap_or(0);
+            buf.truncate(n);
+            let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><head><title>Home Assistant</title></head><body></body></html>";
+            stream.write_all(response.as_bytes()).await.unwrap();
+            let _ = stream.shutdown().await;
+        });
+    }
+
+    let guard =
+        ScanInProgress::try_acquire(Arc::new(AtomicBool::new(false))).expect("scan gate free");
+    let body = scan_with_sse("127.0.0.1".into(), ports.clone(), guard);
+    let chunks = collect_sse_body_poll(body).await;
+    let events = parse_sse_events(&chunks.join(""));
+
+    assert_eq!(
+        events.first().map(|(event, _)| event.as_str()),
+        Some("progress")
+    );
+    assert_eq!(events.last().map(|(event, _)| event.as_str()), Some("done"));
+
+    let scanned: Vec<u64> = events
+        .iter()
+        .filter(|(event, _)| event == "progress")
+        .map(|(_, data)| {
+            serde_json::from_str::<serde_json::Value>(data).unwrap()["scanned"]
+                .as_u64()
+                .unwrap()
+        })
+        .collect();
+    assert!(
+        scanned.windows(2).all(|pair| pair[0] <= pair[1]),
+        "progress must not move backwards: {scanned:?}"
+    );
+    assert_eq!(scanned.last().copied(), Some(10));
+}
+
+#[tokio::test]
+async fn test_dropping_an_unconsumed_body_releases_the_scan_gate() {
+    let running = Arc::new(AtomicBool::new(false));
+    let guard = ScanInProgress::try_acquire(running.clone()).expect("scan gate free");
+    let body = scan_with_sse("does-not-exist.invalid".into(), vec![80], guard);
+
+    drop(body);
+
+    assert!(
+        !running.load(Ordering::SeqCst),
+        "dropping the body must release the scan gate"
     );
 }
 

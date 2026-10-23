@@ -39,6 +39,7 @@ fn get_asset(path: &str) -> Option<AssetData> {
             include_bytes!("../assets/fonts/jetbrains-mono-latin.woff2")
         }
         "js/app.js" => include_bytes!("../assets/js/app.js"),
+        "js/store.js" => include_bytes!("../assets/js/store.js"),
         "js/api.js" => include_bytes!("../assets/js/api.js"),
         "js/state.js" => include_bytes!("../assets/js/state.js"),
         "js/grid.js" => include_bytes!("../assets/js/grid.js"),
@@ -47,6 +48,7 @@ fn get_asset(path: &str) -> Option<AssetData> {
         "js/edit.js" => include_bytes!("../assets/js/edit.js"),
         "js/add-dialog.js" => include_bytes!("../assets/js/add-dialog.js"),
         "js/scan.js" => include_bytes!("../assets/js/scan.js"),
+        "js/scan-session.js" => include_bytes!("../assets/js/scan-session.js"),
         "js/pill-switch.js" => include_bytes!("../assets/js/pill-switch.js"),
         "js/background.js" => include_bytes!("../assets/js/background.js"),
         "js/i18n.js" => include_bytes!("../assets/js/i18n.js"),
@@ -149,6 +151,8 @@ mod tests {
         assert!(get_asset("index.html").is_some());
         assert!(get_asset("css/style.css").is_some());
         assert!(get_asset("js/app.js").is_some());
+        assert!(get_asset("js/store.js").is_some());
+        assert!(get_asset("js/scan-session.js").is_some());
         assert!(get_asset("fonts/hanken-grotesk-latin.woff2").is_some());
     }
 
