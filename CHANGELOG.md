@@ -1,3 +1,5 @@
+## [1.6.8](https://github.com/RouHim/strandgut/compare/v1.6.7...v1.6.8) (2026-10-23)
+
 ## [1.6.7](https://github.com/RouHim/strandgut/compare/v1.6.6...v1.6.7) (2026-10-21)
 
 ## [1.6.6](https://github.com/RouHim/strandgut/compare/v1.6.5...v1.6.6) (2026-10-21)
