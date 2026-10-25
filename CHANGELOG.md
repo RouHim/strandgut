@@ -1,3 +1,12 @@
+## [1.6.9](https://github.com/RouHim/strandgut/compare/v1.6.8...v1.6.9) (2026-10-25)
+
+
+### Bug Fixes
+
+* **ci:** run JS tests with an explicit file glob ([aebb1c7](https://github.com/RouHim/strandgut/commit/aebb1c7e19e199be9eaeb679f337ac7a27eaf9e6))
+* close scan framing and test readiness review gaps ([d221cd2](https://github.com/RouHim/strandgut/commit/d221cd2a4070106b76415810ade3abeac337c825))
+* **ui:** reset scan progress bar state per scan ([5aec699](https://github.com/RouHim/strandgut/commit/5aec6993d152f7ddc804d37ec3f631f8cea4191d))
+
 ## [1.6.8](https://github.com/RouHim/strandgut/compare/v1.6.7...v1.6.8) (2026-10-23)
 
 ## [1.6.7](https://github.com/RouHim/strandgut/compare/v1.6.6...v1.6.7) (2026-10-21)
