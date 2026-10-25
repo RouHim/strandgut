@@ -1,25 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, gotoApp, seedConfig, service } from '../support/app.js';
 
-const THREE_SERVICES = {
-  title: 'DragTest',
-  language: 'en',
-  scan_defaults: 'simple',
-  services: [
-    { name: 'Alpha', url: 'http://alpha.local', icon: null, description: null, position: { row: 0, col: 0 } },
-    { name: 'Beta', url: 'http://beta.local', icon: null, description: null, position: { row: 0, col: 1 } },
-    { name: 'Gamma', url: 'http://gamma.local', icon: null, description: null, position: { row: 0, col: 2 } },
-  ],
-};
+const THREE_SERVICES = [
+  service('Alpha', 'http://alpha.local', 0),
+  service('Beta', 'http://beta.local', 1),
+  service('Gamma', 'http://gamma.local', 2),
+];
 
-/**
- * Seeds the server config and localStorage, then navigates to `/`.
- */
-async function seedAndNavigate(page, request, config = THREE_SERVICES) {
-  await request.put('/api/config', { data: config });
-  await page.addInitScript((cfg) => {
-    localStorage.setItem('strandgut-config', JSON.stringify(cfg));
-  }, config);
-  await page.goto('/');
+/** Seed the server config and navigate to the dashboard. */
+async function seedAndNavigate(page, request) {
+  await seedConfig(request, THREE_SERVICES, { title: 'DragTest' });
+  await gotoApp(page);
 }
 
 /**

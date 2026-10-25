@@ -42,6 +42,15 @@ cargo test scan::tests::                       # Run tests in module
 cargo test -- --nocapture                     # Show println! output
 ```
 
+### JS Unit Tests (`node --test`)
+
+```bash
+node --test tests/js/*.test.js                 # Run DOM-free frontend tests
+node --test tests/js/store.test.js            # Run one suite
+```
+
+These cover the config store and scan-session protocol. Browser behaviour stays in Playwright.
+
 ### E2E Tests (Playwright, `e2e/`)
 
 ```bash
@@ -49,11 +58,15 @@ cd e2e && npm ci && npx playwright install chromium
 npm test
 ```
 
-Wait for the app deterministically (`[data-testid="tile"]` / `[data-testid="onboarding"]`).
-`page.waitForLoadState('networkidle')` is unreliable here: tile icons are fetched from external
-CDNs, so the browser may stay non-idle for a long time. The same applies while an impeccable live
-block is injected into `assets/index.html` (its SSE connection never goes idle) — the specs use
-deterministic waits and pass either way.
+Specs import `test`/`expect` from `../support/app.js`. That fixture resets the server config
+after every test (including request-only tests) and fails the test on uncaught page errors, so
+spec files no longer depend on execution order. `app.js` sets
+`document.documentElement.dataset.appReady = "true"` after its first init pass; use the fixture's
+`waitForApp`/`gotoApp` instead of ad-hoc readiness selectors. Use `seedConfig`, `service`, and
+`stubScan` instead of copying setup. `page.waitForLoadState('networkidle')` is unreliable here:
+tile icons are fetched from external CDNs, so the browser may stay non-idle for a long time.
+Manual QA scripts and reference screenshots live under `e2e/manual/` and `e2e/reference/`,
+outside the default `testDir`.
 
 ## Project Structure
 
@@ -61,25 +74,29 @@ deterministic waits and pass either way.
 src/
   main.rs           # Entry point, TCP listener, graceful shutdown, AppState
   routes.rs         # HTTP route table (matchit), request dispatch, handlers
-  config.rs         # TOML config loading/saving (atomic write via .tmp → rename)
+  store.rs          # ConfigStore: config path, load/save, cache root, write canary
+  config.rs         # TOML config schema
   error.rs          # AppError enum, HTTP status mapping, JSON error bodies
-  scan.rs           # Async TCP port scanner with SSE streaming, service fingerprinting
+  scan.rs           # Scan session: async port scanner, SSE events, service fingerprinting
   spa.rs            # Embedded asset serving (include_bytes!), SPA fallback
   status.rs         # Reachability probe for the tiles (GET /api/status)
-  i18n.rs           # Accept-Language parser, locale detection
+  icons.rs          # Runtime icon search with a file cache
+  background.rs     # Pexels rotation: state machine, cache, credit sidecar
 assets/
   index.html        # SPA shell
   js/               # Frontend modules (ES modules)
-    app.js          # Main app logic, onboarding, event wiring
+    app.js          # Composition root: store wiring, onboarding, redraw path
     api.js          # HTTP API wrappers (fetch)
+    store.js        # Config snapshot, service placement, dirty state, saves
+    scan-session.js # Scan request, SSE transport, frame parsing, status
     i18n.js         # Language detection, t(), applyTranslations()
-    overlay.js      # Modal integrity: focus trap, inert page, scroll lock
-    state.js        # Global config state, dirty tracking
+    overlay.js      # Modal session: focus, inert, scroll, Escape, backdrop, stack
+    state.js        # UI-only state: edit mode and page-load statuses
     grid.js         # Service grid rendering
     drag.js         # Drag-and-drop for service cards
-    edit.js         # Edit mode toggle
+    edit.js         # Edit mode controls and add/edit panel
     add-dialog.js   # "Add service" modal dialog
-    scan.js         # Network scan UI + SSE consumer
+    scan.js         # Scan dialog view (DOM only; protocol lives in scan-session.js)
     i18n/
       en.js         # English translations
       de.js         # German translations
@@ -92,6 +109,13 @@ assets/
     components.css  # Buttons, cards, dialogs
     animations.css  # Transitions and keyframes
   img/              # Images and icons
+tests/
+  js/               # Node --test suites for DOM-free frontend modules
+e2e/
+  specs/            # Playwright specs (default testDir)
+  support/app.js    # Shared fixture: reset, readiness, seed, stubs, page errors
+  manual/           # Manual QA scripts, outside the default testDir
+  reference/        # Reference screenshots, outside the default testDir
 ```
 
 ## Rust Code Style
@@ -139,10 +163,10 @@ use crate::config::Config;
 ### Patterns
 
 - ES modules with explicit `import`/`export` (no bundler).
-- Global `state` object in `state.js` for application state.
+- Persisted dashboard state lives in `store.js`; UI-only state (edit mode, statuses) in `state.js`.
 - Functions prefixed by purpose: `fetch*`, `render*`, `handle*`, `init*`
-- Custom events for cross-module communication (`serviceadded`, `configsaved`, etc.).
-- `escapeHtml()` from `api.js` for all user-provided content in templates.
+- Store subscriptions drive redraw and persistence; window events are only for `editmodechange` and `editservice`.
+- Build DOM nodes and assign `textContent`/properties for user values. Never interpolate user values into HTML strings; there is no `escapeHtml` helper.
 
 ### DOM Conventions
 
@@ -194,15 +218,22 @@ RUST_LOG=info                        # Logging level (env_logger)
 | GET | `/api/config` | Get current config (JSON) |
 | GET | `/api/status` | Reachability of every configured service (one TCP probe per service, parallel, 1 s budget) |
 | PUT | `/api/config` | Save config (JSON) |
-| POST | `/api/scan` | Start network scan (returns SSE stream) |
+| POST | `/api/scan` | Start network scan (returns SSE stream immediately) |
+| GET | `/api/background/status` | Rotation availability, enabled flag, photo credit; triggers a fetch when due |
+| GET | `/api/background/photo` | Cached background JPEG, or 204 |
+| GET | `/api/icons/search?q=` | Search the cached icon index |
 | GET | `/assets/{*path}` | Static asset serving |
 | GET | `/{*path}` | SPA fallback to `index.html` |
 
 ### Scan SSE Events
 
 The `/api/scan` endpoint returns `text/event-stream` with:
+- `event: progress\ndata: {"scanned":N,"total":M}` — after each chunk (larger scans start at 0)
 - `event: found\ndata: <ScanResult JSON>` — for each discovered service
+- `event: error\ndata: <code>` — `host_not_found` or a scan-level failure
 - `event: done` — when scan completes
+
+The response is returned before the first port is scanned; the producer writes events as it goes.
 
 ## Port Scanner
 
@@ -258,11 +289,11 @@ HTTP ports trigger a `GET /` request. The `<title>` tag is matched against known
 
 ## Learnings
 
-**State mutations don't auto-render UI:** Functions in `assets/js/state.js` (e.g. `addService()`) update in-memory state but do not trigger any side effects. Callers in `assets/js/scan.js` and `assets/js/edit.js` must explicitly call `renderGrid()` and dispatch `serviceadded` or `editmodechange` events to refresh the UI.
+**Store mutations auto-render and auto-save:** `assets/js/store.js` is the mutation seam. Callers use `addService`, `updateService`, `removeService`, `reorderServices`, or `setBackgroundRotate`; the store normalizes `position`, notifies subscribers once, and serialises persistence. `app.js` owns the single redraw path (`renderGrid()` then `renderEditMode()`). Do not call the render functions from `edit.js`, `scan.js`, or `drag.js`, and do not dispatch `configchanged`/`serviceadded`; that double-renders and can leave new tiles without edit controls.
 
-**Edit panel must preserve existing service fields:** When saving edits in `assets/js/edit.js`, the updated service object must spread `...service` to preserve fields not present in the form (notably `position`). Rust's `Config` struct requires `position: { row, col }` and will reject partial objects without it.
+**Edit panel must preserve existing service fields:** When saving edits in `assets/js/edit.js`, the updated service object must spread `...service` to preserve fields not present in the form (notably `position`). The store normalizes positions to array order, but Rust's `Config` struct still requires `position: { row, col }` on save.
 
-**IO errors via `?` route to `AppError::Config`:** The existing `From<std::io::Error>` impl in `src/error.rs` maps `std::io::Error` to `AppError::Config`. New IO-heavy modules (like `src/ping.rs`) must explicitly use `.map_err(|e| AppError::Internal(e.to_string()))` instead of `?`, or user-facing errors will misleadingly say "configuration error".
+**IO errors via `?` route to `AppError::Config`:** The existing `From<std::io::Error>` impl in `src/error.rs` maps `std::io::Error` to `AppError::Config`. `ConfigStore` maps read/parse/write failures explicitly; new IO-heavy modules must do the same or user-facing errors will misleadingly say "configuration error".
 **CSS Grid breakpoint layering in `layout.css`:** The `@media (min-width: 900px)` breakpoint overrides `grid-template-columns` on the base `.grid` rule. When editing grid layout, changes to the base rule won't take effect at desktop+ viewports unless the 900px breakpoint is also updated or cleared.
 
 **`justify-self: center` shrink-wraps grid items to content size:** In CSS Grid, `justify-self: center` causes items to size to their intrinsic content width rather than stretching to fill the grid cell. This caused unequal card widths in the service grid — each card's width varied with its text length. Use `width: 100%` with the default `justify-self: stretch` for uniform sizing. If centering is needed, use `justify-content` on the grid container or fixed track sizes instead.

@@ -1,8 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test.describe('background rotation', { tag: '@background' }, () => {
   test('toggle is visible and initially OFF', async ({ page }) => {
-    await page.goto('/');
+    await gotoApp(page, { skipOnboarding: false });
 
     const statusResp = await page.evaluate(async () => {
       const r = await fetch('/api/background/status');
@@ -35,7 +35,7 @@ test.describe('background rotation', { tag: '@background' }, () => {
   });
 
   test('static background on initial load', async ({ page }) => {
-    await page.goto('/');
+    await gotoApp(page, { skipOnboarding: false });
 
     await page.evaluate(async () => {
       await fetch('/api/config', {
@@ -56,14 +56,14 @@ test.describe('background rotation', { tag: '@background' }, () => {
   });
 
   test('footer shows static credit on initial load', async ({ page }) => {
-    await page.goto('/');
+    await gotoApp(page, { skipOnboarding: false });
     const credit = page.locator('[data-testid="photo-credit"]');
     await expect(credit).toBeVisible();
     await expect(credit).toContainText('Pexels');
   });
 
   test('toggle ON persists to config', async ({ page }) => {
-    await page.goto('/');
+    await gotoApp(page, { skipOnboarding: false });
 
     const statusResp = await page.evaluate(async () => {
       const r = await fetch('/api/background/status');
@@ -121,7 +121,7 @@ test.describe('background rotation', { tag: '@background' }, () => {
   });
 
   test('background status endpoint works', async ({ page }) => {
-    await page.goto('/');
+    await gotoApp(page, { skipOnboarding: false });
     const body = await page.evaluate(async () => {
       const r = await fetch('/api/background/status');
       return r.json();
@@ -134,7 +134,7 @@ test.describe('background rotation', { tag: '@background' }, () => {
   });
 
   test('toggle hidden when feature unavailable', { tag: '@background' }, async ({ page }) => {
-    await page.goto('/');
+    await gotoApp(page, { skipOnboarding: false });
 
     await page.evaluate(async () => {
       await fetch('/api/config', {

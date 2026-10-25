@@ -6,14 +6,14 @@
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime};
 
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
 use crate::error::AppError;
+use crate::store::ConfigStore;
 
 /// Search query used to fetch background photos from Pexels.
 const PEXELS_SEARCH_QUERY: &str = "nordsee";
@@ -78,34 +78,202 @@ pub struct BackgroundStatus {
 }
 
 /// Internal state for the background image rotation system.
-#[derive(Debug)]
-pub struct BackgroundState {
-    pub cached_path: Option<PathBuf>,
-    pub photographer: Option<String>,
-    pub photographer_url: Option<String>,
-    pub photo_url: Option<String>,
-    pub last_fetch: Option<Instant>,
-    pub fetch_in_progress: AtomicBool,
+#[derive(Debug, Default)]
+struct BackgroundState {
+    cached_path: Option<PathBuf>,
+    credit: Option<PhotoCredit>,
+    last_fetch: Option<Instant>,
+    fetch_in_progress: bool,
 }
 
-impl BackgroundState {
-    /// Create a new `BackgroundState` with default values.
-    pub fn new() -> Self {
+/// Pexels-backed background rotation.
+///
+/// Owns the rotation state machine, the cache file, and the credit sidecar.
+/// Callers ask for a status, ensure a rotation, or read the photo; they do not
+/// lock state or decide when a fetch is due.
+pub struct Background {
+    state: Mutex<BackgroundState>,
+    photo_path: PathBuf,
+    credit_path: PathBuf,
+}
+
+impl Background {
+    /// Create the rotation module rooted at `cache_dir`.
+    ///
+    /// State is hydrated from the cached photo and credit sidecar so a restart
+    /// keeps serving the current photo and its credit.
+    pub fn new(cache_dir: PathBuf) -> Self {
+        let photo_path = cache_dir.join("background.jpg");
+        let credit_path = cache_dir.join("background.json");
+        let state = hydrate(&photo_path, &credit_path);
         Self {
-            cached_path: None,
-            photographer: None,
-            photographer_url: None,
-            photo_url: None,
-            last_fetch: None,
-            fetch_in_progress: AtomicBool::new(false),
+            state: Mutex::new(state),
+            photo_path,
+            credit_path,
+        }
+    }
+
+    /// The current status for `GET /api/background/status`.
+    pub fn status(&self, config: &Config) -> BackgroundStatus {
+        let state = self.lock();
+        BackgroundStatus {
+            available: pexels_available(),
+            rotate_enabled: config.background_rotate,
+            photo: state.credit.clone(),
+        }
+    }
+
+    /// Start a background fetch when rotation is enabled and the photo is due.
+    ///
+    /// The decision and the in-progress flag are one atomic step, so concurrent
+    /// status requests cannot start duplicate fetches.
+    pub fn ensure_rotation(self: &Arc<Self>, config: &Config, store: Arc<ConfigStore>) {
+        if !pexels_available() || !self.begin_fetch(config) {
+            return;
+        }
+
+        let background = Arc::clone(self);
+        let config = config.clone();
+        tokio::spawn(async move {
+            let worker = Arc::clone(&background);
+            let result =
+                tokio::task::spawn_blocking(move || worker.fetch_and_cache(&config, &store)).await;
+            if result.is_err() {
+                // The blocking task panicked; release the in-progress gate.
+                background.reset_fetch();
+            }
+        });
+    }
+
+    /// Read the cached photo, deleting it when stale or corrupt.
+    pub fn photo(&self) -> Option<Vec<u8>> {
+        match read_cached_photo(&self.photo_path) {
+            Ok(bytes) => Some(bytes),
+            Err(e) => {
+                log::debug!("Background photo unavailable: {e}");
+                let mut state = self.lock();
+                state.cached_path = None;
+                state.credit = None;
+                state.last_fetch = None;
+                let _ = fs::remove_file(&self.credit_path);
+                None
+            }
+        }
+    }
+
+    fn lock(&self) -> std::sync::MutexGuard<'_, BackgroundState> {
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn begin_fetch(&self, config: &Config) -> bool {
+        if !config.background_rotate {
+            return false;
+        }
+
+        let mut state = self.lock();
+        if state.fetch_in_progress {
+            return false;
+        }
+        let due = state
+            .last_fetch
+            .map(|last| last.elapsed().as_secs() > ROTATION_INTERVAL_SECS)
+            .unwrap_or(true);
+        if !due {
+            return false;
+        }
+
+        state.fetch_in_progress = true;
+        true
+    }
+
+    fn reset_fetch(&self) {
+        self.lock().fetch_in_progress = false;
+    }
+
+    fn fetch_and_cache(&self, config: &Config, store: &ConfigStore) -> Result<(), AppError> {
+        let result = do_fetch(config, store);
+
+        let mut state = self.lock();
+        state.fetch_in_progress = false;
+
+        match result {
+            Ok(fetched) => {
+                if let Err(e) = write_credit(&self.credit_path, &fetched.credit) {
+                    log::warn!("Failed to write background credit: {e}");
+                }
+                state.cached_path = Some(fetched.path);
+                state.credit = Some(fetched.credit);
+                state.last_fetch = Some(Instant::now());
+                Ok(())
+            }
+            Err(e) => {
+                log::warn!("Background fetch failed: {e}");
+                // Back off for one rotation interval instead of retrying on
+                // every status request.
+                state.last_fetch = Some(Instant::now());
+                Err(e)
+            }
         }
     }
 }
 
-impl Default for BackgroundState {
-    fn default() -> Self {
-        Self::new()
+/// A photo downloaded, validated, and cached to disk.
+struct FetchedPhoto {
+    path: PathBuf,
+    credit: PhotoCredit,
+}
+
+fn pexels_available() -> bool {
+    std::env::var("PEXELS_API_KEY").is_ok_and(|value| !value.is_empty())
+}
+
+fn hydrate(photo_path: &Path, credit_path: &Path) -> BackgroundState {
+    let Some(metadata) = fs::metadata(photo_path).ok() else {
+        return BackgroundState::default();
+    };
+    let age = metadata
+        .modified()
+        .ok()
+        .and_then(|modified| modified.elapsed().ok())
+        .unwrap_or(Duration::ZERO);
+
+    if age > Duration::from_secs(CACHE_MAX_AGE_DAYS * 86400) {
+        let _ = fs::remove_file(photo_path);
+        let _ = fs::remove_file(credit_path);
+        return BackgroundState::default();
     }
+
+    let credit = fs::read(credit_path)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<PhotoCredit>(&bytes).ok());
+
+    BackgroundState {
+        cached_path: Some(photo_path.to_path_buf()),
+        credit,
+        last_fetch: Instant::now().checked_sub(age),
+        fetch_in_progress: false,
+    }
+}
+
+fn write_credit(path: &Path, credit: &PhotoCredit) -> Result<(), AppError> {
+    let json = serde_json::to_vec_pretty(credit)
+        .map_err(|e| AppError::Internal(format!("failed to serialize photo credit: {e}")))?;
+    let tmp_path = path.with_extension("json.tmp");
+    fs::write(&tmp_path, json).map_err(|e| {
+        AppError::Internal(format!(
+            "failed to write photo credit {}: {e}",
+            tmp_path.display()
+        ))
+    })?;
+    fs::rename(&tmp_path, path).map_err(|e| {
+        AppError::Internal(format!(
+            "failed to rename photo credit {} -> {}: {e}",
+            tmp_path.display(),
+            path.display()
+        ))
+    })
 }
 
 /// Fetch a photo from the Pexels API.
@@ -197,7 +365,7 @@ pub fn validate_image(data: &[u8]) -> Result<(), AppError> {
 }
 
 /// Cache a downloaded photo to disk.
-pub fn cache_photo(image_data: &[u8], cache_dir: &PathBuf) -> Result<PathBuf, AppError> {
+pub fn cache_photo(image_data: &[u8], cache_dir: &Path) -> Result<PathBuf, AppError> {
     validate_image(image_data)?;
 
     fs::create_dir_all(cache_dir).map_err(|e| {
@@ -236,12 +404,12 @@ pub fn cache_photo(image_data: &[u8], cache_dir: &PathBuf) -> Result<PathBuf, Ap
 }
 
 /// Read a cached photo from disk, using a max age of 7 days.
-pub fn read_cached_photo(path: &PathBuf) -> Result<Vec<u8>, AppError> {
+pub fn read_cached_photo(path: &Path) -> Result<Vec<u8>, AppError> {
     read_cached_photo_with_max_age(path, Duration::from_secs(CACHE_MAX_AGE_DAYS * 86400))
 }
 
 /// Read a cached photo from disk with a configurable maximum age.
-fn read_cached_photo_with_max_age(path: &PathBuf, max_age: Duration) -> Result<Vec<u8>, AppError> {
+fn read_cached_photo_with_max_age(path: &Path, max_age: Duration) -> Result<Vec<u8>, AppError> {
     if !path.exists() {
         return Err(AppError::Internal("cached photo not found".into()));
     }
@@ -282,92 +450,7 @@ pub fn build_pexels_url(query: &str, per_page: u32, page: u32) -> String {
     )
 }
 
-/// Build a `BackgroundStatus` from the current [`BackgroundState`] and [`Config`].
-pub fn get_background_status(state: &BackgroundState, config: &Config) -> BackgroundStatus {
-    let available = std::env::var("PEXELS_API_KEY").is_ok_and(|v| !v.is_empty());
-
-    BackgroundStatus {
-        available,
-        rotate_enabled: config.background_rotate,
-        photo: state.photographer.as_ref().map(|_| PhotoCredit {
-            photographer: state.photographer.clone().unwrap_or_default(),
-            photographer_url: state.photographer_url.clone().unwrap_or_default(),
-            photo_url: state.photo_url.clone().unwrap_or_default(),
-        }),
-    }
-}
-
-/// Determine the cache directory based on the config file path.
-///
-/// The cache lives in a `cache/` subdirectory next to the config file.
-/// If the config path has no parent (e.g. bare filename), falls back to `./cache`.
-pub fn get_cache_dir(config_path: &str) -> PathBuf {
-    let path = Path::new(config_path);
-    match path.parent() {
-        Some(parent) if !parent.as_os_str().is_empty() => parent.join("cache"),
-        _ => PathBuf::from("./cache"),
-    }
-}
-
-/// Async-friendly wrapper that spawns the blocking Pexels fetch into
-/// `tokio::task::spawn_blocking`.
-pub async fn try_fetch_and_cache_async(
-    bg: std::sync::Arc<std::sync::Mutex<BackgroundState>>,
-    config: std::sync::Arc<Config>,
-    config_path: std::sync::Arc<String>,
-) -> Result<(), AppError> {
-    tokio::task::spawn_blocking(move || try_fetch_and_cache(&bg, &config, &config_path))
-        .await
-        .map_err(|e| AppError::Internal(format!("background fetch task panicked: {e}")))?
-}
-
-pub fn try_fetch_and_cache(
-    state: &Mutex<BackgroundState>,
-    config: &Config,
-    config_path: &str,
-) -> Result<(), AppError> {
-    let guard = state
-        .lock()
-        .map_err(|_| AppError::Internal("background state mutex poisoned".into()))?;
-
-    if guard.fetch_in_progress.load(Ordering::SeqCst) {
-        return Ok(());
-    }
-    guard.fetch_in_progress.store(true, Ordering::SeqCst);
-
-    drop(guard);
-
-    let result = do_fetch(config, config_path);
-
-    let mut guard = state
-        .lock()
-        .map_err(|_| AppError::Internal("background state mutex poisoned".into()))?;
-
-    guard.fetch_in_progress.store(false, Ordering::SeqCst);
-
-    match result {
-        Ok((cached_path, photographer, photographer_url, photo_url)) => {
-            guard.cached_path = Some(cached_path);
-            guard.photographer = Some(photographer);
-            guard.photographer_url = Some(photographer_url);
-            guard.photo_url = Some(photo_url);
-            guard.last_fetch = Some(Instant::now());
-            Ok(())
-        }
-        Err(e) => {
-            guard.cached_path = None;
-            guard.photographer = None;
-            guard.photographer_url = None;
-            guard.photo_url = None;
-            Err(e)
-        }
-    }
-}
-
-fn do_fetch(
-    config: &Config,
-    config_path: &str,
-) -> Result<(PathBuf, String, String, String), AppError> {
+fn do_fetch(config: &Config, store: &ConfigStore) -> Result<FetchedPhoto, AppError> {
     if !config.background_rotate {
         return Err(AppError::Internal("background rotation disabled".into()));
     }
@@ -384,8 +467,6 @@ fn do_fetch(
     let image_url = select_best_url(&photo.src).ok_or_else(|| {
         AppError::Internal("no suitable image URL found in Pexels response".into())
     })?;
-
-    let cache_dir = get_cache_dir(config_path);
 
     let agent = ureq::Agent::config_builder()
         .timeout_global(Some(std::time::Duration::from_secs(5)))
@@ -404,14 +485,16 @@ fn do_fetch(
         .read_to_end(&mut body)
         .map_err(|e| AppError::Internal(format!("failed to read image data: {e}")))?;
 
-    let cached_path = cache_photo(&body, &cache_dir)?;
+    let path = cache_photo(&body, store.cache_dir())?;
 
-    Ok((
-        cached_path,
-        photo.photographer.clone(),
-        photo.photographer_url.clone(),
-        image_url.to_string(),
-    ))
+    Ok(FetchedPhoto {
+        path,
+        credit: PhotoCredit {
+            photographer: photo.photographer.clone(),
+            photographer_url: photo.photographer_url.clone(),
+            photo_url: image_url.to_string(),
+        },
+    })
 }
 
 #[cfg(test)]
@@ -671,9 +754,11 @@ mod tests {
         let prev = std::env::var("PEXELS_API_KEY").ok();
         unsafe { std::env::remove_var("PEXELS_API_KEY") };
 
-        let state = BackgroundState::new();
+        let dir = test_dir("status_no_key");
+        let _ = std::fs::remove_dir_all(&dir);
+        let background = Background::new(dir);
         let config = Config::default();
-        let status = get_background_status(&state, &config);
+        let status = background.status(&config);
 
         assert!(
             !status.available,
@@ -694,20 +779,78 @@ mod tests {
     }
 
     #[test]
-    fn test_get_cache_dir_with_parent() {
-        let dir = get_cache_dir("/data/config.toml");
-        assert_eq!(dir, PathBuf::from("/data/cache"));
+    fn test_hydrates_photo_and_credit_from_disk() {
+        let dir = test_dir("hydrate");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+
+        std::fs::write(dir.join("background.jpg"), valid_jpeg_bytes()).unwrap();
+        let credit = PhotoCredit {
+            photographer: "Ada".into(),
+            photographer_url: "https://example.com/ada".into(),
+            photo_url: "https://example.com/photo.jpg".into(),
+        };
+        std::fs::write(
+            dir.join("background.json"),
+            serde_json::to_vec(&credit).unwrap(),
+        )
+        .unwrap();
+
+        let background = Background::new(dir.clone());
+        let status = background.status(&Config::default());
+
+        assert_eq!(status.photo.unwrap().photographer, "Ada");
+        assert!(
+            background.photo().is_some(),
+            "cached photo should be served"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
-    fn test_get_cache_dir_no_parent() {
-        let dir = get_cache_dir("config.toml");
-        assert_eq!(dir, PathBuf::from("./cache"));
+    fn test_rotation_is_not_due_when_disabled() {
+        let dir = test_dir("rotation_disabled");
+        let _ = std::fs::remove_dir_all(&dir);
+        let background = Background::new(dir);
+        let config = Config::default();
+
+        assert!(!background.begin_fetch(&config));
     }
 
     #[test]
-    fn test_get_cache_dir_relative_path() {
-        let dir = get_cache_dir("./subdir/config.toml");
-        assert_eq!(dir, PathBuf::from("./subdir/cache"));
+    fn test_rotation_is_due_without_a_cached_photo() {
+        let dir = test_dir("rotation_due");
+        let _ = std::fs::remove_dir_all(&dir);
+        let background = Background::new(dir);
+        let config = Config {
+            background_rotate: true,
+            ..Config::default()
+        };
+
+        assert!(background.begin_fetch(&config));
+        assert!(
+            !background.begin_fetch(&config),
+            "a second call must not start a duplicate fetch"
+        );
+        background.reset_fetch();
+    }
+
+    #[test]
+    fn test_rotation_is_not_due_while_fresh() {
+        let dir = test_dir("rotation_fresh");
+        let _ = std::fs::remove_dir_all(&dir);
+        let background = Background::new(dir);
+        let config = Config {
+            background_rotate: true,
+            ..Config::default()
+        };
+        {
+            let mut state = background.lock();
+            state.cached_path = Some(PathBuf::from("/tmp/photo.jpg"));
+            state.last_fetch = Some(Instant::now());
+        }
+
+        assert!(!background.begin_fetch(&config));
     }
 }

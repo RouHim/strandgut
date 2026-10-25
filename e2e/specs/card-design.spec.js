@@ -1,26 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp, seedConfig } from '../support/app.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-async function seedConfig(request, services) {
-  await request.put('/api/config', {
-    data: {
-      title: 'Test',
-      language: 'en',
-      scan_defaults: 'simple',
-      services,
-    },
-  });
-}
-
-async function skipOnboarding(page) {
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
-}
 
 async function waitForEntranceAnimation(page) {
   // The wash-ashore entrance animation translates tiles during play;
@@ -43,8 +25,7 @@ test('tile icon has proportional bounding box', async ({ page, request }) => {
   await seedConfig(request, [
     { name: 'Service', url: 'http://test.local', icon: null, description: null, position: { row: 0, col: 0 } },
   ]);
-  await page.goto('/');
-  await skipOnboarding(page);
+  await gotoApp(page);
 
   const iconImg = page.locator('[data-testid="tile"] .tile-icon img').first();
   const box = await iconImg.boundingBox();
@@ -70,8 +51,7 @@ test('description element is not rendered when service has a description', async
       position: { row: 0, col: 0 },
     },
   ]);
-  await page.goto('/');
-  await skipOnboarding(page);
+  await gotoApp(page);
 
   await expect(page.locator('.tile-description')).toHaveCount(0);
 });
@@ -86,8 +66,7 @@ test('tiles are centered at 1280px viewport with 2 services', async ({ page, req
     { name: 'Service A', url: 'http://a.local', icon: null, description: null, position: { row: 0, col: 0 } },
     { name: 'Service B', url: 'http://b.local', icon: null, description: null, position: { row: 0, col: 1 } },
   ]);
-  await page.goto('/');
-  await skipOnboarding(page);
+  await gotoApp(page);
 
   const firstTile = page.locator('[data-testid="tile"]').first();
   const box = await firstTile.boundingBox();
@@ -109,8 +88,7 @@ test('tiles render two per row at mobile viewport', async ({ page, request }) =>
     { name: 'Service C', url: 'http://c.local', icon: null, description: null, position: { row: 1, col: 0 } },
     { name: 'Service D', url: 'http://d.local', icon: null, description: null, position: { row: 1, col: 1 } },
   ]);
-  await page.goto('/');
-  await skipOnboarding(page);
+  await gotoApp(page);
 
   await waitForEntranceAnimation(page);
 
@@ -141,8 +119,7 @@ test('at 768px viewport at most 2 tiles appear per row', async ({ page, request 
     { name: 'Service C', url: 'http://c.local', icon: null, description: null, position: { row: 1, col: 0 } },
     { name: 'Service D', url: 'http://d.local', icon: null, description: null, position: { row: 1, col: 1 } },
   ]);
-  await page.goto('/');
-  await skipOnboarding(page);
+  await gotoApp(page);
 
   await waitForEntranceAnimation(page);
 
@@ -169,8 +146,7 @@ test('clicking a tile opens the service URL in a new tab', async ({ page, reques
   await seedConfig(request, [
     { name: 'Click Test', url: 'http://click-test.local:8080', icon: null, description: null, position: { row: 0, col: 0 } },
   ]);
-  await page.goto('/');
-  await skipOnboarding(page);
+  await gotoApp(page);
 
   // Intercept navigation in the popup so we don't hit DNS errors
   await page.context().route('http://click-test.local:8080/', (route) => route.fulfill({ status: 200, body: 'OK' }));
@@ -193,8 +169,7 @@ test('edit mode shows delete button and sets draggable attribute', async ({ page
   await seedConfig(request, [
     { name: 'Service', url: 'http://test.local', icon: null, description: null, position: { row: 0, col: 0 } },
   ]);
-  await page.goto('/');
-  await skipOnboarding(page);
+  await gotoApp(page);
 
   const tile = page.locator('[data-testid="tile"]').first();
   await expect(tile).not.toHaveAttribute('draggable');
@@ -213,8 +188,7 @@ test('tile has backdrop-filter with blur', async ({ page, request }) => {
   await seedConfig(request, [
     { name: 'Service', url: 'http://test.local', icon: null, description: null, position: { row: 0, col: 0 } },
   ]);
-  await page.goto('/');
-  await skipOnboarding(page);
+  await gotoApp(page);
 
   const tile = page.locator('[data-testid="tile"]').first();
   const backdropFilter = await tile.evaluate(
@@ -232,8 +206,7 @@ test('tiles use the embedded Hanken Grotesk font', async ({ page, request }) => 
   await seedConfig(request, [
     { name: 'Service', url: 'http://test.local', icon: null, description: null, position: { row: 0, col: 0 } },
   ]);
-  await page.goto('/');
-  await skipOnboarding(page);
+  await gotoApp(page);
 
   await expect.poll(() => page.evaluate(() => document.fonts.check('700 1rem "Hanken Grotesk"'))).toBe(true);
   const family = await page.locator('body').evaluate((el) => getComputedStyle(el).fontFamily);

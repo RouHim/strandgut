@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test('theme toggle is removed from the header', async ({ page }) => {
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
   await expect(page.locator('#theme-toggle')).toHaveCount(0);
   await expect(page.locator('.theme-icon-sun, .theme-icon-moon')).toHaveCount(0);
 });
@@ -31,7 +31,7 @@ async function canvasToken(page) {
 test('app renders dark regardless of OS color scheme', async ({ page }) => {
   for (const colorScheme of ['dark', 'light']) {
     await page.emulateMedia({ colorScheme });
-    await page.goto('/');
+    await gotoApp(page, { skipOnboarding: false });
 
     // No script sets a data-theme attribute anymore
     expect(
@@ -51,7 +51,7 @@ test('app renders dark regardless of OS color scheme', async ({ page }) => {
 });
 
 test('stored light theme preference is ignored', async ({ page }) => {
-  await page.goto('/');
+  await gotoApp(page, { skipOnboarding: false });
   await page.evaluate(() => localStorage.setItem('theme', 'light'));
   await page.reload();
 

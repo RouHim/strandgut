@@ -10,6 +10,20 @@ fn temp_config_path(name: &str) -> String {
         .to_string()
 }
 
+fn state_for(config_path: &str) -> Arc<AppState> {
+    Arc::new(AppState::new(Arc::new(crate::store::ConfigStore::new(
+        config_path,
+    ))))
+}
+
+/// Isolated config and cache directory for one test.
+fn temp_state(name: &str) -> Arc<AppState> {
+    let dir = std::env::temp_dir().join(format!("strandgut_test_routes_{name}"));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("create_dir_all");
+    state_for(&dir.join("config.toml").to_string_lossy())
+}
+
 #[tokio::test]
 async fn test_health_endpoint() -> Result<(), AppError> {
     let req = Request::builder()
@@ -17,14 +31,7 @@ async fn test_health_endpoint() -> Result<(), AppError> {
         .method(Method::GET)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new("config.toml".into()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = state_for("config.toml");
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 200);
@@ -41,14 +48,7 @@ async fn test_readyz_endpoint() -> Result<(), AppError> {
         .method(Method::GET)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new("config.toml".into()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = state_for("config.toml");
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 200);
@@ -65,14 +65,7 @@ async fn test_spa_fallback() -> Result<(), AppError> {
         .method(Method::GET)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new("config.toml".into()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = state_for("config.toml");
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 200);
@@ -92,14 +85,7 @@ async fn test_method_not_allowed() -> Result<(), AppError> {
         .method(Method::POST)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new("config.toml".into()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = state_for("config.toml");
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 405);
@@ -116,14 +102,7 @@ async fn test_assets_serving() -> Result<(), AppError> {
         .method(Method::GET)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new("config.toml".into()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = state_for("config.toml");
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 200);
@@ -153,14 +132,7 @@ async fn test_config_get() -> Result<(), AppError> {
         .method(Method::GET)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new(path.clone()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = state_for(&path);
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 200);
@@ -184,14 +156,7 @@ async fn test_config_put_valid() -> Result<(), AppError> {
         .method(Method::PUT)
         .body(Full::new(Bytes::from(body)))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new(path.clone()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = state_for(&path);
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 200);
@@ -200,7 +165,7 @@ async fn test_config_put_valid() -> Result<(), AppError> {
     let json: serde_json::Value = serde_json::from_str(&body).unwrap();
     assert_eq!(json.get("title").unwrap(), "Test Config");
 
-    let loaded = Config::load(&path).unwrap();
+    let loaded = crate::store::ConfigStore::new(&path).load().unwrap();
     assert_eq!(loaded.title, "Test Config");
 
     let _ = std::fs::remove_file(&path);
@@ -217,14 +182,7 @@ async fn test_config_put_invalid() {
         .method(Method::PUT)
         .body(Full::new(Bytes::from("not valid json")))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new(path.clone()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = state_for(&path);
 
     let resp = handle_request(req, state).await;
     assert!(resp.is_err());
@@ -249,14 +207,7 @@ async fn test_config_roundtrip() -> Result<(), AppError> {
         .method(Method::PUT)
         .body(Full::new(Bytes::from(body)))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new(path.clone()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = state_for(&path);
     let put_resp = handle_request(put_req, state.clone()).await.unwrap();
     assert_eq!(put_resp.status(), 200);
     let put_body = body_to_string(put_resp).await?;
@@ -286,14 +237,7 @@ async fn test_config_put_empty_body() {
         .method(Method::PUT)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new(path.clone()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = state_for(&path);
 
     let resp = handle_request(req, state).await;
     assert!(resp.is_err());
@@ -332,14 +276,7 @@ async fn test_sse_scan() {
         .header("Content-Type", "application/json")
         .body(Full::new(Bytes::from(body.to_string())))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new("config.toml".into()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = state_for("config.toml");
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 200);
@@ -376,14 +313,7 @@ async fn test_concurrent_scan_rejected() -> Result<(), AppError> {
         .header("Content-Type", "application/json")
         .body(Full::new(Bytes::from(body.to_string())))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new("config.toml".into()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = state_for("config.toml");
 
     let first_resp = handle_request(req, state.clone()).await.unwrap();
     assert_eq!(first_resp.status(), 200);
@@ -412,14 +342,7 @@ async fn test_background_status() -> Result<(), AppError> {
         .method(Method::GET)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new("config.toml".into()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = temp_state("background_status");
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 200);
@@ -446,14 +369,7 @@ async fn test_background_status_method_not_allowed() -> Result<(), AppError> {
         .method(Method::POST)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new("config.toml".into()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = temp_state("background_status_method");
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 405);
@@ -467,14 +383,7 @@ async fn test_background_photo_no_cache() -> Result<(), AppError> {
         .method(Method::GET)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new("config.toml".into()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = temp_state("background_photo");
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 204);
@@ -488,14 +397,7 @@ async fn test_background_photo_method_not_allowed() -> Result<(), AppError> {
         .method(Method::PUT)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = Arc::new(AppState {
-        config_path: Arc::new("config.toml".into()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = temp_state("background_photo_method");
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 405);
@@ -507,14 +409,7 @@ fn icon_search_state() -> Arc<AppState> {
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("create_dir_all");
     let config_path = dir.join("config.toml");
-    Arc::new(AppState {
-        config_path: Arc::new(config_path.to_string_lossy().to_string()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new(&config_path.to_string_lossy())),
-    })
+    state_for(&config_path.to_string_lossy())
 }
 
 #[tokio::test]
@@ -637,14 +532,7 @@ col = 1
     )
     .unwrap();
 
-    let state = Arc::new(AppState {
-        config_path: Arc::new(path.clone()),
-        scan_in_progress: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-        background: Arc::new(std::sync::Mutex::new(
-            crate::background::BackgroundState::new(),
-        )),
-        icon_cache: Arc::new(crate::icons::IconCache::new("./config.toml")),
-    });
+    let state = state_for(&path);
 
     let req = Request::builder()
         .uri("/api/status")

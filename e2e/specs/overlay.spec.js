@@ -1,27 +1,14 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp, seedConfig, service } from '../support/app.js';
 
 // Modal integrity (harden): an open overlay owns focus, the page behind is
 // inert and locked, and closing returns focus to the control that opened it.
-
-async function seedOneService(request) {
-  await request.put('/api/config', {
-    data: {
-      title: 'Test',
-      language: 'en',
-      scan_defaults: 'simple',
-      services: [
-        { name: 'One', url: 'http://127.0.0.1:13569/api/health', icon: null, description: null, position: { row: 0, col: 0 } },
-      ],
-    },
-  });
-}
 
 const activeInside = (selector) =>
   `document.querySelector('${selector}')?.contains(document.activeElement)`;
 
 test('add dialog owns focus, traps Tab, and hands focus back on close', async ({ page, request }) => {
-  await seedOneService(request);
-  await page.goto('/');
+  await seedConfig(request, [service('One', 'http://127.0.0.1:13569/api/health')]);
+  await gotoApp(page, { skipOnboarding: false });
 
   const opener = page.locator('[data-testid="add-button"]');
   await opener.click();
@@ -59,8 +46,8 @@ test('add dialog owns focus, traps Tab, and hands focus back on close', async ({
 });
 
 test('edit panel owns focus and returns it to the tile edit control', async ({ page, request }) => {
-  await seedOneService(request);
-  await page.goto('/');
+  await seedConfig(request, [service('One', 'http://127.0.0.1:13569/api/health')]);
+  await gotoApp(page, { skipOnboarding: false });
 
   await page.locator('[data-testid="edit-toggle"]').click();
   await page.locator('[data-testid="edit-tile"]').first().click();
@@ -78,4 +65,23 @@ test('edit panel owns focus and returns it to the tile edit control', async ({ p
     .poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-testid')))
     .toBe('edit-tile');
   expect(await page.evaluate(() => document.querySelector('main').inert)).toBe(false);
+});
+
+test('Escape in the icon picker closes only the dropdown, not the edit panel', async ({ page, request }) => {
+  await seedConfig(request, [service('One', 'http://127.0.0.1:13569/api/health')]);
+  await gotoApp(page);
+
+  await page.locator('[data-testid="edit-toggle"]').click();
+  await page.locator('[data-testid="edit-tile"]').first().click();
+
+  const iconInput = page.locator('[data-testid="edit-icon"]');
+  await iconInput.fill('plex');
+  await expect(page.locator('.icon-picker__dropdown')).toBeVisible();
+
+  await iconInput.press('Escape');
+  await expect(page.locator('.icon-picker__dropdown')).toBeHidden();
+  await expect(page.locator('.edit-panel-overlay')).toBeVisible();
+
+  await iconInput.press('Escape');
+  await expect(page.locator('.edit-panel-overlay')).toHaveCount(0);
 });

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
 test('tile is a real link that opens the service in a new tab', async ({ page, request }) => {
   const origin = new URL(page.url()).origin;
@@ -11,20 +11,8 @@ test('tile is a real link that opens the service in a new tab', async ({ page, r
     }
   });
 
-  await page.goto('/');
-  // Deterministic app-ready wait: either the grid has rendered tiles or the
-  // onboarding is explicitly shown. 'networkidle' never resolves reliably here
-  // (tile icons load from external CDNs; see AGENTS.md test notes).
-  await page.waitForFunction(() => {
-    const tiles = document.querySelectorAll('[data-testid="tile"]');
-    const onboarding = document.querySelector('[data-testid="onboarding"]');
-    return tiles.length > 0 || onboarding?.getAttribute('aria-hidden') === 'false';
-  });
-
-  const skip = page.locator('[data-testid="onboarding-skip"]');
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click({ timeout: 3000 }).catch(() => {});
-  }
+  await gotoApp(page, { skipOnboarding: false });
+  await dismissOnboarding(page);
 
   const tile = page.locator('[data-testid="tile"]').first();
   await expect(tile).toBeVisible();
