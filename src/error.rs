@@ -54,10 +54,21 @@ impl AppError {
 
     /// Return a JSON body suitable for an HTTP error response.
     ///
-    /// The body uses the `Display` message so the caller never
-    /// accidentally leaks internal details (file paths, stack traces).
+    /// The two 500 variants carry absolute paths and upstream error strings, so
+    /// they are logged here and reported as a generic message. `BadRequest`,
+    /// `Serialization` and `NotFound` are caller-facing by design.
     pub fn to_json_body(&self) -> serde_json::Value {
-        serde_json::json!({"error": self.to_string()})
+        match self {
+            AppError::Internal(detail) => {
+                log::error!("Internal error: {detail}");
+                serde_json::json!({"error": "internal error"})
+            }
+            AppError::Config(detail) => {
+                log::error!("Configuration error: {detail}");
+                serde_json::json!({"error": "internal error"})
+            }
+            _ => serde_json::json!({"error": self.to_string()}),
+        }
     }
 }
 
@@ -152,6 +163,17 @@ mod tests {
         assert!(
             matches!(app_err, AppError::Config(..)),
             "expected Config variant, got {app_err:?}"
+        );
+    }
+
+    #[test]
+    fn test_internal_json_body_is_opaque() {
+        let err = AppError::Internal("failed to read /data/secret.toml: denied".into());
+        let body = err.to_json_body();
+        assert_eq!(
+            body,
+            serde_json::json!({"error": "internal error"}),
+            "internal details must not reach the client"
         );
     }
 

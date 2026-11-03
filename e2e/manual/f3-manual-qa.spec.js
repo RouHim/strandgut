@@ -1,3 +1,6 @@
+// Manual QA: scan reachability guard.
+// Run: cd e2e && npx playwright test --config playwright.manual.config.ts f3-manual-qa.spec.js
+
 import { test, expect, dismissOnboarding } from '../support/app.js';
 
 test.describe('F3 Manual QA: scan-reachability-check', () => {

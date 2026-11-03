@@ -40,13 +40,13 @@ copy the zero-setup path.
 
 - Runs on the user's own host: `cargo run` (port 13569), `docker compose`, or a pre-built static
   binary; the release container is `FROM scratch`.
-- Three scan speeds: simple (9 common ports), thorough, exhaustive (all 65,535); results stream
-  into the dashboard while the scan runs.
+- Three scan depths: simple (9 common ports), medium (extended ranges), deep (all 65,535); results
+  stream into the scan dialog while the scan runs.
 - Persistent configuration in `config.toml` (`title`, `language`, `scan_defaults`,
   `background_rotate`, `[[services]]` with `name`/`url`/`icon` and grid position); containers
   mount `./data`.
-- ICMP reachability inside containers needs the `net.ipv4.ping_group_range` sysctl.
-- Verification: Rust unit tests (`cargo test`) plus Playwright e2e (`e2e/`, Node 24) with
+- Reachability is a TCP connect: no ICMP, no raw sockets, no extra container capabilities.
+- Verification: Rust unit tests (`cargo test`) plus Playwright e2e (`e2e/`, Node 26) with
   reference screenshots.
 
 ## Capabilities and Constraints
@@ -54,14 +54,11 @@ copy the zero-setup path.
 - Rust backend (hyper, tokio, matchit); Vanilla JS ES-module SPA; every asset embedded via
   `include_bytes!` in `src/spa.rs`, so the served UI is the compiled-in copy and UI changes need a
   rebuild.
-- Internationalisation: embedded `en` and `de` bundles; the language follows the browser; every
-  new user-facing string must land in both.
-- Single fixed dark theme (the light theme was removed in `feat/single-dark-theme`); the README's
-  "dark and light themes … switches with your system preference" claim is stale and must not be
-  used as truth.
-- The README's "Live results — watch services appear in the dashboard as the scan runs" (`README.md:14`)
-  contradicts the default-view ruling in Product Purpose: scan results belong to the scan utility, not the
-  dashboard. Correct the README — do not build the promise.
+- Internationalisation: embedded `en` and `de` bundles; `config.language` overrides the browser
+  language when set; every new user-facing string must land in both.
+- Single fixed dark theme (the light theme was removed in `feat/single-dark-theme`); there is no
+  theme toggle and no `data-theme` attribute.
+- Scan results belong to the scan utility, not the dashboard; the scan dialog owns progress and results.
 - No accounts, no cloud service, no telemetry; the core product must work fully offline on the LAN.
   Exception present in the code today: a service whose icon is not in the embedded set is fetched
   from `cdn.jsdelivr.net` (`assets/js/grid.js`), so "offline" holds for everything but unknown

@@ -4,7 +4,7 @@
 //! rotates the background image displayed on the dashboard.
 
 use std::fs;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime};
@@ -35,16 +35,9 @@ pub struct PexelsPhotoResponse {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct PexelsPhoto {
-    pub id: u64,
-    pub width: u32,
-    pub height: u32,
-    pub url: String,
     pub photographer: String,
     pub photographer_url: String,
-    pub photographer_id: u64,
-    pub avg_color: String,
     pub src: PexelsSrc,
-    pub alt: String,
 }
 
 /// Available image URL variants for a Pexels photo.
@@ -52,13 +45,9 @@ pub struct PexelsPhoto {
 #[serde(default)]
 pub struct PexelsSrc {
     pub original: Option<String>,
-    pub large2x: Option<String>,
     pub large: Option<String>,
     pub medium: Option<String>,
-    pub small: Option<String>,
-    pub portrait: Option<String>,
     pub landscape: Option<String>,
-    pub tiny: Option<String>,
 }
 
 /// Credit information for the currently displayed background photo.
@@ -95,14 +84,16 @@ pub struct Background {
     state: Mutex<BackgroundState>,
     photo_path: PathBuf,
     credit_path: PathBuf,
+    api_key: Option<String>,
 }
 
 impl Background {
     /// Create the rotation module rooted at `cache_dir`.
     ///
     /// State is hydrated from the cached photo and credit sidecar so a restart
-    /// keeps serving the current photo and its credit.
-    pub fn new(cache_dir: PathBuf) -> Self {
+    /// keeps serving the current photo and its credit. `api_key` is captured
+    /// once at startup; no feature code reads the environment.
+    pub fn new(cache_dir: PathBuf, api_key: Option<String>) -> Self {
         let photo_path = cache_dir.join("background.jpg");
         let credit_path = cache_dir.join("background.json");
         let state = hydrate(&photo_path, &credit_path);
@@ -110,6 +101,7 @@ impl Background {
             state: Mutex::new(state),
             photo_path,
             credit_path,
+            api_key: api_key.filter(|key| !key.is_empty()),
         }
     }
 
@@ -117,7 +109,7 @@ impl Background {
     pub fn status(&self, config: &Config) -> BackgroundStatus {
         let state = self.lock();
         BackgroundStatus {
-            available: pexels_available(),
+            available: self.api_key.is_some(),
             rotate_enabled: config.background_rotate,
             photo: state.credit.clone(),
         }
@@ -128,7 +120,7 @@ impl Background {
     /// The decision and the in-progress flag are one atomic step, so concurrent
     /// status requests cannot start duplicate fetches.
     pub fn ensure_rotation(self: &Arc<Self>, config: &Config, store: Arc<ConfigStore>) {
-        if !pexels_available() || !self.begin_fetch(config) {
+        if self.api_key.is_none() || !self.begin_fetch(config) {
             return;
         }
 
@@ -193,7 +185,7 @@ impl Background {
     }
 
     fn fetch_and_cache(&self, config: &Config, store: &ConfigStore) -> Result<(), AppError> {
-        let result = do_fetch(config, store);
+        let result = self.do_fetch(config, store);
 
         let mut state = self.lock();
         state.fetch_in_progress = false;
@@ -223,10 +215,6 @@ impl Background {
 struct FetchedPhoto {
     path: PathBuf,
     credit: PhotoCredit,
-}
-
-fn pexels_available() -> bool {
-    std::env::var("PEXELS_API_KEY").is_ok_and(|value| !value.is_empty())
 }
 
 fn hydrate(photo_path: &Path, credit_path: &Path) -> BackgroundState {
@@ -260,20 +248,8 @@ fn hydrate(photo_path: &Path, credit_path: &Path) -> BackgroundState {
 fn write_credit(path: &Path, credit: &PhotoCredit) -> Result<(), AppError> {
     let json = serde_json::to_vec_pretty(credit)
         .map_err(|e| AppError::Internal(format!("failed to serialize photo credit: {e}")))?;
-    let tmp_path = path.with_extension("json.tmp");
-    fs::write(&tmp_path, json).map_err(|e| {
-        AppError::Internal(format!(
-            "failed to write photo credit {}: {e}",
-            tmp_path.display()
-        ))
-    })?;
-    fs::rename(&tmp_path, path).map_err(|e| {
-        AppError::Internal(format!(
-            "failed to rename photo credit {} -> {}: {e}",
-            tmp_path.display(),
-            path.display()
-        ))
-    })
+    crate::atomic_write::write_atomic(path, &json)
+        .map_err(|e| AppError::Internal(format!("failed to write photo credit: {e}")))
 }
 
 /// Fetch a photo from the Pexels API.
@@ -368,37 +344,9 @@ pub fn validate_image(data: &[u8]) -> Result<(), AppError> {
 pub fn cache_photo(image_data: &[u8], cache_dir: &Path) -> Result<PathBuf, AppError> {
     validate_image(image_data)?;
 
-    fs::create_dir_all(cache_dir).map_err(|e| {
-        AppError::Internal(format!(
-            "failed to create cache dir {}: {e}",
-            cache_dir.display()
-        ))
-    })?;
-
-    let tmp_path = cache_dir.join("background.tmp");
     let final_path = cache_dir.join("background.jpg");
-
-    let mut tmp_file = fs::File::create(&tmp_path).map_err(|e| {
-        AppError::Internal(format!(
-            "failed to create cache file {}: {e}",
-            tmp_path.display()
-        ))
-    })?;
-    tmp_file.write_all(image_data).map_err(|e| {
-        AppError::Internal(format!(
-            "failed to write cache file {}: {e}",
-            tmp_path.display()
-        ))
-    })?;
-    drop(tmp_file);
-
-    fs::rename(&tmp_path, &final_path).map_err(|e| {
-        AppError::Internal(format!(
-            "failed to rename cache file {} -> {}: {e}",
-            tmp_path.display(),
-            final_path.display()
-        ))
-    })?;
+    crate::atomic_write::write_atomic(&final_path, image_data)
+        .map_err(|e| AppError::Internal(format!("failed to cache background photo: {e}")))?;
 
     Ok(final_path)
 }
@@ -443,58 +391,80 @@ fn read_cached_photo_with_max_age(path: &Path, max_age: Duration) -> Result<Vec<
     Ok(bytes)
 }
 
+/// Percent-encode a query string component (RFC 3986 unreserved set kept).
+fn encode_query_component(value: &str) -> String {
+    let mut encoded = String::with_capacity(value.len());
+    for byte in value.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                encoded.push(byte as char)
+            }
+            _ => encoded.push_str(&format!("%{byte:02X}")),
+        }
+    }
+    encoded
+}
+
 /// Build the Pexels API URL for the given search query and page parameters.
 pub fn build_pexels_url(query: &str, per_page: u32, page: u32) -> String {
     format!(
-        "https://api.pexels.com/v1/search?query={query}&orientation=landscape&per_page={per_page}&page={page}"
+        "https://api.pexels.com/v1/search?query={}&orientation=landscape&per_page={per_page}&page={page}",
+        encode_query_component(query)
     )
 }
 
-fn do_fetch(config: &Config, store: &ConfigStore) -> Result<FetchedPhoto, AppError> {
-    if !config.background_rotate {
-        return Err(AppError::Internal("background rotation disabled".into()));
+/// Only image URLs under the Pexels CDN are ever fetched.
+fn is_allowed_image_url(url: &str) -> bool {
+    url.starts_with("https://images.pexels.com/")
+}
+
+impl Background {
+    fn do_fetch(&self, config: &Config, store: &ConfigStore) -> Result<FetchedPhoto, AppError> {
+        if !config.background_rotate {
+            return Err(AppError::Internal("background rotation disabled".into()));
+        }
+
+        let api_key = self
+            .api_key
+            .as_deref()
+            .ok_or_else(|| AppError::Internal("PEXELS_API_KEY not set".into()))?;
+
+        let photo = fetch_pexels_photo(api_key, PEXELS_SEARCH_QUERY)?;
+
+        let image_url = select_best_url(&photo.src)
+            .filter(|url| is_allowed_image_url(url))
+            .ok_or_else(|| {
+                AppError::Internal("no trusted image URL found in Pexels response".into())
+            })?;
+
+        let agent = ureq::Agent::config_builder()
+            .timeout_global(Some(std::time::Duration::from_secs(5)))
+            .build()
+            .new_agent();
+
+        let response = agent
+            .get(image_url)
+            .call()
+            .map_err(|e| AppError::Internal(format!("failed to download image: {e}")))?;
+
+        let mut body: Vec<u8> = Vec::new();
+        response
+            .into_body()
+            .into_reader()
+            .read_to_end(&mut body)
+            .map_err(|e| AppError::Internal(format!("failed to read image data: {e}")))?;
+
+        let path = cache_photo(&body, store.cache_dir())?;
+
+        Ok(FetchedPhoto {
+            path,
+            credit: PhotoCredit {
+                photographer: photo.photographer.clone(),
+                photographer_url: photo.photographer_url.clone(),
+                photo_url: image_url.to_string(),
+            },
+        })
     }
-
-    let api_key = std::env::var("PEXELS_API_KEY")
-        .map_err(|_| AppError::Internal("PEXELS_API_KEY not set".into()))?;
-
-    if api_key.is_empty() {
-        return Err(AppError::Internal("PEXELS_API_KEY not set".into()));
-    }
-
-    let photo = fetch_pexels_photo(&api_key, PEXELS_SEARCH_QUERY)?;
-
-    let image_url = select_best_url(&photo.src).ok_or_else(|| {
-        AppError::Internal("no suitable image URL found in Pexels response".into())
-    })?;
-
-    let agent = ureq::Agent::config_builder()
-        .timeout_global(Some(std::time::Duration::from_secs(5)))
-        .build()
-        .new_agent();
-
-    let response = agent
-        .get(image_url)
-        .call()
-        .map_err(|e| AppError::Internal(format!("failed to download image: {e}")))?;
-
-    let mut body: Vec<u8> = Vec::new();
-    response
-        .into_body()
-        .into_reader()
-        .read_to_end(&mut body)
-        .map_err(|e| AppError::Internal(format!("failed to read image data: {e}")))?;
-
-    let path = cache_photo(&body, store.cache_dir())?;
-
-    Ok(FetchedPhoto {
-        path,
-        credit: PhotoCredit {
-            photographer: photo.photographer.clone(),
-            photographer_url: photo.photographer_url.clone(),
-            photo_url: image_url.to_string(),
-        },
-    })
 }
 
 #[cfg(test)]
@@ -504,7 +474,10 @@ mod tests {
     use super::*;
 
     fn test_dir(name: &str) -> PathBuf {
-        std::env::temp_dir().join(format!("strandgut_test_background_{}", name))
+        std::env::temp_dir().join(format!(
+            "strandgut_test_background_{name}_{}",
+            std::process::id()
+        ))
     }
 
     fn valid_jpeg_bytes() -> Vec<u8> {
@@ -542,6 +515,31 @@ mod tests {
     }
 
     #[test]
+    fn test_build_pexels_url_encodes_the_query() {
+        let url = build_pexels_url("nord see&page=2", 1, 1);
+        assert!(
+            url.contains("query=nord%20see%26page%3D2"),
+            "query must be percent-encoded, got {url}"
+        );
+        assert!(
+            !url.contains("query=nord see"),
+            "raw spaces leak into the URL"
+        );
+    }
+
+    #[test]
+    fn test_only_pexels_https_urls_are_accepted() {
+        assert!(is_allowed_image_url(
+            "https://images.pexels.com/photos/1/photo.jpeg"
+        ));
+        assert!(!is_allowed_image_url("http://images.pexels.com/x.jpg"));
+        assert!(!is_allowed_image_url("https://evil.example/x.jpg"));
+        assert!(!is_allowed_image_url(
+            "https://images.pexels.com.evil.example/x.jpg"
+        ));
+    }
+
+    #[test]
     fn test_fetch_pexels_photo_empty_key() {
         let result = fetch_pexels_photo("", "nordsee");
         assert!(result.is_err(), "empty API key should return an error");
@@ -551,13 +549,9 @@ mod tests {
     fn test_select_best_url_landscape() {
         let src = PexelsSrc {
             original: Some("https://example.com/original.jpg".into()),
-            large2x: Some("https://example.com/large2x.jpg".into()),
             large: Some("https://example.com/large.jpg".into()),
             medium: Some("https://example.com/medium.jpg".into()),
-            small: Some("https://example.com/small.jpg".into()),
-            portrait: Some("https://example.com/portrait.jpg".into()),
             landscape: Some("https://example.com/landscape.jpg".into()),
-            tiny: Some("https://example.com/tiny.jpg".into()),
         };
         assert_eq!(
             select_best_url(&src),
@@ -570,13 +564,9 @@ mod tests {
     fn test_select_best_url_fallback() {
         let src = PexelsSrc {
             original: None,
-            large2x: None,
             large: Some("https://example.com/large.jpg".into()),
             medium: None,
-            small: None,
-            portrait: None,
             landscape: None,
-            tiny: None,
         };
         assert_eq!(
             select_best_url(&src),
@@ -589,13 +579,9 @@ mod tests {
     fn test_select_best_url_none() {
         let src = PexelsSrc {
             original: None,
-            large2x: None,
             large: None,
             medium: None,
-            small: None,
-            portrait: None,
             landscape: None,
-            tiny: None,
         };
         assert_eq!(
             select_best_url(&src),
@@ -659,7 +645,7 @@ mod tests {
         let written = std::fs::read(&final_path).unwrap();
         assert_eq!(written, data, "cached file should contain original data");
 
-        let tmp_path = dir.join("background.tmp");
+        let tmp_path = dir.join("background.jpg.tmp");
         assert!(!tmp_path.exists(), "tmp file should have been removed");
 
         let _ = std::fs::remove_dir_all(&dir);
@@ -751,12 +737,9 @@ mod tests {
 
     #[test]
     fn test_get_background_status_no_key() {
-        let prev = std::env::var("PEXELS_API_KEY").ok();
-        unsafe { std::env::remove_var("PEXELS_API_KEY") };
-
         let dir = test_dir("status_no_key");
         let _ = std::fs::remove_dir_all(&dir);
-        let background = Background::new(dir);
+        let background = Background::new(dir, None);
         let config = Config::default();
         let status = background.status(&config);
 
@@ -772,10 +755,18 @@ mod tests {
             status.photo.is_none(),
             "photo should be None when no cached data"
         );
+    }
 
-        if let Some(key) = prev {
-            unsafe { std::env::set_var("PEXELS_API_KEY", key) };
-        }
+    #[test]
+    fn test_status_reports_available_when_a_key_is_configured() {
+        let dir = test_dir("status_with_key");
+        let _ = std::fs::remove_dir_all(&dir);
+        let background = Background::new(dir, Some("key".to_string()));
+
+        assert!(
+            background.status(&Config::default()).available,
+            "a configured key should report the feature as available"
+        );
     }
 
     #[test]
@@ -796,7 +787,7 @@ mod tests {
         )
         .unwrap();
 
-        let background = Background::new(dir.clone());
+        let background = Background::new(dir.clone(), None);
         let status = background.status(&Config::default());
 
         assert_eq!(status.photo.unwrap().photographer, "Ada");
@@ -812,7 +803,7 @@ mod tests {
     fn test_rotation_is_not_due_when_disabled() {
         let dir = test_dir("rotation_disabled");
         let _ = std::fs::remove_dir_all(&dir);
-        let background = Background::new(dir);
+        let background = Background::new(dir, None);
         let config = Config::default();
 
         assert!(!background.begin_fetch(&config));
@@ -822,7 +813,7 @@ mod tests {
     fn test_rotation_is_due_without_a_cached_photo() {
         let dir = test_dir("rotation_due");
         let _ = std::fs::remove_dir_all(&dir);
-        let background = Background::new(dir);
+        let background = Background::new(dir, None);
         let config = Config {
             background_rotate: true,
             ..Config::default()
@@ -840,7 +831,7 @@ mod tests {
     fn test_rotation_is_not_due_while_fresh() {
         let dir = test_dir("rotation_fresh");
         let _ = std::fs::remove_dir_all(&dir);
-        let background = Background::new(dir);
+        let background = Background::new(dir, None);
         let config = Config {
             background_rotate: true,
             ..Config::default()

@@ -251,6 +251,22 @@ mod tests {
     }
 
     #[test]
+    fn test_traversal_paths_never_serve_file_bytes() {
+        for path in [
+            "../config.toml",
+            "../../etc/passwd",
+            "%2e%2e%2fconfig.toml",
+            "/etc/passwd",
+            "css/../../config.toml",
+        ] {
+            assert!(
+                get_asset(path).is_none(),
+                "{path} must not resolve to an embedded asset"
+            );
+        }
+    }
+
+    #[test]
     fn test_detect_mime_known_extensions() {
         assert_eq!(detect_mime("js/app.js"), "application/javascript");
         assert_eq!(detect_mime("css/style.css"), "text/css");

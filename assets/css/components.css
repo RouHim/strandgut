@@ -835,8 +835,6 @@ a.scan-result-card__meta:hover {
   display: block;
 }
 
-/* ─── Utilities ─── */
-
 /* ─── Icon Picker ─── */
 .icon-picker {
   position: relative;
@@ -980,6 +978,7 @@ body.overlay-open {
 /* ─── Load error ───
    A broken backend must not look like an empty install. */
 .load-error {
+  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   align-items: center;

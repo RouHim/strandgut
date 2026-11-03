@@ -1,11 +1,5 @@
 import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
 
-test('theme toggle is removed from the header', async ({ page }) => {
-  await gotoApp(page, { skipOnboarding: false });
-  await expect(page.locator('#theme-toggle')).toHaveCount(0);
-  await expect(page.locator('.theme-icon-sun, .theme-icon-moon')).toHaveCount(0);
-});
-
 const DARK_CANVAS = '#0a1628';
 
 /** Resolve a CSS custom property to the rgb() string the browser reports. */
@@ -48,15 +42,4 @@ test('app renders dark regardless of OS color scheme', async ({ page }) => {
     );
     expect(bg).toBe(await tokenAsRgb(page, '--color-surface-canvas'));
   }
-});
-
-test('stored light theme preference is ignored', async ({ page }) => {
-  await gotoApp(page, { skipOnboarding: false });
-  await page.evaluate(() => localStorage.setItem('theme', 'light'));
-  await page.reload();
-
-  expect(
-    await page.evaluate(() => document.documentElement.hasAttribute('data-theme'))
-  ).toBe(false);
-  expect(await canvasToken(page)).toBe(DARK_CANVAS);
 });

@@ -38,7 +38,7 @@ docker compose up -d
 
 Also at `http://localhost:13569`.
 
-The compose file sets `net.ipv4.ping_group_range` via `sysctls` so ICMP ping works for network scanning — this lets Strandgut check host reachability from within the container.
+Strandgut probes reachability with plain TCP connects, so the container needs no extra capabilities or sysctls.
 
 The compose file mounts `./data` as a volume for persistent config. Write your own `data/config.toml` or use the dashboard UI to save one.
 
@@ -48,9 +48,9 @@ The release container is built `FROM scratch` and contains only the statically l
 
 ```bash
 docker pull ghcr.io/RouHim/strandgut:latest
-docker run -p 13569:13569 -v ./data:/data --sysctl net.ipv4.ping_group_range='0 2147483647' ghcr.io/RouHim/strandgut:latest
+docker run -p 13569:13569 -v ./data:/data ghcr.io/RouHim/strandgut:latest
 ```
-> **Note**: The `--sysctl` flag is required so the container can send ICMP pings to check host reachability during network scans. Omit it if you don't need ping-based reachability checks. When using `docker compose`, this is handled automatically by the included `docker-compose.yaml`.
+> **Note**: Host reachability during a scan is a TCP connect to the probed port. No raw sockets, no ICMP, no privileged mode.
 
 ### Standalone binary
 
@@ -82,8 +82,9 @@ Strandgut looks for `config.toml` in the working directory. Set `STRANDGUT_CONFI
 
 ```toml
 title = "Strandgut"
-language = "en"          # "en" or "de"
+# language = "en"        # optional: "en" or "de"; omit to follow the browser
 scan_defaults = "simple" # "simple", "medium", or "deep"
+background_rotate = false # needs PEXELS_API_KEY, see below
 
 [[services]]
 name = "Home Assistant"
@@ -99,7 +100,21 @@ icon = "pihole"
 position = { row = 1, col = 0 }
 ```
 
-Icon slugs come from [SimpleIcons](https://simpleicons.org). Omit `icon` to show a generic globe. `description` is optional. `position` determines where the card appears on the grid.
+Unknown top-level keys are rejected: the config file is parsed strictly, so a typo surfaces as an
+error on the next read instead of being silently ignored. Service entries tolerate unknown keys so
+older config files keep loading.
+
+`icon` is a slug. A tile tries Dashboard Icons, then Simple Icons, then selfh.st; when none of them
+has the slug, the card shows a neutral placeholder glyph. `description` is stored and editable but
+not rendered on the card. `position` decides where the card sits in the grid.
+
+Background rotation calls the [Pexels](https://www.pexels.com) API and needs an API key in the environment:
+
+```bash
+PEXELS_API_KEY=your-key ./strandgut
+```
+
+Without that variable the feature reports itself as unavailable and the toggle stays inert; the rest of the dashboard is unaffected.
 
 ## Development
 
@@ -119,7 +134,7 @@ cargo clippy -- -D warnings
 # Run Rust unit tests
 cargo test
 
-# Run E2E tests (requires Node.js 24)
+# Run E2E tests (requires Node.js 26)
 cd e2e
 npm ci
 npx playwright install --with-deps chromium

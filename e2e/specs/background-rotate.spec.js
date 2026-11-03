@@ -1,30 +1,10 @@
-import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
+import { test, expect, gotoApp, seedConfig, stubBackground, stubBackgroundUnavailable } from '../support/app.js';
 
 test.describe('background rotation', { tag: '@background' }, () => {
-  test('toggle is visible and initially OFF', async ({ page }) => {
+  test('toggle is visible and initially OFF', async ({ page, request }) => {
+    await stubBackground(page);
+    await seedConfig(request, []);
     await gotoApp(page, { skipOnboarding: false });
-
-    const statusResp = await page.evaluate(async () => {
-      const r = await fetch('/api/background/status');
-      return r.json();
-    });
-
-    test.skip(statusResp.available === false, 'Background rotation feature is not available');
-
-    await page.evaluate(async () => {
-      await fetch('/api/config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: 'Strandgut',
-          language: 'en',
-          scan_defaults: 'simple',
-          services: [],
-          background_rotate: false,
-        }),
-      });
-    });
-    await page.reload();
 
     const toggle = page.locator('[data-testid="background-rotate-toggle"]');
     await expect(toggle).toBeVisible();
@@ -34,59 +14,27 @@ test.describe('background rotation', { tag: '@background' }, () => {
     await page.screenshot({ path: 'test-results/background-toggle-off.png', fullPage: true });
   });
 
-  test('static background on initial load', async ({ page }) => {
+  test('static background on initial load', async ({ page, request }) => {
+    await stubBackground(page);
+    await seedConfig(request, []);
     await gotoApp(page, { skipOnboarding: false });
-
-    await page.evaluate(async () => {
-      await fetch('/api/config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: 'Strandgut',
-          language: 'en',
-          scan_defaults: 'simple',
-          services: [],
-          background_rotate: false,
-        }),
-      });
-    });
-    await page.reload();
 
     expect(await page.evaluate(() => document.documentElement.className)).toContain('static-background');
   });
 
-  test('footer shows static credit on initial load', async ({ page }) => {
+  test('footer shows static credit on initial load', async ({ page, request }) => {
+    await stubBackground(page);
+    await seedConfig(request, []);
     await gotoApp(page, { skipOnboarding: false });
     const credit = page.locator('[data-testid="photo-credit"]');
     await expect(credit).toBeVisible();
     await expect(credit).toContainText('Pexels');
   });
 
-  test('toggle ON persists to config', async ({ page }) => {
+  test('toggle ON persists to config', async ({ page, request }) => {
+    await stubBackground(page);
+    await seedConfig(request, []);
     await gotoApp(page, { skipOnboarding: false });
-
-    const statusResp = await page.evaluate(async () => {
-      const r = await fetch('/api/background/status');
-      return r.json();
-    });
-
-    test.skip(statusResp.available === false, 'Background rotation feature is not available');
-
-    await page.evaluate(async () => {
-      const r = await fetch('/api/config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: 'Strandgut',
-          language: 'en',
-          scan_defaults: 'simple',
-          services: [],
-          background_rotate: false,
-        }),
-      });
-      if (!r.ok) throw new Error('reset failed');
-    });
-    await page.reload();
 
     const toggle = page.locator('[data-testid="background-rotate-toggle"]');
     await expect(toggle).toBeVisible();
@@ -104,23 +52,10 @@ test.describe('background rotation', { tag: '@background' }, () => {
       return r.json();
     });
     expect(config.background_rotate).toBe(true);
-
-    await page.evaluate(async () => {
-      await fetch('/api/config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: 'Strandgut',
-          language: 'en',
-          scan_defaults: 'simple',
-          services: [],
-          background_rotate: false,
-        }),
-      });
-    });
   });
 
   test('background status endpoint works', async ({ page }) => {
+    // No stub here: this test asserts the real server response shape.
     await gotoApp(page, { skipOnboarding: false });
     const body = await page.evaluate(async () => {
       const r = await fetch('/api/background/status');
@@ -133,36 +68,19 @@ test.describe('background rotation', { tag: '@background' }, () => {
     expect(typeof body.rotate_enabled).toBe('boolean');
   });
 
-  test('toggle hidden when feature unavailable', { tag: '@background' }, async ({ page }) => {
+  test('toggle is hidden when the feature is unavailable', { tag: '@background' }, async ({ page }) => {
+    await stubBackgroundUnavailable(page);
     await gotoApp(page, { skipOnboarding: false });
 
-    await page.evaluate(async () => {
-      await fetch('/api/config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: 'Strandgut',
-          language: 'en',
-          scan_defaults: 'simple',
-          services: [],
-          background_rotate: false,
-        }),
-      });
-    });
-    await page.reload();
+    await expect(page.locator('[data-testid="background-rotate-toggle"]')).toBeHidden();
+  });
+
+  test('toggle is visible and off when the feature is available', { tag: '@background' }, async ({ page }) => {
+    await stubBackground(page);
+    await gotoApp(page, { skipOnboarding: false });
 
     const toggle = page.locator('[data-testid="background-rotate-toggle"]');
-
-    const statusResp = await page.evaluate(async () => {
-      const r = await fetch('/api/background/status');
-      return r.json();
-    });
-
-    if (statusResp.available === false) {
-      await expect(toggle).toBeHidden();
-    } else {
-      await expect(toggle).toBeVisible();
-      await expect(toggle).toHaveAttribute('aria-checked', 'false');
-    }
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-checked', 'false');
   });
 });

@@ -1,10 +1,8 @@
 import { getServices } from './store.js';
 import { getServiceStatus, isEditing } from './state.js';
+import { t } from './i18n.js';
 
 const PLACEHOLDER_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="4"/><circle cx="12" cy="12" r="4"/><path d="M8 8l8 8M16 8l-8 8"/></svg>')}`;
-
-/** Translations are registered by app.js before any tile is rendered. */
-const t = (key) => (typeof window.__t === 'function' ? window.__t(key) : key);
 
 /**
  * Sync one tile's reachability dot with the page-load status map.

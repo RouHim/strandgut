@@ -66,18 +66,23 @@ spec files no longer depend on execution order. `app.js` sets
 `stubScan` instead of copying setup. `page.waitForLoadState('networkidle')` is unreliable here:
 tile icons are fetched from external CDNs, so the browser may stay non-idle for a long time.
 Manual QA scripts and reference screenshots live under `e2e/manual/` and `e2e/reference/`,
-outside the default `testDir`.
+outside the default `testDir`. Run the manual scripts with
+`npx playwright test --config playwright.manual.config.ts`. Reference screenshots stay in git
+as-is (no LFS); regenerate them as WebP if they are ever updated.
 
 ## Project Structure
 
 ```
 src/
-  main.rs           # Entry point, TCP listener, graceful shutdown, AppState
+  main.rs           # Entry point, TCP listener, graceful shutdown, AppState, security headers
   routes.rs         # HTTP route table (matchit), request dispatch, handlers
+  routes_tests.rs   # Handler tests (#[path] module included by routes.rs)
   store.rs          # ConfigStore: config path, load/save, cache root, write canary
   config.rs         # TOML config schema
   error.rs          # AppError enum, HTTP status mapping, JSON error bodies
   scan.rs           # Scan session: async port scanner, SSE events, service fingerprinting
+  scan_tests.rs     # Scanner tests (#[path] module included by scan.rs)
+  atomic_write.rs   # Shared write-to-.tmp-then-rename helper for every persistent file
   spa.rs            # Embedded asset serving (include_bytes!), SPA fallback
   status.rs         # Reachability probe for the tiles (GET /api/status)
   icons.rs          # Runtime icon search with a file cache
@@ -89,7 +94,7 @@ assets/
     api.js          # HTTP API wrappers (fetch)
     store.js        # Config snapshot, service placement, dirty state, saves
     scan-session.js # Scan request, SSE transport, frame parsing, status
-    i18n.js         # Language detection, t(), applyTranslations()
+    i18n.js         # Language selection, t(), applyTranslations(), setLanguage()
     overlay.js      # Modal session: focus, inert, scroll, Escape, backdrop, stack
     state.js        # UI-only state: edit mode and page-load statuses
     grid.js         # Service grid rendering
@@ -97,6 +102,9 @@ assets/
     edit.js         # Edit mode controls and add/edit panel
     add-dialog.js   # "Add service" modal dialog
     scan.js         # Scan dialog view (DOM only; protocol lives in scan-session.js)
+    background.js   # Background rotation toggle, photo application, credit
+    icon-picker.js  # Debounced icon search widget for the edit panel
+    pill-switch.js  # Pill-switch toggle component
     i18n/
       en.js         # English translations
       de.js         # German translations
@@ -108,13 +116,15 @@ assets/
     layout.css      # Grid and layout
     components.css  # Buttons, cards, dialogs
     animations.css  # Transitions and keyframes
+  fonts/            # Bundled Hanken Grotesk + JetBrains Mono woff2 files
   img/              # Images and icons
 tests/
   js/               # Node --test suites for DOM-free frontend modules
+  fixtures/titles/  # HTML title fixtures for scanner fingerprinting
 e2e/
   specs/            # Playwright specs (default testDir)
   support/app.js    # Shared fixture: reset, readiness, seed, stubs, page errors
-  manual/           # Manual QA scripts, outside the default testDir
+  manual/           # Manual QA scripts (playwright.manual.config.ts)
   reference/        # Reference screenshots, outside the default testDir
 ```
 
@@ -187,8 +197,9 @@ use crate::config::Config;
 
 ```toml
 title = "Strandgut"
-language = "en"
+# language = "en"           # optional: "en" | "de"; omit to follow the browser
 scan_defaults = "simple"
+background_rotate = false
 
 [[services]]
 name = "Example"
@@ -198,15 +209,21 @@ description = "Optional description"
 position = { row = 0, col = 0 }
 ```
 
-- `scan_defaults`: `"simple"` | `"medium"` | `"deep"`
+- `title`: document title; applied after translations load
+- `language`: optional `"en"` | `"de"`; when absent the browser language wins
+- `scan_defaults`: `"simple"` | `"medium"` | `"deep"`, preselected in the scan dialog
+- `background_rotate`: enables Pexels rotation when `PEXELS_API_KEY` is set
 - `services`: array of service cards displayed on the grid
+- `#[serde(deny_unknown_fields)]` on `Config`: unknown keys are a parse error (400 via API)
 - Config is loaded/saved as TOML but exposed via REST API as JSON
+- `config.example.toml` is the tracked sample; `config.toml` itself is gitignored
 
 ### Environment Variables
 
 ```env
 STRANDGUT_CONFIG=./config.toml      # Path to TOML config file
 RUST_LOG=info                        # Logging level (env_logger)
+PEXELS_API_KEY=...                   # Optional; enables background rotation
 ```
 
 ## API Endpoints
@@ -225,15 +242,60 @@ RUST_LOG=info                        # Logging level (env_logger)
 | GET | `/assets/{*path}` | Static asset serving |
 | GET | `/{*path}` | SPA fallback to `index.html` |
 
+Every response also carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy: no-referrer`, and a strict `Content-Security-Policy` (applied in `main.rs::with_security_headers`).
+
+### Request and response shapes
+
+`PUT /api/config` accepts the same object `GET /api/config` returns. Unknown keys are rejected.
+
+`POST /api/scan` body:
+
+```json
+{"host": "192.168.1.10", "ports": [80, 443], "depth": "simple"}
+```
+
+- `host` is required. `ports` overrides `depth`. `depth` defaults to `simple`.
+- A second concurrent scan returns `409 {"error":"scan already in progress"}`.
+- A malformed body returns `400`.
+
+`GET /api/status` returns:
+
+```json
+{"services": [{"url": "http://a.example", "reachable": true}]}
+```
+
+`GET /api/background/status` returns:
+
+```json
+{"available": true, "rotate_enabled": false, "photo": null}
+```
+
+`photo` is `null` or `{"photographer","photographer_url","photo_url"}`. `available` is false when
+`PEXELS_API_KEY` is unset.
+
+`GET /api/icons/search?q=plex` returns a bare array; the keys are abbreviated for cache size:
+
+```json
+[{"n": "Plex", "u": "https://cdn.example/plex.svg", "s": "dashboard-icons"}]
+```
+
+### Error responses
+
+Every error body is `{"error": "<message>"}` with the matching status code: `400` malformed input,
+`404` unknown route, `405` wrong method, `409` scan already running, `500` server failure.
+`500` bodies are always the generic `{"error": "internal error"}`; the detail is logged server-side.
+
 ### Scan SSE Events
 
 The `/api/scan` endpoint returns `text/event-stream` with:
 - `event: progress\ndata: {"scanned":N,"total":M}` — after each chunk (larger scans start at 0)
 - `event: found\ndata: <ScanResult JSON>` — for each discovered service
-- `event: error\ndata: <code>` — `host_not_found` or a scan-level failure
+- `event: error\ndata: <code>` — the only code is `host_not_found`
 - `event: done` — when scan completes
 
 The response is returned before the first port is scanned; the producer writes events as it goes.
+Stream close also signals completion; there is no scan-level error event.
 
 ## Port Scanner
 
@@ -325,4 +387,5 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 
 ### Domain docs
 
-Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context: when present, `GLOSSARY.md` and `docs/adr/` at the repo root are authoritative;
+create them lazily. See `docs/agents/domain.md`.

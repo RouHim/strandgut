@@ -2,7 +2,6 @@ import { test as base, expect } from '@playwright/test';
 
 export const EMPTY_CONFIG = {
   title: 'Test',
-  language: 'en',
   scan_defaults: 'simple',
   background_rotate: false,
   services: [],
@@ -51,6 +50,47 @@ export function service(name, url, col = 0, extra = {}) {
   };
 }
 
+/**
+ * Stub the background endpoints so the rotation feature is always available,
+ * independent of PEXELS_API_KEY.
+ */
+export async function stubBackground(page) {
+  await page.route('**/api/background/status', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        available: true,
+        rotate_enabled: false,
+        photo: {
+          photographer: 'Ada',
+          photographer_url: 'https://example.com/ada',
+          photo_url: '/assets/img/logo.svg',
+        },
+      }),
+    }),
+  );
+}
+
+/** Stub the background endpoints as unavailable (no PEXELS_API_KEY). */
+export async function stubBackgroundUnavailable(page) {
+  await page.route('**/api/background/status', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ available: false, rotate_enabled: false, photo: null }),
+    }),
+  );
+}
+
+/**
+ * Stub the scan endpoint with a request that never answers, so a scan stays
+ * in flight for as long as the test needs it.
+ */
+export async function stubScanPending(page) {
+  await page.route('**/api/scan', () => new Promise(() => {}));
+}
+
 /** Stub the scan endpoint with a complete SSE body. */
 export async function stubScan(page, body, status = 200) {
   await page.route('**/api/scan', (route) =>
@@ -65,6 +105,9 @@ export async function stubScan(page, body, status = 200) {
 export const test = base.extend({
   configReset: [
     async ({ request }, use) => {
+      // Reset before and after: the first test of a run must not inherit a
+      // config left behind by a previous run or a dev server.
+      await request.put('/api/config', { data: EMPTY_CONFIG });
       await use();
       await request.put('/api/config', { data: EMPTY_CONFIG });
     },

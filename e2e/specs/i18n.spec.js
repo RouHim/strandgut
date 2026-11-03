@@ -24,7 +24,6 @@ test('German locale covers the dialogs too', async ({ browser, request }) => {
   await request.put('/api/config', {
     data: {
       title: 'Test',
-      language: 'en',
       scan_defaults: 'simple',
       services: [
         { name: 'One', url: 'http://127.0.0.1:13569/api/health', icon: null, description: null, position: { row: 0, col: 0 } },

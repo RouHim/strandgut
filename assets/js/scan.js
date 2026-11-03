@@ -1,4 +1,4 @@
-import { addService, getServices } from './store.js';
+import { addService, getConfig, getServices } from './store.js';
 import { buildScanRequest, startScanSession } from './scan-session.js';
 import { t } from './i18n.js';
 import { activateOverlay } from './overlay.js';
@@ -40,7 +40,7 @@ export function openScanDialog() {
           <legend>${t('scan.depth.label')}</legend>
           <div class="scan-radio-group">
             <label class="scan-radio">
-              <input type="radio" name="scan-depth" value="simple" checked data-testid="scan-depth-simple">
+              <input type="radio" name="scan-depth" value="simple" data-testid="scan-depth-simple">
               <span>${t('scan.depth.simple')}</span>
             </label>
             <label class="scan-radio">
@@ -107,6 +107,10 @@ export function openScanDialog() {
 
   const portsInput = dialogEl.querySelector('#scan-ports');
   const depthRadios = dialogEl.querySelectorAll('input[name="scan-depth"]');
+  const preferredDepth = getConfig()?.scan_defaults;
+  const checked = [...depthRadios].find((radio) => radio.value === preferredDepth)
+    || dialogEl.querySelector('input[name="scan-depth"][value="simple"]');
+  checked.checked = true;
   const portsHint = dialogEl.querySelector('[data-testid="scan-ports-hint"]');
   const syncPortsOverride = () => {
     const overrides = portsInput.value.trim() !== '';

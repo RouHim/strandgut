@@ -8,9 +8,28 @@
 import en from './i18n/en.js';
 import de from './i18n/de.js';
 
-const lang = navigator.language.startsWith('de') ? 'de' : 'en';
-document.documentElement.lang = lang;
-const translations = lang === 'de' ? de : en;
+const BUNDLES = { en, de };
+
+function detectedLanguage() {
+  return navigator.language.startsWith('de') ? 'de' : 'en';
+}
+
+let currentLanguage = detectedLanguage();
+let translations = BUNDLES[currentLanguage];
+document.documentElement.lang = currentLanguage;
+
+/**
+ * Apply the configured language, overriding browser detection.
+ *
+ * Unknown or empty values keep the detected language, so a config typo cannot
+ * leave the UI without translations.
+ */
+export function setLanguage(language) {
+  if (!language || !Object.hasOwn(BUNDLES, language)) return;
+  currentLanguage = language;
+  translations = BUNDLES[currentLanguage];
+  document.documentElement.lang = currentLanguage;
+}
 
 export function t(key) {
   return translations[key] || key;
@@ -24,7 +43,3 @@ export function applyTranslations() {
     el.setAttribute('aria-label', t(el.dataset.i18nAria));
   });
 }
-
-// Rendered components created after init (grid dots, dialogs) resolve their
-// strings through this global.
-window.__t = t;

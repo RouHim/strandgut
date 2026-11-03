@@ -1,0 +1,29 @@
+# Strandgut configuration example.
+#
+# Copy to config.toml (or point STRANDGUT_CONFIG at this file) and edit.
+# Unknown keys are rejected, so keep the shape below.
+
+title = "Strandgut"
+
+# Optional: "en" or "de". Omit to follow the browser language.
+# language = "en"
+
+# Scan depth preselected in the scan dialog: "simple", "medium", or "deep".
+scan_defaults = "simple"
+
+# Rotate the background with photos from the Pexels API.
+# Requires PEXELS_API_KEY in the environment; stays disabled otherwise.
+background_rotate = false
+
+[[services]]
+name = "Home Assistant"
+url = "http://192.168.1.100:8123"
+icon = "homeassistant"
+description = "Smart home control"
+position = { row = 0, col = 0 }
+
+[[services]]
+name = "Pi-hole"
+url = "http://192.168.1.1:80/admin"
+icon = "pihole"
+position = { row = 1, col = 0 }

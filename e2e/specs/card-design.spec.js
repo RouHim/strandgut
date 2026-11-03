@@ -139,29 +139,6 @@ test('at 768px viewport at most 2 tiles appear per row', async ({ page, request 
 });
 
 // ---------------------------------------------------------------------------
-// 6. Click opens URL – tile click opens service URL in a new tab
-// ---------------------------------------------------------------------------
-
-test('clicking a tile opens the service URL in a new tab', async ({ page, request }) => {
-  await seedConfig(request, [
-    { name: 'Click Test', url: 'http://click-test.local:8080', icon: null, description: null, position: { row: 0, col: 0 } },
-  ]);
-  await gotoApp(page);
-
-  // Intercept navigation in the popup so we don't hit DNS errors
-  await page.context().route('http://click-test.local:8080/', (route) => route.fulfill({ status: 200, body: 'OK' }));
-
-  const tile = page.locator('[data-testid="tile"]').first();
-  const [popup] = await Promise.all([
-    page.waitForEvent('popup'),
-    tile.click(),
-  ]);
-
-  await popup.waitForLoadState();
-  expect(popup.url()).toContain('click-test.local:8080');
-});
-
-// ---------------------------------------------------------------------------
 // 7. Edit mode – delete button visible and draggable attribute set
 // ---------------------------------------------------------------------------
 

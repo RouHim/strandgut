@@ -12,7 +12,7 @@ import { renderEditMode } from './edit.js';
 import { initDrag } from './drag.js';
 import { initBackgroundToggle } from './background.js';
 import './pill-switch.js';
-import { t, applyTranslations } from './i18n.js';
+import { t, applyTranslations, setLanguage } from './i18n.js';
 
 function getOnboardingEl() {
   return document.querySelector('[data-testid="onboarding"]');
@@ -51,7 +51,7 @@ function showLoadError() {
   if (!grid) return;
   grid.hidden = false;
   grid.innerHTML = `
-    <div class="load-error" role="alert" data-testid="load-error" style="grid-column: 1 / -1;">
+    <div class="load-error" role="alert" data-testid="load-error">
       <h2></h2>
       <p></p>
       <button type="button" class="btn btn-primary" data-testid="load-error-retry"></button>
@@ -97,7 +97,7 @@ function showEmptyState() {
   const grid = getGridEl();
   if (!grid) return;
   grid.innerHTML = `
-    <div class="onboarding" style="grid-column: 1 / -1;" role="status" aria-live="polite">
+    <div class="onboarding" role="status" aria-live="polite">
       <h2></h2>
       <p></p>
     </div>
@@ -133,6 +133,10 @@ async function init() {
       onSaved: hideSaveError,
     });
 
+    // The configured language must be active before any translated text is
+    // rendered, including the background credit fetched below.
+    setLanguage(cfg.language);
+
     subscribe(({ servicesChanged }) => {
       if (servicesChanged) renderDashboard();
     });
@@ -153,6 +157,7 @@ async function init() {
     await initBackgroundToggle();
     initDrag();
     applyTranslations();
+    if (cfg.title) document.title = cfg.title;
 
     if (getServices().length === 0) {
       showOnboarding();

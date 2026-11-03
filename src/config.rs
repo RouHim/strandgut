@@ -10,7 +10,9 @@ use serde::{Deserialize, Serialize};
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub title: String,
-    pub language: String,
+    /// Explicit UI language (`en` or `de`). `None` follows the browser.
+    #[serde(default)]
+    pub language: Option<String>,
     pub scan_defaults: String,
     pub services: Vec<Service>,
     #[serde(default)]
@@ -40,7 +42,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             title: "Strandgut".to_string(),
-            language: "en".to_string(),
+            language: None,
             scan_defaults: "simple".to_string(),
             services: Vec::new(),
             background_rotate: false,
@@ -56,7 +58,7 @@ mod tests {
     fn test_default() {
         let config = Config::default();
         assert_eq!(config.title, "Strandgut");
-        assert_eq!(config.language, "en");
+        assert_eq!(config.language, None);
         assert_eq!(config.scan_defaults, "simple");
         assert!(config.services.is_empty());
     }
@@ -65,7 +67,7 @@ mod tests {
     fn test_toml_roundtrip() {
         let config = Config {
             title: "Roundtrip".to_string(),
-            language: "de".to_string(),
+            language: Some("de".to_string()),
             scan_defaults: "medium".to_string(),
             services: vec![Service {
                 name: "Service A".to_string(),
@@ -81,6 +83,16 @@ mod tests {
         let decoded: Config = toml::from_str(&encoded).expect("parse config");
 
         assert_eq!(decoded, config);
+    }
+
+    #[test]
+    fn test_example_config_parses() {
+        let example = include_str!("../config.example.toml");
+        let config: Config = toml::from_str(example).expect("config.example.toml must parse");
+        assert_eq!(config.title, "Strandgut");
+        assert_eq!(config.services.len(), 2);
+        assert!(!config.background_rotate);
+        assert_eq!(config.language, None);
     }
 
     #[test]

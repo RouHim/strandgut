@@ -1,5 +1,5 @@
 // QA: Scan Progress Feature - Manual Verification Scenarios
-// Run: cd e2e && npx playwright test specs/qa-scan-progress.mjs --project=desktop
+// Run: cd e2e && npx playwright test --config playwright.manual.config.ts qa-scan-progress.spec.js
 
 import { test, expect, dismissOnboarding } from '../support/app.js';
 

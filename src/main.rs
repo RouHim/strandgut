@@ -1,5 +1,6 @@
 // Strandgut — hyper-based LAN service scanner dashboard
 
+mod atomic_write;
 mod background;
 mod config;
 mod error;
@@ -25,6 +26,11 @@ pub struct AppState {
     pub icon_cache: Arc<crate::icons::IconCache>,
 }
 
+/// The Pexels API key, read once at startup.
+fn pexels_api_key() -> Option<String> {
+    std::env::var("PEXELS_API_KEY").ok()
+}
+
 impl AppState {
     /// Build the shared state for a config store.
     ///
@@ -39,6 +45,7 @@ impl AppState {
             scan_in_progress: Arc::new(AtomicBool::new(false)),
             background: Arc::new(crate::background::Background::new(
                 store.cache_dir().to_path_buf(),
+                pexels_api_key(),
             )),
             icon_cache,
         }
@@ -124,6 +131,38 @@ async fn accept_loop(listener: TcpListener, state: Arc<AppState>) {
     }
 }
 
+/// Response headers applied to every reply, success or error.
+///
+/// Assets and fonts are same-origin. Images may come from anywhere over HTTPS:
+/// tile icons live on two CDNs, the rotated background is served from the
+/// Pexels CDN, and the edit panel accepts a custom icon URL. Nothing else
+/// leaves the origin, and the UI has no inline scripts or styles.
+const SECURITY_HEADERS: [(&str, &str); 4] = [
+    ("x-content-type-options", "nosniff"),
+    ("x-frame-options", "DENY"),
+    ("referrer-policy", "no-referrer"),
+    (
+        "content-security-policy",
+        "default-src 'self'; script-src 'self'; style-src 'self'; \
+         img-src 'self' https: data:; \
+         connect-src 'self'; frame-ancestors 'none'",
+    ),
+];
+
+fn with_security_headers(
+    mut response: hyper::Response<
+        http_body_util::combinators::UnsyncBoxBody<hyper::body::Bytes, hyper::Error>,
+    >,
+) -> hyper::Response<http_body_util::combinators::UnsyncBoxBody<hyper::body::Bytes, hyper::Error>> {
+    for (name, value) in SECURITY_HEADERS {
+        response.headers_mut().insert(
+            hyper::header::HeaderName::from_static(name),
+            hyper::header::HeaderValue::from_static(value),
+        );
+    }
+    response
+}
+
 /// Router — dispatches requests via `routes::handle_request`.
 async fn router(
     req: hyper::Request<hyper::body::Incoming>,
@@ -133,11 +172,11 @@ async fn router(
     std::convert::Infallible,
 > {
     match routes::handle_request(req, state).await {
-        Ok(resp) => Ok(resp),
+        Ok(resp) => Ok(with_security_headers(resp)),
         Err(err) => {
             let status = err.to_http_status();
             let body = serde_json::to_string(&err.to_json_body()).unwrap_or_default();
-            Ok(hyper::Response::builder()
+            let response = hyper::Response::builder()
                 .status(status)
                 .header("Content-Type", "application/json")
                 .body(
@@ -145,7 +184,8 @@ async fn router(
                         .map_err(|e: std::convert::Infallible| match e {})
                         .boxed_unsync(),
                 )
-                .expect("error response built from valid parts"))
+                .expect("error response built from valid parts");
+            Ok(with_security_headers(response))
         }
     }
 }

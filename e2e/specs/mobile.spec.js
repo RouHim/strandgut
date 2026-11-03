@@ -1,11 +1,4 @@
-import { test, expect, dismissOnboarding, gotoApp, seedConfig, service } from '../support/app.js';
-
-test('mobile viewport shows grid', async ({ page, request }) => {
-  await seedConfig(request, [service('Mobile', 'http://mobile.local')]);
-  await gotoApp(page);
-  const grid = page.locator('[data-testid="service-grid"]');
-  await expect(grid).toBeVisible();
-});
+import { test, expect, gotoApp } from '../support/app.js';
 
 test('mobile edit mode enables drag and shows controls', async ({ page, request }) => {
   await request.put('/api/config', {

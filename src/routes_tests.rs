@@ -5,7 +5,10 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 fn temp_config_path(name: &str) -> String {
     std::env::temp_dir()
-        .join(format!("strandgut_test_routes_{}", name))
+        .join(format!(
+            "strandgut_test_routes_{name}_{}",
+            std::process::id()
+        ))
         .to_string_lossy()
         .to_string()
 }
@@ -18,7 +21,10 @@ fn state_for(config_path: &str) -> Arc<AppState> {
 
 /// Isolated config and cache directory for one test.
 fn temp_state(name: &str) -> Arc<AppState> {
-    let dir = std::env::temp_dir().join(format!("strandgut_test_routes_{name}"));
+    let dir = std::env::temp_dir().join(format!(
+        "strandgut_test_routes_{name}_{}",
+        std::process::id()
+    ));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("create_dir_all");
     state_for(&dir.join("config.toml").to_string_lossy())
@@ -146,108 +152,174 @@ async fn test_config_get() -> Result<(), AppError> {
 }
 
 #[tokio::test]
-async fn test_config_put_valid() -> Result<(), AppError> {
-    let path = temp_config_path("put_valid");
-    let _ = std::fs::remove_file(&path);
+async fn test_config_put_cases() -> Result<(), AppError> {
+    struct Case {
+        name: &'static str,
+        body: &'static str,
+        expect_ok: bool,
+        expected_title: &'static str,
+    }
 
-    let body = r#"{"title":"Test Config","language":"en","scan_defaults":"simple","services":[]}"#;
-    let req = Request::builder()
-        .uri("/api/config")
-        .method(Method::PUT)
-        .body(Full::new(Bytes::from(body)))
-        .unwrap();
-    let state = state_for(&path);
+    let cases = [
+        Case {
+            name: "valid",
+            body: r#"{"title":"Test Config","language":"en","scan_defaults":"simple","services":[]}"#,
+            expect_ok: true,
+            expected_title: "Test Config",
+        },
+        Case {
+            name: "roundtrip",
+            body: r#"{"title":"Roundtrip","language":"de","scan_defaults":"medium","services":[]}"#,
+            expect_ok: true,
+            expected_title: "Roundtrip",
+        },
+        Case {
+            name: "invalid_json",
+            body: "not valid json",
+            expect_ok: false,
+            expected_title: "",
+        },
+        Case {
+            name: "empty_body",
+            body: "",
+            expect_ok: false,
+            expected_title: "",
+        },
+        Case {
+            name: "unknown_field",
+            body: r#"{"titel":"Typo","scan_defaults":"simple","services":[]}"#,
+            expect_ok: false,
+            expected_title: "",
+        },
+    ];
 
-    let resp = handle_request(req, state).await.unwrap();
-    assert_eq!(resp.status(), 200);
+    for case in cases {
+        let path = temp_config_path(case.name);
+        let _ = std::fs::remove_file(&path);
+        let state = state_for(&path);
 
-    let body = body_to_string(resp).await?;
-    let json: serde_json::Value = serde_json::from_str(&body).unwrap();
-    assert_eq!(json.get("title").unwrap(), "Test Config");
+        let req = Request::builder()
+            .uri("/api/config")
+            .method(Method::PUT)
+            .body(Full::new(Bytes::from(case.body)))
+            .unwrap();
+        let result = handle_request(req, state).await;
 
-    let loaded = crate::store::ConfigStore::new(&path).load().unwrap();
-    assert_eq!(loaded.title, "Test Config");
+        if case.expect_ok {
+            let resp = result.expect("valid config should be accepted");
+            assert_eq!(resp.status(), 200, "case {}", case.name);
+            let body = body_to_string(resp).await?;
+            let json: serde_json::Value = serde_json::from_str(&body).unwrap();
+            assert_eq!(json["title"], case.expected_title, "case {}", case.name);
 
-    let _ = std::fs::remove_file(&path);
+            let loaded = crate::store::ConfigStore::new(&path).load().unwrap();
+            assert_eq!(loaded.title, case.expected_title, "case {}", case.name);
+
+            let get_req = Request::builder()
+                .uri("/api/config")
+                .method(Method::GET)
+                .body(Full::new(Bytes::new()))
+                .unwrap();
+            let get_body = body_to_string(handle_request(get_req, state_for(&path)).await?).await?;
+            assert_eq!(get_body, body, "GET must echo what PUT stored");
+        } else {
+            let err = result.expect_err("invalid config must be rejected");
+            assert!(
+                matches!(err, AppError::BadRequest(..)),
+                "case {}: expected BadRequest, got {err:?}",
+                case.name
+            );
+            assert!(
+                !std::path::Path::new(&path).exists(),
+                "case {}: no file may be written",
+                case.name
+            );
+        }
+
+        let _ = std::fs::remove_file(&path);
+    }
     Ok(())
 }
 
 #[tokio::test]
-async fn test_config_put_invalid() {
-    let path = temp_config_path("put_invalid");
-    let _ = std::fs::remove_file(&path);
-
+async fn test_unknown_api_path_returns_404() {
     let req = Request::builder()
-        .uri("/api/config")
-        .method(Method::PUT)
-        .body(Full::new(Bytes::from("not valid json")))
-        .unwrap();
-    let state = state_for(&path);
-
-    let resp = handle_request(req, state).await;
-    assert!(resp.is_err());
-    let err = resp.unwrap_err();
-    assert!(
-        matches!(err, AppError::BadRequest(..)),
-        "expected BadRequest, got {err:?}"
-    );
-
-    assert!(!std::path::Path::new(&path).exists());
-}
-
-#[tokio::test]
-async fn test_config_roundtrip() -> Result<(), AppError> {
-    let path = temp_config_path("roundtrip");
-    let _ = std::fs::remove_file(&path);
-
-    let body = r#"{"title":"Roundtrip","language":"de","scan_defaults":"full","services":[]}"#;
-
-    let put_req = Request::builder()
-        .uri("/api/config")
-        .method(Method::PUT)
-        .body(Full::new(Bytes::from(body)))
-        .unwrap();
-    let state = state_for(&path);
-    let put_resp = handle_request(put_req, state.clone()).await.unwrap();
-    assert_eq!(put_resp.status(), 200);
-    let put_body = body_to_string(put_resp).await?;
-
-    let get_req = Request::builder()
-        .uri("/api/config")
+        .uri("/api/nope")
         .method(Method::GET)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let get_resp = handle_request(get_req, state).await.unwrap();
-    assert_eq!(get_resp.status(), 200);
-    let get_body = body_to_string(get_resp).await?;
+    let state = state_for("config.toml");
 
-    assert_eq!(put_body, get_body);
-
-    let _ = std::fs::remove_file(&path);
-    Ok(())
+    let resp = handle_request(req, state).await.unwrap();
+    assert_eq!(resp.status(), 404);
 }
 
 #[tokio::test]
-async fn test_config_put_empty_body() {
-    let path = temp_config_path("put_empty");
-    let _ = std::fs::remove_file(&path);
-
+async fn test_status_post_is_method_not_allowed() {
     let req = Request::builder()
-        .uri("/api/config")
-        .method(Method::PUT)
+        .uri("/api/status")
+        .method(Method::POST)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = state_for(&path);
+    let state = state_for("config.toml");
 
-    let resp = handle_request(req, state).await;
-    assert!(resp.is_err());
-    let err = resp.unwrap_err();
+    let resp = handle_request(req, state).await.unwrap();
+    assert_eq!(resp.status(), 405);
+}
+
+#[tokio::test]
+async fn test_scan_malformed_body_is_bad_request() {
+    let req = Request::builder()
+        .uri("/api/scan")
+        .method(Method::POST)
+        .body(Full::new(Bytes::from("{")))
+        .unwrap();
+    let state = temp_state("scan_malformed");
+
+    let err = handle_request(req, state)
+        .await
+        .expect_err("malformed scan body must be rejected");
     assert!(
         matches!(err, AppError::BadRequest(..)),
         "expected BadRequest, got {err:?}"
     );
+}
 
-    assert!(!std::path::Path::new(&path).exists());
+#[tokio::test]
+async fn test_config_put_save_failure_is_internal_error_and_keeps_target() {
+    let dir = std::env::temp_dir().join(format!(
+        "strandgut_test_routes_save_failure_{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("create_dir_all");
+    // A directory at the config path makes the final rename fail, which is the
+    // deterministic way to exercise the save-failure branch.
+    let config_path = dir.join("config.toml");
+    std::fs::create_dir_all(&config_path).expect("create_dir_all");
+
+    let req = Request::builder()
+        .uri("/api/config")
+        .method(Method::PUT)
+        .body(Full::new(Bytes::from(
+            r#"{"title":"No","scan_defaults":"simple","services":[]}"#,
+        )))
+        .unwrap();
+    let state = state_for(&config_path.to_string_lossy());
+
+    let err = handle_request(req, state)
+        .await
+        .expect_err("save onto a directory must fail");
+    assert!(
+        matches!(err, AppError::Internal(..)),
+        "expected Internal, got {err:?}"
+    );
+    assert!(
+        config_path.is_dir(),
+        "failed save must not delete the target"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 #[tokio::test]
@@ -404,12 +476,26 @@ async fn test_background_photo_method_not_allowed() -> Result<(), AppError> {
     Ok(())
 }
 
-fn icon_search_state() -> Arc<AppState> {
-    let dir = std::env::temp_dir().join("strandgut_test_routes_icon_search");
+fn icon_search_state(name: &str) -> Arc<AppState> {
+    let dir = std::env::temp_dir().join(format!(
+        "strandgut_test_routes_icon_search_{name}_{}",
+        std::process::id()
+    ));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("create_dir_all");
     let config_path = dir.join("config.toml");
-    state_for(&config_path.to_string_lossy())
+    let state = state_for(&config_path.to_string_lossy());
+
+    // A fresh cache file keeps `ensure_fresh` from spawning a network refresh.
+    let cache_dir = dir.join("cache");
+    std::fs::create_dir_all(&cache_dir).expect("create cache dir");
+    std::fs::write(
+        cache_dir.join("icons.json"),
+        r#"[{"n":"Plex","u":"https://example.com/plex.svg","s":"test"}]"#,
+    )
+    .expect("seed icon cache");
+
+    state
 }
 
 #[tokio::test]
@@ -419,7 +505,7 @@ async fn test_icon_search_empty_query_returns_empty_list() -> Result<(), AppErro
         .method(Method::GET)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = icon_search_state();
+    let state = icon_search_state("empty");
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 200);
@@ -436,15 +522,15 @@ async fn test_icon_search_with_query_returns_json() -> Result<(), AppError> {
         .method(Method::GET)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = icon_search_state();
+    let state = icon_search_state("query");
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 200);
 
     let body = body_to_string(resp).await?;
     let entries: Vec<serde_json::Value> = serde_json::from_str(&body).unwrap();
-    // No cache file exists for this temp config, so search degrades to empty.
-    assert!(entries.is_empty());
+    assert_eq!(entries.len(), 1, "expected the seeded cache entry");
+    assert_eq!(entries[0]["n"], "Plex");
     Ok(())
 }
 
@@ -455,7 +541,7 @@ async fn test_icon_search_method_not_allowed() -> Result<(), AppError> {
         .method(Method::POST)
         .body(Full::new(Bytes::new()))
         .unwrap();
-    let state = icon_search_state();
+    let state = icon_search_state("method");
 
     let resp = handle_request(req, state).await.unwrap();
     assert_eq!(resp.status(), 405);

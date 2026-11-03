@@ -34,9 +34,12 @@ test('tiles show reachability after the page-load check', async ({ page, request
 test('reachability is checked once per page load, not while editing', async ({ page, request }) => {
   await seedConfig(request, [service('Up', 'http://127.0.0.1:13569/api/health', 0)]);
 
+  // Count inside the request pipeline: the handler runs before the page's
+  // fetch resolves, so the value is settled by the time the DOM is.
   let statusCalls = 0;
-  page.on('request', (r) => {
-    if (r.url().includes('/api/status')) statusCalls += 1;
+  await page.route('**/api/status', async (route) => {
+    statusCalls += 1;
+    await route.continue();
   });
 
   await gotoApp(page, { skipOnboarding: false });
@@ -48,8 +51,11 @@ test('reachability is checked once per page load, not while editing', async ({ p
   // page-load check is still shown and no new request goes out.
   const toggle = page.locator('[data-testid="edit-toggle"]');
   await toggle.click();
+  await expect(page.locator('[data-testid="edit-tile"]').first()).toBeVisible();
   await toggle.click();
+  // The second render is observably finished once the edit controls are gone;
+  // any status request the render path issues has been started by then.
+  await expect(page.locator('[data-testid="edit-tile"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="tile-status"]').first()).toHaveAttribute('data-state', 'up');
-  await page.waitForTimeout(800);
   expect(statusCalls).toBe(1);
 });

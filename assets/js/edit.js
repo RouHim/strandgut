@@ -94,7 +94,7 @@ export function openEditPanel(index) {
 
     <form id="edit-form" novalidate data-testid="edit-form">
       <div class="edit-panel__fields">
-        <div class="form-field">
+        <div>
           <label for="edit-name">
             ${t('edit.name')} <span aria-label="${t('edit.required')}" class="required">*</span>
           </label>
@@ -109,7 +109,7 @@ export function openEditPanel(index) {
           <span class="error-msg" data-field="name" data-testid="edit-name-error"></span>
         </div>
 
-        <div class="form-field">
+        <div>
           <label for="edit-url">
             URL <span aria-label="${t('edit.required')}" class="required">*</span>
           </label>
@@ -134,7 +134,7 @@ export function openEditPanel(index) {
           <span class="error-msg" data-field="url" data-testid="edit-url-error"></span>
         </div>
 
-        <div class="form-field">
+        <div>
           <label for="edit-icon">
             ${t('edit.icon')}
           </label>
@@ -156,7 +156,7 @@ export function openEditPanel(index) {
           </div>
         </div>
 
-        <div class="form-field">
+        <div>
           <label for="edit-description">
             ${t('edit.description')}
           </label>

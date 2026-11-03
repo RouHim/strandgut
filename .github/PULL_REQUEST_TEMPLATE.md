@@ -6,8 +6,9 @@
 
 ## Checklist
 
-- [ ] `cargo fmt` passes
-- [ ] `cargo clippy -- -D warnings` passes
+- [ ] `cargo fmt --all -- --check` passes
+- [ ] `cargo clippy --all-targets -- -D warnings` passes
 - [ ] `cargo test` passes (all Rust unit tests)
-- [ ] `npm test` passes (all E2E tests, from `e2e/`)
+- [ ] `node --test tests/js/*.test.js` passes
+- [ ] `npm test` passes (all E2E tests, from `e2e/`; see CONTRIBUTING for setup)
 - [ ] Commit messages follow [conventional commits](https://www.conventionalcommits.org/)

@@ -34,7 +34,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Run Rust linter
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --all-targets -- -D warnings
 
   rust-tests:
     name: Unit tests
@@ -53,6 +53,22 @@ jobs:
       - name: Run unit tests
         run: cargo test
 
+      - name: Run unit tests against the release profile
+        run: cargo test --release
+
+      - name: Measure Rust coverage
+        run: |
+          cargo install cargo-llvm-cov --locked
+          cargo llvm-cov --lcov --output-path lcov.info
+
+      - name: Upload Rust coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rust-coverage
+          path: lcov.info
+          retention-days: 7
+
       - name: Build release
         run: cargo build --release
 
@@ -70,7 +86,7 @@ jobs:
           node-version: '26'
 
       - name: Run JS unit tests
-        run: node --test tests/js/*.test.js
+        run: node --test --experimental-test-coverage tests/js/*.test.js
 
   e2e-tests:
     name: Playwright E2E Tests

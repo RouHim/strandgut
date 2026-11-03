@@ -1,11 +1,18 @@
 /target/
 node_modules/
 /data/
-.sisyphus/
+**/.sisyphus/
 *.toml
 !Cargo.toml
+!rustfmt.toml
+!clippy.toml
+!config.example.toml
 /cache/
 /test-results/
+.env
+*.log
+.DS_Store
+Thumbs.db
 
 # SDD scratch (ledgers, briefs, review packages)
 .superpowers/

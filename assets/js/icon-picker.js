@@ -5,6 +5,8 @@
  * Exports: initIconPicker(inputEl, previewEl)
  */
 
+import { t } from './i18n.js';
+
 let activePicker = null;
 
 /**
@@ -297,15 +299,4 @@ export function initIconPicker(inputEl, previewEl) {
 
   // Initial preview
   updatePreview();
-}
-
-/**
- * Simple translation lookup (mirrors app.js t() but avoids circular deps).
- */
-function t(key) {
-  // Look for a global `t` function set by app.js
-  if (typeof window.__t === 'function') {
-    return window.__t(key);
-  }
-  return key;
 }

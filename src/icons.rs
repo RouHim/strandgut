@@ -6,7 +6,7 @@
 //! so there is zero persistent memory overhead.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -77,7 +77,7 @@ impl IconCache {
         if !self.is_fresh() {
             let cache_path = self.cache_path.clone();
             tokio::task::spawn_blocking(move || {
-                if let Err(e) = refresh_cache(&cache_path) {
+                if let Err(e) = refresh_cache(&cache_path, fetch_all_sources) {
                     log::warn!("Icon cache refresh failed: {e}");
                 }
             });
@@ -199,41 +199,24 @@ fn merge_icon_entries(results: &[Result<Vec<IconEntry>, String>]) -> Vec<IconEnt
     merged
 }
 
-/// Write the cache file atomically (.tmp → rename).
-fn write_cache_file(cache_path: &PathBuf, merged: &[IconEntry]) -> Result<(), AppError> {
-    let tmp_path = cache_path.with_extension("tmp");
-    if let Some(parent) = tmp_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| {
-            AppError::Internal(format!(
-                "failed to create icon cache dir {}: {e}",
-                parent.display()
-            ))
-        })?;
-    }
-
+/// Write the cache file atomically.
+fn write_cache_file(cache_path: &Path, merged: &[IconEntry]) -> Result<(), AppError> {
     let json = serde_json::to_vec(&merged).map_err(|e| AppError::Internal(e.to_string()))?;
-    fs::write(&tmp_path, &json).map_err(|e| {
-        AppError::Internal(format!(
-            "failed to write icon cache {}: {e}",
-            tmp_path.display()
-        ))
-    })?;
-    fs::rename(&tmp_path, cache_path).map_err(|e| {
-        AppError::Internal(format!(
-            "failed to rename icon cache {} -> {}: {e}",
-            tmp_path.display(),
-            cache_path.display()
-        ))
-    })?;
-
-    Ok(())
+    crate::atomic_write::write_atomic(cache_path, &json)
+        .map_err(|e| AppError::Internal(format!("failed to write icon cache: {e}")))
 }
 
 /// Fetch all icon sources, merge, and write the cache file atomically.
-fn refresh_cache(cache_path: &PathBuf) -> Result<(), AppError> {
+///
+/// `fetch` is a parameter so tests can exercise the merge and error paths
+/// without reaching the network.
+fn refresh_cache(
+    cache_path: &Path,
+    fetch: impl FnOnce() -> Vec<Result<Vec<IconEntry>, String>>,
+) -> Result<(), AppError> {
     log::info!("Refreshing icon cache…");
 
-    let results = fetch_all_sources();
+    let results = fetch();
     let merged = merge_icon_entries(&results);
 
     if merged.is_empty() {
@@ -525,7 +508,8 @@ mod tests {
 
     #[test]
     fn test_search_filters_and_sorts() {
-        let dir = std::env::temp_dir().join("strandgut_test_icons_sort");
+        let dir =
+            std::env::temp_dir().join(format!("strandgut_test_icons_sort_{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("create_dir_all");
         let cache_path = dir.join("icons.json");
@@ -572,7 +556,8 @@ mod tests {
 
     #[test]
     fn test_search_respects_limit() {
-        let dir = std::env::temp_dir().join("strandgut_test_icons_limit");
+        let dir =
+            std::env::temp_dir().join(format!("strandgut_test_icons_limit_{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("create_dir_all");
         let cache_path = dir.join("icons.json");
@@ -644,7 +629,8 @@ mod tests {
 
     #[test]
     fn test_write_cache_file_atomic() {
-        let dir = std::env::temp_dir().join("strandgut_test_icons_write");
+        let dir =
+            std::env::temp_dir().join(format!("strandgut_test_icons_write_{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("create_dir_all");
         let cache_path = dir.join("icons.json");
@@ -656,7 +642,57 @@ mod tests {
         assert_eq!(written.len(), 1);
         assert_eq!(written[0].n, "Plex");
         // No .tmp leftover after a successful write.
-        assert!(!cache_path.with_extension("tmp").exists());
+        assert!(!dir.join("icons.json.tmp").exists());
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_refresh_cache_reports_when_every_source_fails() {
+        let dir = std::env::temp_dir().join(format!(
+            "strandgut_test_icons_refresh_empty_{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create_dir_all");
+        let cache_path = dir.join("icons.json");
+
+        let result = refresh_cache(&cache_path, || vec![Err("upstream down".into())]);
+
+        match result {
+            Err(AppError::Internal(message)) => {
+                assert!(
+                    message.contains("all icon sources failed"),
+                    "unexpected message: {message}"
+                );
+            }
+            other => panic!("expected Internal error, got {other:?}"),
+        }
+        assert!(
+            !cache_path.exists(),
+            "a failed refresh must not write a cache file"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_refresh_cache_writes_the_merged_entries() {
+        let dir = std::env::temp_dir().join(format!(
+            "strandgut_test_icons_refresh_ok_{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create_dir_all");
+        let cache_path = dir.join("icons.json");
+
+        refresh_cache(&cache_path, || vec![Ok(vec![entry("Plex")])])
+            .expect("merge of one successful source should write the cache");
+
+        let written: Vec<IconEntry> =
+            serde_json::from_slice(&fs::read(&cache_path).unwrap()).unwrap();
+        assert_eq!(written.len(), 1);
+        assert_eq!(written[0].n, "Plex");
 
         let _ = std::fs::remove_dir_all(&dir);
     }

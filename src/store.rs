@@ -41,16 +41,6 @@ impl ConfigStore {
         }
     }
 
-    /// The `config.toml` path.
-    pub fn config_path(&self) -> &Path {
-        &self.config_path
-    }
-
-    /// The directory that contains the config file.
-    pub fn config_dir(&self) -> &Path {
-        &self.config_dir
-    }
-
     /// The directory that contains the icon cache and background photo.
     pub fn cache_dir(&self) -> &Path {
         &self.cache_dir
@@ -82,7 +72,7 @@ impl ConfigStore {
     pub fn save(&self, config: &Config) -> Result<(), AppError> {
         let toml_string = toml::to_string_pretty(config)
             .map_err(|e| AppError::Internal(format!("failed to serialize config: {e}")))?;
-        write_atomic(&self.config_path, &toml_string).map_err(|e| {
+        crate::atomic_write::write_atomic(&self.config_path, toml_string.as_bytes()).map_err(|e| {
             log::error!("Failed to save config {}: {e}", self.config_path.display());
             AppError::Internal(format!(
                 "failed to save config {}: {e}",
@@ -127,54 +117,21 @@ impl ConfigStore {
     }
 }
 
-/// Write `content` to `path` atomically.
-///
-/// Writes to `{path}.tmp`, then renames to `{path}`. If the rename fails, it
-/// falls back to removing the target and writing directly, preserving the
-/// historical behavior for unusual filesystem states.
-fn write_atomic(path: &Path, content: &str) -> Result<(), String> {
-    if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
-        fs::create_dir_all(parent).map_err(|e| {
-            format!(
-                "failed to create config parent dir {}: {e}",
-                parent.display()
-            )
-        })?;
-    }
-    let tmp_path = {
-        let mut s = path.as_os_str().to_os_string();
-        s.push(".tmp");
-        PathBuf::from(s)
-    };
-    fs::write(&tmp_path, content)
-        .map_err(|e| format!("failed to write config tmp {}: {e}", tmp_path.display()))?;
-    if let Err(e) = fs::rename(&tmp_path, path) {
-        log::warn!(
-            "Atomic rename failed {} -> {}: {e}, using direct-write fallback",
-            tmp_path.display(),
-            path.display()
-        );
-        let _ = fs::remove_file(&tmp_path);
-        let _ = fs::remove_file(path);
-        let _ = fs::remove_dir_all(path);
-        fs::write(path, content)
-            .map_err(|e| format!("failed to write config {}: {e}", path.display()))?;
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn test_dir(name: &str) -> PathBuf {
-        std::env::temp_dir().join(format!("strandgut_test_store_{name}"))
+        std::env::temp_dir().join(format!(
+            "strandgut_test_store_{name}_{}",
+            std::process::id()
+        ))
     }
 
     fn sample_config(title: &str) -> Config {
         Config {
             title: title.to_string(),
-            language: "en".to_string(),
+            language: Some("en".to_string()),
             scan_defaults: "simple".to_string(),
             services: Vec::new(),
             background_rotate: false,
@@ -244,14 +201,14 @@ mod tests {
     #[test]
     fn cache_dir_sits_beside_the_config() {
         let store = ConfigStore::new("/data/config.toml");
-        assert_eq!(store.config_dir(), Path::new("/data"));
+        assert_eq!(store.config_dir, Path::new("/data"));
         assert_eq!(store.cache_dir(), Path::new("/data/cache"));
     }
 
     #[test]
     fn bare_config_name_uses_the_current_directory() {
         let store = ConfigStore::new("config.toml");
-        assert_eq!(store.config_dir(), Path::new("."));
+        assert_eq!(store.config_dir, Path::new("."));
         assert_eq!(store.cache_dir(), Path::new("./cache"));
     }
 
@@ -275,22 +232,5 @@ mod tests {
 
         let err = store.check_writable().unwrap_err();
         assert!(err.contains(".write-test"), "unexpected message: {err}");
-    }
-
-    #[test]
-    fn write_atomic_rename_failure_falls_back() {
-        let dir = test_dir("rename_failure");
-        let _ = fs::remove_dir_all(&dir);
-        let target = dir.join("config.toml");
-        // Make the target path an existing directory so `fs::rename` fails (EISDIR).
-        fs::create_dir_all(&target).unwrap();
-
-        let result = write_atomic(&target, "key = 'value'");
-
-        assert!(
-            result.is_ok(),
-            "rename onto directory should succeed after fallback"
-        );
-        let _ = fs::remove_dir_all(&dir);
     }
 }

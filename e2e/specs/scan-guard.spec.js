@@ -1,4 +1,4 @@
-import { test, expect, dismissOnboarding, gotoApp, seedConfig, service } from '../support/app.js';
+import { test, expect, gotoApp, seedConfig, service, stubScanPending } from '../support/app.js';
 
 async function openScanDialog(page) {
   await page.locator('[data-testid="add-button"]').click();
@@ -30,11 +30,12 @@ test('a port range disables the scan depth and says why', async ({ page, request
 
 test('closing a running scan asks before discarding it', async ({ page, request }) => {
   await seedConfig(request, [service('One', 'http://127.0.0.1:13569/api/health')]);
+  // The scan request never answers, so the scan stays in flight for the test.
+  await stubScanPending(page);
   await gotoApp(page, { skipOnboarding: false });
   await openScanDialog(page);
 
-  // An unroutable host with three ports keeps the scan in flight for ~2 s.
-  await page.fill('[data-testid="scan-host-input"]', '10.255.255.1');
+  await page.fill('[data-testid="scan-host-input"]', '127.0.0.1');
   await page.locator('[data-testid="scan-advanced-toggle"] summary').click();
   await page.fill('[data-testid="scan-ports-input"]', '80,443,8080');
   await page.locator('[data-testid="scan-start-button"]').click();

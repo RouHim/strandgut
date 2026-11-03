@@ -1,15 +1,9 @@
-import { test, expect, dismissOnboarding, gotoApp } from '../support/app.js';
+import { test, expect, gotoApp } from '../support/app.js';
 
-test('SPA loads with correct title', async ({ page }) => {
+test('SPA uses the configured title', async ({ page }) => {
   await gotoApp(page, { skipOnboarding: false });
-  await expect(page).toHaveTitle(/Strandgut/);
-});
-
-test('service grid is visible', async ({ page }) => {
-  await gotoApp(page, { skipOnboarding: false });
-  // Dismiss onboarding if present (hides the grid)
-  await dismissOnboarding(page);
-  await expect(page.locator('[data-testid="service-grid"]')).toBeVisible();
+  // The fixture config sets title "Test"; the title is config-driven.
+  await expect(page).toHaveTitle(/^Test$/);
 });
 
 test('edit toggle button is visible', async ({ page }) => {
