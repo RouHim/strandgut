@@ -1,3 +1,10 @@
+## [1.6.13](https://github.com/RouHim/strandgut/compare/v1.6.12...v1.6.13) (2026-11-03)
+
+
+### Bug Fixes
+
+* close rustls advisories, honour config fields and clean up repo debt ([d86e022](https://github.com/RouHim/strandgut/commit/d86e022a0ecbd7b7f191bbdd0672333a5ed30963))
+
 ## [1.6.12](https://github.com/RouHim/strandgut/compare/v1.6.11...v1.6.12) (2026-10-29)
 
 ## [1.6.11](https://github.com/RouHim/strandgut/compare/v1.6.10...v1.6.11) (2026-10-29)
