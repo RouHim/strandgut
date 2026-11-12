@@ -32,10 +32,12 @@ npm test
 Two traps:
 
 - The config's `webServer` waits 60 s. A cold release build takes longer, so pre-build as above.
-- The webServer starts its own server against `.e2e-config.toml` (gitignored by the `*.toml` rule),
-  so your own `config.toml` is never rewritten. To attach to a server you already run, set
-  `STRANDGUT_REUSE_SERVER=1`; a harness that exports `CI=1` still makes Playwright refuse to reuse,
-  so stop that server or unset `CI` first.
+- The webServer passes `STRANDGUT_CONFIG=.e2e-config.toml` (gitignored by the `*.toml` rule) when it
+  launches the server, so a plain `npm test` leaves your own `config.toml` alone. To attach to a
+  server you already run, start it with `STRANDGUT_CONFIG=.e2e-config.toml`, then set
+  `STRANDGUT_REUSE_SERVER=1`; an exported `STRANDGUT_CONFIG` overrides the fallback and lets the
+  fixture's reset PUTs rewrite the file it names. `CI` no longer influences reuse and only selects
+  the reporter, retries, and `forbidOnly`.
 
 Manual QA scripts live in `e2e/manual/` and run with
 `npx playwright test --config playwright.manual.config.ts`.

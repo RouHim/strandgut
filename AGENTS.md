@@ -50,10 +50,10 @@ node --test tests/js/store.test.js            # Run one suite
 ```
 
 These cover the config store, the scan-session protocol, the API wrappers and the icon URL
-chain. CI also enforces the coverage floors in `ci.yml` (`--test-coverage-lines` and
-`--test-coverage-branches`). The twelve DOM modules (app, grid, drag, edit, add-dialog,
-scan, background, icon-picker, pill-switch, overlay, state, i18n) are Playwright-only by
-decision: they need a real document, so their signal comes from `e2e/`.
+chain. CI also enforces the coverage floors in `ci.yml` (`--test-coverage-lines`,
+`--test-coverage-branches`, and `--test-coverage-functions`). The twelve DOM modules (app,
+grid, drag, edit, add-dialog, scan, background, icon-picker, pill-switch, overlay, state, i18n)
+are Playwright-only by decision: they need a real document, so their signal comes from `e2e/`.
 
 ### E2E Tests (Playwright, `e2e/`)
 
@@ -371,7 +371,7 @@ against known services:
 **Headless Chromium caches CSS across tab sessions:** After editing embedded CSS assets and rebuilding the server, the headless browser tab may still serve stale CSS even with `location.reload(true)`. Use `close(all: true)` then a fresh `open` to guarantee the latest assets are loaded. Re-using tab names without a full close will return cached styles.
 
 **Never hardcode a Chromium path in `e2e/`:** `e2e/playwright.config.ts` must not set `launchOptions.executablePath` (e.g. `/usr/bin/chromium`) — that was a machine-specific workaround for one Arch box and breaks every other host (CI installs the bundled browser via `npx playwright install --with-deps chromium`; locally the same cache is used). Both projects rely on `devices['Desktop Chrome']`/`devices['Pixel 5']` which already pin `defaultBrowserType: 'chromium'`. Fix a broken local browser with `npx playwright install chromium`, never by hardcoding a system path.
-**Harness shell exports `CI=1`:** The omp shell environment sets `CI=1`, which flips `playwright.config.ts`'s `reuseExistingServer: !process.env.CI` to false and errors with "url is already used" if a dev server is running. Run `CI= npx playwright test ...` locally to reuse the running server (list reporter, no retries), or stop the server and run with `CI=1` for the CI profile.
+**Harness shell exports `CI=1`:** The omp shell environment sets `CI=1`, which selects the github reporter, enables retries, and turns on `forbidOnly`; it no longer decides server reuse. `reuseExistingServer` is off unless `STRANDGUT_REUSE_SERVER` is set, so a plain run errors with "url is already used" when a dev server already holds port 13569. Run `STRANDGUT_REUSE_SERVER=1 CI= npx playwright test ...` to attach to the running server (list reporter, no retries), but start that server with `STRANDGUT_CONFIG=.e2e-config.toml` first: an attached server bypasses `webServer.env`, so the fixture's reset PUTs otherwise rewrite the config file that server reads (default `./config.toml`). Alternatively stop that server and run with `CI=1` for the CI profile.
 
 **Playwright `webServer` times out on clean release builds:** The `e2e/playwright.config.ts` webServer runs `cargo run --release` with a 60s timeout. A clean release build takes ~55-90s. Pre-build with `cargo build --release` before running `CI=true npx playwright test`, or increase the webServer timeout.
 
