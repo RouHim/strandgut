@@ -1,6 +1,13 @@
 target/
 .git/
 data/
+cache/
 *.md
 .sisyphus/
 .github/
+e2e/
+tests/
+docs/
+node_modules/
+config*.toml
+.e2e-config.toml

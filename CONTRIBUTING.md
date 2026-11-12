@@ -32,8 +32,10 @@ npm test
 Two traps:
 
 - The config's `webServer` waits 60 s. A cold release build takes longer, so pre-build as above.
-- If the harness exports `CI=1`, Playwright refuses to reuse a running server and fails with
-  `url is already used`. Run `CI= npm test` to reuse a dev server, or stop the server first.
+- The webServer starts its own server against `.e2e-config.toml` (gitignored by the `*.toml` rule),
+  so your own `config.toml` is never rewritten. To attach to a server you already run, set
+  `STRANDGUT_REUSE_SERVER=1`; a harness that exports `CI=1` still makes Playwright refuse to reuse,
+  so stop that server or unset `CI` first.
 
 Manual QA scripts live in `e2e/manual/` and run with
 `npx playwright test --config playwright.manual.config.ts`.

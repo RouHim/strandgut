@@ -86,7 +86,7 @@ jobs:
           node-version: '26'
 
       - name: Run JS unit tests
-        run: node --test --experimental-test-coverage tests/js/*.test.js
+        run: node --test --experimental-test-coverage --test-coverage-lines=95 --test-coverage-branches=75 --test-coverage-functions=90 tests/js/*.test.js
 
   e2e-tests:
     name: Playwright E2E Tests

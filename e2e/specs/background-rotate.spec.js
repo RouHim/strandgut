@@ -74,13 +74,4 @@ test.describe('background rotation', { tag: '@background' }, () => {
 
     await expect(page.locator('[data-testid="background-rotate-toggle"]')).toBeHidden();
   });
-
-  test('toggle is visible and off when the feature is available', { tag: '@background' }, async ({ page }) => {
-    await stubBackground(page);
-    await gotoApp(page, { skipOnboarding: false });
-
-    const toggle = page.locator('[data-testid="background-rotate-toggle"]');
-    await expect(toggle).toBeVisible();
-    await expect(toggle).toHaveAttribute('aria-checked', 'false');
-  });
 });

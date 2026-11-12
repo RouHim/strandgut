@@ -2,6 +2,7 @@
 
 mod atomic_write;
 mod background;
+mod body;
 mod config;
 mod error;
 mod icons;
@@ -16,6 +17,8 @@ use std::sync::atomic::AtomicBool;
 
 use http_body_util::BodyExt;
 use tokio::net::TcpListener;
+
+use crate::body::BoxBody;
 
 /// Shared application state accessible from all request handlers.
 #[derive(Clone)]
@@ -149,11 +152,7 @@ const SECURITY_HEADERS: [(&str, &str); 4] = [
     ),
 ];
 
-fn with_security_headers(
-    mut response: hyper::Response<
-        http_body_util::combinators::UnsyncBoxBody<hyper::body::Bytes, hyper::Error>,
-    >,
-) -> hyper::Response<http_body_util::combinators::UnsyncBoxBody<hyper::body::Bytes, hyper::Error>> {
+fn with_security_headers(mut response: hyper::Response<BoxBody>) -> hyper::Response<BoxBody> {
     for (name, value) in SECURITY_HEADERS {
         response.headers_mut().insert(
             hyper::header::HeaderName::from_static(name),
@@ -167,10 +166,7 @@ fn with_security_headers(
 async fn router(
     req: hyper::Request<hyper::body::Incoming>,
     state: Arc<AppState>,
-) -> Result<
-    hyper::Response<http_body_util::combinators::UnsyncBoxBody<hyper::body::Bytes, hyper::Error>>,
-    std::convert::Infallible,
-> {
+) -> Result<hyper::Response<BoxBody>, std::convert::Infallible> {
     match routes::handle_request(req, state).await {
         Ok(resp) => Ok(with_security_headers(resp)),
         Err(err) => {

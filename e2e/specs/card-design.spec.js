@@ -154,6 +154,7 @@ test('edit mode shows delete button and sets draggable attribute', async ({ page
   await page.locator('[data-testid="edit-toggle"]').click();
 
   await expect(tile).toHaveAttribute('draggable', 'true');
+  await expect(page.locator('[data-testid="edit-tile"]').first()).toBeVisible();
   await expect(page.locator('[data-testid="delete-tile"]').first()).toBeVisible();
 });
 

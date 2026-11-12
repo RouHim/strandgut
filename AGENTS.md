@@ -49,7 +49,11 @@ node --test tests/js/*.test.js                 # Run DOM-free frontend tests
 node --test tests/js/store.test.js            # Run one suite
 ```
 
-These cover the config store and scan-session protocol. Browser behaviour stays in Playwright.
+These cover the config store, the scan-session protocol, the API wrappers and the icon URL
+chain. CI also enforces the coverage floors in `ci.yml` (`--test-coverage-lines` and
+`--test-coverage-branches`). The twelve DOM modules (app, grid, drag, edit, add-dialog,
+scan, background, icon-picker, pill-switch, overlay, state, i18n) are Playwright-only by
+decision: they need a real document, so their signal comes from `e2e/`.
 
 ### E2E Tests (Playwright, `e2e/`)
 
@@ -98,6 +102,7 @@ assets/
     overlay.js      # Modal session: focus, inert, scroll, Escape, backdrop, stack
     state.js        # UI-only state: edit mode and page-load statuses
     grid.js         # Service grid rendering
+    icon-urls.js    # Icon slug to CDN URL chain (mirrors src/icons.rs)
     drag.js         # Drag-and-drop for service cards
     edit.js         # Edit mode controls and add/edit panel
     add-dialog.js   # "Add service" modal dialog
@@ -295,7 +300,9 @@ The `/api/scan` endpoint returns `text/event-stream` with:
 - `event: done` — when scan completes
 
 The response is returned before the first port is scanned; the producer writes events as it goes.
-Stream close also signals completion; there is no scan-level error event.
+A normal scan always ends with `done`, and stream close also signals completion. An unresolvable
+host is the exception: it yields exactly one `error` frame with `host_not_found` and then closes the
+stream without a `done` frame.
 
 ## Port Scanner
 
@@ -307,7 +314,9 @@ Stream close also signals completion; there is no scan-level error event.
 
 ### Service Fingerprinting
 
-HTTP ports trigger a `GET /` request. The `<title>` tag is matched against known services:
+Every open port gets one `GET /` with a 2 s budget. Ports that do not speak HTTP fail the fetch and
+are still reported, as unreachable with no title. For HTTP responses the `<title>` tag is matched
+against known services:
 - Proxmox, Pi-hole, Synology, Portainer, Home Assistant, Jellyfin, Plex, Nextcloud
 
 ## Common Tasks
@@ -347,7 +356,7 @@ HTTP ports trigger a `GET /` request. The `<title>` tag is matched against known
 - **No `#[allow(dead_code)]`** — remove unused code instead
 - Before shipping a feature, run `cargo test` and `cargo clippy -- -D warnings`
 - Do NOT verify your UI changes via curl, do it with playwright, if you have issues with playwright let the user know
-- Develop just musl Linux only, this app only runs in a container
+- The release artifact targets musl Linux and ships as a `FROM scratch` image; local development runs the same code with `cargo run` on any Linux host
 
 ## Learnings
 
@@ -365,6 +374,8 @@ HTTP ports trigger a `GET /` request. The `<title>` tag is matched against known
 **Harness shell exports `CI=1`:** The omp shell environment sets `CI=1`, which flips `playwright.config.ts`'s `reuseExistingServer: !process.env.CI` to false and errors with "url is already used" if a dev server is running. Run `CI= npx playwright test ...` locally to reuse the running server (list reporter, no retries), or stop the server and run with `CI=1` for the CI profile.
 
 **Playwright `webServer` times out on clean release builds:** The `e2e/playwright.config.ts` webServer runs `cargo run --release` with a 60s timeout. A clean release build takes ~55-90s. Pre-build with `cargo build --release` before running `CI=true npx playwright test`, or increase the webServer timeout.
+
+**E2E runs against its own config file:** the webServer passes `STRANDGUT_CONFIG=.e2e-config.toml` (ignored by the `*.toml` rule) because the shared fixture PUTs an empty config before and after every test; without it a local `npm test` rewrites the developer's real `config.toml`. `reuseExistingServer` is off unless `STRANDGUT_REUSE_SERVER` is set, so a run cannot silently attach to an unrelated server on port 13569.
 
 **Import order defeats same-specificity overrides:** `style.css` imports `layout.css` BEFORE `components.css`, so `.tile`-level mobile overrides placed in layout.css's `@media (max-width: 599px)` block silently lose the cascade to components.css's base rules. Mobile tile overrides (`.tile`, `.tile-icon`, `.tile-info`, `.tile-title`) live at the END of `components.css` in their own `@media (max-width: 599px)` block.
 
