@@ -16,6 +16,13 @@ use crate::error::AppError;
 /// Maximum age of the cache file before a background refresh is triggered.
 const CACHE_MAX_AGE: Duration = Duration::from_secs(7 * 86400); // 7 days
 
+// CDN bases for the three sources the browser also builds URLs for. The same
+// constants live in `assets/js/icon-urls.js`; both sides pin the identical URL
+// set in tests, so changing one without the other fails a suite.
+const DASHBOARD_ICONS_CDN: &str = "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@master";
+const SELFHST_CDN: &str = "https://cdn.jsdelivr.net/gh/selfhst/icons@master";
+const SIMPLE_ICONS_CDN: &str = "https://cdn.simpleicons.org";
+
 // ---------------------------------------------------------------------------
 // Icon entry (minimal field names for compact cache files)
 // ---------------------------------------------------------------------------
@@ -280,10 +287,7 @@ fn fetch_dashboard_icons() -> Result<Vec<IconEntry>, String> {
             let name = humanize_path(&item.path);
             IconEntry {
                 n: name,
-                u: format!(
-                    "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/{}",
-                    item.path
-                ),
+                u: format!("{DASHBOARD_ICONS_CDN}/{}", item.path),
                 s: "dashboard-icons".into(),
             }
         })
@@ -301,7 +305,7 @@ fn fetch_selfhst() -> Result<Vec<IconEntry>, String> {
             let name = humanize_path(path);
             IconEntry {
                 n: name,
-                u: format!("https://cdn.jsdelivr.net/gh/selfhst/icons/{}", path),
+                u: format!("{SELFHST_CDN}/{}", path),
                 s: "selfh.st".into(),
             }
         },
@@ -321,7 +325,7 @@ fn fetch_simple_icons() -> Result<Vec<IconEntry>, String> {
                 .unwrap_or("unknown");
             IconEntry {
                 n: stem.to_string(), // Simple Icons filenames are already CamelCase
-                u: format!("https://cdn.simpleicons.org/{}", stem),
+                u: format!("{SIMPLE_ICONS_CDN}/{stem}"),
                 s: "simple-icons".into(),
             }
         },
@@ -474,6 +478,24 @@ mod tests {
         assert_eq!(humanize_path("simple.svg"), "Simple");
     }
 
+    /// The three URLs the browser builds from a slug. Pinned identically in
+    /// `tests/js/icon-urls.test.js`.
+    #[test]
+    fn test_cdn_templates_match_frontend_chain() {
+        assert_eq!(
+            format!("{DASHBOARD_ICONS_CDN}/svg/plex.svg"),
+            "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@master/svg/plex.svg"
+        );
+        assert_eq!(
+            format!("{SIMPLE_ICONS_CDN}/plex"),
+            "https://cdn.simpleicons.org/plex"
+        );
+        assert_eq!(
+            format!("{SELFHST_CDN}/svg/plex.svg"),
+            "https://cdn.jsdelivr.net/gh/selfhst/icons@master/svg/plex.svg"
+        );
+    }
+
     #[test]
     fn test_match_score() {
         assert!(match_score("plex", "plex") < match_score("plex media", "plex"));
@@ -589,6 +611,50 @@ mod tests {
             refresh_interval: CACHE_MAX_AGE,
         };
         assert!(!cache.is_fresh());
+    }
+
+    #[test]
+    fn test_is_fresh_for_a_fresh_file() {
+        let dir =
+            std::env::temp_dir().join(format!("strandgut_test_icons_fresh_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create_dir_all");
+        let cache_path = dir.join("icons.json");
+        fs::write(&cache_path, b"[]").expect("write cache");
+
+        let cache = IconCache {
+            cache_path,
+            refresh_interval: CACHE_MAX_AGE,
+        };
+
+        assert!(cache.is_fresh());
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_search_ignores_corrupt_cache() {
+        let dir = std::env::temp_dir().join(format!(
+            "strandgut_test_icons_corrupt_{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create_dir_all");
+        let cache_path = dir.join("icons.json");
+        fs::write(&cache_path, b"{ not json").expect("write corrupt cache");
+
+        let cache = IconCache {
+            cache_path,
+            refresh_interval: CACHE_MAX_AGE,
+        };
+
+        let results = cache
+            .search("plex", 50)
+            .expect("a corrupt cache must degrade to no results");
+
+        assert!(results.is_empty());
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     fn entry(n: &str) -> IconEntry {

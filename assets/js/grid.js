@@ -1,6 +1,7 @@
 import { getServices } from './store.js';
 import { getServiceStatus, isEditing } from './state.js';
 import { t } from './i18n.js';
+import { resolveIconUrl } from './icon-urls.js';
 
 const PLACEHOLDER_SVG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="4"/><circle cx="12" cy="12" r="4"/><path d="M8 8l8 8M16 8l-8 8"/></svg>')}`;
 
@@ -34,30 +35,6 @@ export function updateTileStatuses() {
     const service = services[Number(tile.getAttribute('data-index'))];
     if (dot && service) syncStatusDot(dot, service.url);
   });
-}
-/**
- * Resolve an icon URL with multi-CDN fallback chain.
- *
- * If the icon is already a full URL, returns it with no fallbacks.
- * Otherwise, treats the icon value (or service name) as a slug and
- * constructs a fallback chain: Dashboard Icons → Simple Icons → selfh.st.
- *
- * @param {{icon?: string, name: string}} service
- * @returns {{src: string, fallback: string[]}}
- */
-function resolveIconUrl(service) {
-  const icon = service.icon;
-  if (icon && (icon.startsWith('http://') || icon.startsWith('https://'))) {
-    return { src: icon, fallback: [] };
-  }
-  const slug = encodeURIComponent((icon || service.name).toLowerCase().replace(/\s+/g, '-'));
-  return {
-    src: `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@master/svg/${slug}.svg`,
-    fallback: [
-      `https://cdn.simpleicons.org/${slug}`,
-      `https://cdn.jsdelivr.net/gh/selfhst/icons@master/svg/${slug}.svg`,
-    ],
-  };
 }
 
 export function renderGrid({ entrance = false } = {}) {

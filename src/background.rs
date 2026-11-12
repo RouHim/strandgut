@@ -69,7 +69,6 @@ pub struct BackgroundStatus {
 /// Internal state for the background image rotation system.
 #[derive(Debug, Default)]
 struct BackgroundState {
-    cached_path: Option<PathBuf>,
     credit: Option<PhotoCredit>,
     last_fetch: Option<Instant>,
     fetch_in_progress: bool,
@@ -144,7 +143,6 @@ impl Background {
             Err(e) => {
                 log::debug!("Background photo unavailable: {e}");
                 let mut state = self.lock();
-                state.cached_path = None;
                 state.credit = None;
                 state.last_fetch = None;
                 let _ = fs::remove_file(&self.credit_path);
@@ -185,8 +183,15 @@ impl Background {
     }
 
     fn fetch_and_cache(&self, config: &Config, store: &ConfigStore) -> Result<(), AppError> {
-        let result = self.do_fetch(config, store);
+        self.apply_fetch_result(self.do_fetch(config, store))
+    }
 
+    /// Record the outcome of one rotation attempt.
+    ///
+    /// Both outcomes stamp `last_fetch`, so a failed fetch backs off for one
+    /// rotation interval instead of retrying on every status request. Either
+    /// way the in-progress gate is released.
+    fn apply_fetch_result(&self, result: Result<FetchedPhoto, AppError>) -> Result<(), AppError> {
         let mut state = self.lock();
         state.fetch_in_progress = false;
 
@@ -195,15 +200,12 @@ impl Background {
                 if let Err(e) = write_credit(&self.credit_path, &fetched.credit) {
                     log::warn!("Failed to write background credit: {e}");
                 }
-                state.cached_path = Some(fetched.path);
                 state.credit = Some(fetched.credit);
                 state.last_fetch = Some(Instant::now());
                 Ok(())
             }
             Err(e) => {
                 log::warn!("Background fetch failed: {e}");
-                // Back off for one rotation interval instead of retrying on
-                // every status request.
                 state.last_fetch = Some(Instant::now());
                 Err(e)
             }
@@ -213,7 +215,6 @@ impl Background {
 
 /// A photo downloaded, validated, and cached to disk.
 struct FetchedPhoto {
-    path: PathBuf,
     credit: PhotoCredit,
 }
 
@@ -238,7 +239,6 @@ fn hydrate(photo_path: &Path, credit_path: &Path) -> BackgroundState {
         .and_then(|bytes| serde_json::from_slice::<PhotoCredit>(&bytes).ok());
 
     BackgroundState {
-        cached_path: Some(photo_path.to_path_buf()),
         credit,
         last_fetch: Instant::now().checked_sub(age),
         fetch_in_progress: false,
@@ -454,10 +454,9 @@ impl Background {
             .read_to_end(&mut body)
             .map_err(|e| AppError::Internal(format!("failed to read image data: {e}")))?;
 
-        let path = cache_photo(&body, store.cache_dir())?;
+        cache_photo(&body, store.cache_dir())?;
 
         Ok(FetchedPhoto {
-            path,
             credit: PhotoCredit {
                 photographer: photo.photographer.clone(),
                 photographer_url: photo.photographer_url.clone(),
@@ -838,10 +837,103 @@ mod tests {
         };
         {
             let mut state = background.lock();
-            state.cached_path = Some(PathBuf::from("/tmp/photo.jpg"));
             state.last_fetch = Some(Instant::now());
         }
 
         assert!(!background.begin_fetch(&config));
+    }
+
+    fn rotation_config() -> Config {
+        Config {
+            background_rotate: true,
+            ..Config::default()
+        }
+    }
+
+    fn credit(photographer: &str) -> PhotoCredit {
+        PhotoCredit {
+            photographer: photographer.into(),
+            photographer_url: "https://example.com/photographer".into(),
+            photo_url: "https://images.pexels.com/photo.jpg".into(),
+        }
+    }
+
+    #[test]
+    fn test_failed_fetch_backs_off_for_one_interval() {
+        let dir = test_dir("fetch_failure_backoff");
+        let _ = std::fs::remove_dir_all(&dir);
+        let background = Background::new(dir.clone(), None);
+        let config = rotation_config();
+        assert!(background.begin_fetch(&config));
+
+        let result = background.apply_fetch_result(Err(AppError::Internal("pexels down".into())));
+
+        assert!(result.is_err());
+        assert!(
+            !background.lock().fetch_in_progress,
+            "the in-progress gate must be released after a failure"
+        );
+        assert!(
+            !background.begin_fetch(&config),
+            "a failed fetch must back off for one rotation interval"
+        );
+        assert!(background.status(&config).photo.is_none());
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_successful_fetch_records_credit_and_releases_gate() {
+        let dir = test_dir("fetch_success");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let background = Background::new(dir.clone(), None);
+        let config = rotation_config();
+        assert!(background.begin_fetch(&config));
+
+        background
+            .apply_fetch_result(Ok(FetchedPhoto {
+                credit: credit("Ada"),
+            }))
+            .expect("record the fetched photo");
+
+        assert_eq!(
+            background
+                .status(&config)
+                .photo
+                .expect("credit")
+                .photographer,
+            "Ada"
+        );
+        assert!(
+            !background.lock().fetch_in_progress,
+            "the in-progress gate must be released after success"
+        );
+        assert!(
+            !background.begin_fetch(&config),
+            "a fetch that just succeeded is not due again"
+        );
+        assert!(
+            dir.join("background.json").exists(),
+            "the credit sidecar must be written"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_reset_fetch_releases_the_gate() {
+        let dir = test_dir("reset_fetch");
+        let _ = std::fs::remove_dir_all(&dir);
+        let background = Background::new(dir, None);
+        let config = rotation_config();
+        assert!(background.begin_fetch(&config));
+
+        background.reset_fetch();
+
+        assert!(
+            background.begin_fetch(&config),
+            "reset must allow a new fetch attempt"
+        );
     }
 }

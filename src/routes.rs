@@ -12,15 +12,10 @@ use matchit::Router;
 use serde::Deserialize;
 
 use crate::AppState;
+use crate::body::BoxBody;
 use crate::config::Config;
 use crate::error::AppError;
 use crate::spa;
-
-// Type alias for the boxed body returned by handlers (also used by the
-// #[path]-included test module).
-// UnsyncBoxBody is the concrete type returned by `.boxed()` when the body
-// does not satisfy the `Send` bound (e.g. mapped Full<Bytes>).
-type BoxBody = http_body_util::combinators::UnsyncBoxBody<Bytes, hyper::Error>;
 
 // ---------------------------------------------------------------------------
 // Route table

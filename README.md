@@ -135,6 +135,7 @@ cargo clippy -- -D warnings
 cargo test
 
 # Run E2E tests (requires Node.js 26)
+cargo build --release    # the webServer waits 60 s, cold release builds take longer
 cd e2e
 npm ci
 npx playwright install --with-deps chromium

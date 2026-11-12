@@ -9,10 +9,8 @@ use http_body_util::{BodyExt, Full};
 use hyper::body::Bytes;
 use hyper::{Response, header};
 
+use crate::body::BoxBody;
 use crate::error::AppError;
-
-/// Type-erased HTTP body used for all SPA responses.
-type BoxBody = http_body_util::combinators::UnsyncBoxBody<Bytes, hyper::Error>;
 
 /// A static asset embedded at compile time via `include_bytes!`.
 struct AssetData {
@@ -43,6 +41,7 @@ fn get_asset(path: &str) -> Option<AssetData> {
         "js/api.js" => include_bytes!("../assets/js/api.js"),
         "js/state.js" => include_bytes!("../assets/js/state.js"),
         "js/grid.js" => include_bytes!("../assets/js/grid.js"),
+        "js/icon-urls.js" => include_bytes!("../assets/js/icon-urls.js"),
         "js/icon-picker.js" => include_bytes!("../assets/js/icon-picker.js"),
         "js/drag.js" => include_bytes!("../assets/js/drag.js"),
         "js/edit.js" => include_bytes!("../assets/js/edit.js"),

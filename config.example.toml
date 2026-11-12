@@ -1,7 +1,9 @@
 # Strandgut configuration example.
 #
 # Copy to config.toml (or point STRANDGUT_CONFIG at this file) and edit.
-# Unknown keys are rejected, so keep the shape below.
+# Unknown top-level keys are rejected, so keep the shape below. Keys inside
+# [[services]] are ignored for backward compatibility; a typo there loads
+# silently, so check the names against this file.
 
 title = "Strandgut"
 

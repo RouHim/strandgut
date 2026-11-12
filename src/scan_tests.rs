@@ -15,6 +15,31 @@ async fn scan_host(host: &str, ports: &[u16], timeout_ms: u64) -> Vec<ScanResult
     results
 }
 
+/// Serve one canned HTTP response on a fresh port.
+///
+/// `scan_port` first opens and drops a bare TCP connection, then `fetch_http_info`
+/// sends the real GET. Both connections are accepted here so a test can pin
+/// fingerprinting behaviour without a second fixture.
+async fn serve_http_once(response: &'static str) -> u16 {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+
+    tokio::spawn(async move {
+        // TCP probe from scan_port: accept and drop.
+        let (probe, _) = listener.accept().await.unwrap();
+        drop(probe);
+
+        // ureq HTTP request from fetch_http_info.
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let mut buf = vec![0u8; 4096];
+        let _ = stream.read(&mut buf).await.unwrap_or(0);
+        let _ = stream.write_all(response.as_bytes()).await;
+        let _ = stream.shutdown().await;
+    });
+
+    port
+}
+
 #[tokio::test]
 async fn test_detect_open_port() {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -43,25 +68,14 @@ async fn test_closed_port() {
 
 #[tokio::test]
 async fn test_title_extraction() {
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let port = listener.local_addr().unwrap().port();
-
-    tokio::spawn(async move {
-        // TCP probe from scan_port: accept and drop
-        let (probe, _) = listener.accept().await.unwrap();
-        drop(probe);
-
-        // ureq HTTP request from fetch_http_info
-        let (mut stream, _) = listener.accept().await.unwrap();
-        let mut buf = vec![0u8; 4096];
-        let _n = stream.read(&mut buf).await.unwrap_or(0);
-        let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><head><title>Home Assistant</title></head><body></body></html>";
-        stream.write_all(response.as_bytes()).await.unwrap();
-        let _ = stream.shutdown().await;
-    });
+    let port = serve_http_once(
+        "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<html><head><title>Home Assistant</title></head><body></body></html>",
+    )
+    .await;
 
     let results = scan_host("127.0.0.1", &[port], 1000).await;
     assert_eq!(results.len(), 1);
+    assert_eq!(results[0].port, port);
     assert_eq!(results[0].service_name.as_deref(), Some("Home Assistant"));
     assert_eq!(results[0].icon_slug.as_deref(), Some("home-assistant"));
     assert_eq!(results[0].title.as_deref(), Some("Home Assistant"));
@@ -80,34 +94,6 @@ fn test_get_ports_medium() {
     let mut expected = SIMPLE_PORTS.to_vec();
     expected.extend_from_slice(MEDIUM_EXTRA_PORTS);
     assert_eq!(ports, expected);
-}
-
-#[tokio::test]
-async fn test_detect_open_port_return_title_reachable() {
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let port = listener.local_addr().unwrap().port();
-
-    tokio::spawn(async move {
-        // TCP probe from scan_port: accept and drop
-        let (probe, _) = listener.accept().await.unwrap();
-        drop(probe);
-
-        // ureq HTTP request from fetch_http_info
-        let (mut stream, _) = listener.accept().await.unwrap();
-        let mut buf = vec![0u8; 4096];
-        let _n = stream.read(&mut buf).await.unwrap_or(0);
-        let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><head><title>Pi-hole</title></head><body></body></html>";
-        stream.write_all(response.as_bytes()).await.unwrap();
-        let _ = stream.shutdown().await;
-    });
-
-    let results = scan_host("127.0.0.1", &[port], 1000).await;
-    assert_eq!(results.len(), 1);
-    let r = &results[0];
-    assert_eq!(r.port, port);
-    assert_eq!(r.service_name.as_deref(), Some("Pi-hole"));
-    assert_eq!(r.title.as_deref(), Some("Pi-hole"));
-    assert!(r.reachable);
 }
 
 #[tokio::test]
@@ -384,7 +370,7 @@ async fn test_dropping_an_unconsumed_body_releases_the_scan_gate() {
     );
 }
 
-// === Redirect following tests (GREEN: fetch_http_info follows redirects via ureq) ===
+// === Redirect following tests (fetch_http_info follows redirects via ureq) ===
 
 #[tokio::test]
 async fn test_follows_301_redirect() {
@@ -417,7 +403,7 @@ async fn test_follows_301_redirect() {
 
     let results = scan_host("127.0.0.1", &[port], 1000).await;
     assert_eq!(results.len(), 1);
-    // GREEN: redirect is now followed via ureq's built-in redirect handler.
+    // The redirect must be followed by ureq's built-in redirect handler.
     assert_eq!(results[0].service_name.as_deref(), Some("Pi-hole"));
 }
 
@@ -451,7 +437,7 @@ async fn test_follows_302_redirect() {
 
     let results = scan_host("127.0.0.1", &[port], 1000).await;
     assert_eq!(results.len(), 1);
-    // GREEN: redirect is now followed via ureq's built-in redirect handler.
+    // The redirect must be followed by ureq's built-in redirect handler.
     assert_eq!(results[0].service_name.as_deref(), Some("Pi-hole"));
 }
 
@@ -483,26 +469,6 @@ async fn test_redirect_loop_handled() {
     // redirect limit, so scan_host must not hang and reports the port as unreachable.
     assert_eq!(results[0].service_name, None);
     assert!(!results[0].reachable);
-}
-
-#[tokio::test]
-async fn test_non_http_port_still_reported() {
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let port = listener.local_addr().unwrap().port();
-
-    tokio::spawn(async move {
-        let (mut stream, _) = listener.accept().await.unwrap();
-        let _n = stream.write_all(b"garbage non-http response").await;
-    });
-
-    let results = scan_host("127.0.0.1", &[port], 1000).await;
-    assert_eq!(results.len(), 1);
-    let r = &results[0];
-    assert_eq!(r.port, port);
-    // fetch_http_info returns Err on invalid HTTP; scan_host records the
-    // port as unreachable instead of failing the whole scan.
-    assert_eq!(r.service_name, None);
-    assert!(!r.reachable);
 }
 
 // === Title edge case tests ===

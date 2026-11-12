@@ -32,7 +32,13 @@ export default defineConfig({
         command: 'cargo run --release',
         cwd: '..',
         url: 'http://localhost:13569/api/health',
-        reuseExistingServer: !process.env.CI,
+        // The shared fixture PUTs an empty config before and after every test.
+        // Never point that at the developer's own config.toml.
+        env: {
+          STRANDGUT_CONFIG: process.env.STRANDGUT_CONFIG ?? '.e2e-config.toml',
+        },
+        // Attaching to an already running server must be an explicit choice.
+        reuseExistingServer: !!process.env.STRANDGUT_REUSE_SERVER,
         timeout: 60000,
       } }),
 });

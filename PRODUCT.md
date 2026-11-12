@@ -12,9 +12,8 @@ Homelab operators running self-hosted services on their own network. They alread
 what they run (NAS, Home Assistant, Pi-hole, media servers) and want one page that shows what is
 up and links straight into it — typically opened from a desktop browser, often also from a phone.
 
-Evidence: the sample `config.toml` (Truenas, Music Assistant, Home Assistant, Trilium Notes,
-TurboPix, Plex, Jellyfin, Pi-hole, Grafana, Portainer, Nextcloud, Vaultwarden), the README's
-"Auto-discover services on your network", and the mobile e2e spec.
+Evidence: the tracked sample `config.example.toml`, the README's "Auto-discover services on your
+network", and the mobile e2e run (every spec executes in both the desktop and the Pixel 5 project).
 
 ## Product Purpose
 
@@ -60,10 +59,10 @@ copy the zero-setup path.
   theme toggle and no `data-theme` attribute.
 - Scan results belong to the scan utility, not the dashboard; the scan dialog owns progress and results.
 - No accounts, no cloud service, no telemetry; the core product must work fully offline on the LAN.
-  Exception present in the code today: a service whose icon is not in the embedded set is fetched
-  from `cdn.jsdelivr.net` (`assets/js/grid.js`), so "offline" holds for everything but unknown
-  service icons.
-- CI enforces `cargo fmt` and `cargo clippy -- -D warnings`.
+  Exception present in the code today: tile icons are not bundled. The browser builds each icon
+  URL against three CDNs (Dashboard Icons, Simple Icons, selfh.st) and falls back to a neutral
+  placeholder glyph, so "offline" holds for everything but icons.
+- CI enforces `cargo fmt` and `cargo clippy --all-targets -- -D warnings`.
 - Undecided: no binding accessibility standard has been confirmed yet (ARIA labels, focus styles,
   reduced-motion and print rules exist, but that is current state, not a committed requirement).
 
@@ -81,7 +80,8 @@ copy the zero-setup path.
   `docs/`, `CHANGELOG.md`.
 - E2E reference screenshots in `e2e/reference/*.png` (initial, name-only cards, auto-fit centering,
   mobile single column, tablet, desktop).
-- A realistic sample config and a built-in service icon set.
+- A realistic sample config (`config.example.toml`); service icons resolve from public CDNs at
+  render time and are not bundled.
 - No testimonials, benchmarks, pricing, press, or customer logos exist — future work must not
   fabricate any.
 
