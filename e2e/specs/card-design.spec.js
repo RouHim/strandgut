@@ -159,21 +159,27 @@ test('edit mode shows delete button and sets draggable attribute', async ({ page
 });
 
 // ---------------------------------------------------------------------------
-// 8. Glassmorphism – tile has backdrop-filter containing "blur"
+// 8. Glassmorphism – blur only where the pointer is fine; touch drops it
+//    (per-tile blur re-composites every scroll frame and tanks mobile fps)
 // ---------------------------------------------------------------------------
 
-test('tile has backdrop-filter with blur', async ({ page, request }) => {
+test('tile backdrop blur follows pointer capability', async ({ page, request }) => {
   await seedConfig(request, [
     { name: 'Service', url: 'http://test.local', icon: null, description: null, position: { row: 0, col: 0 } },
   ]);
   await gotoApp(page);
 
   const tile = page.locator('[data-testid="tile"]').first();
-  const backdropFilter = await tile.evaluate(
-    (el) => window.getComputedStyle(el).backdropFilter,
-  );
+  const { backdropFilter, coarse } = await tile.evaluate((el) => ({
+    backdropFilter: window.getComputedStyle(el).backdropFilter,
+    coarse: window.matchMedia('(hover: none), (pointer: coarse)').matches,
+  }));
 
-  expect(backdropFilter).toContain('blur');
+  if (coarse) {
+    expect(backdropFilter).toBe('none');
+  } else {
+    expect(backdropFilter).toContain('blur');
+  }
 });
 
 // ---------------------------------------------------------------------------
