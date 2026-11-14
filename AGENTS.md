@@ -381,6 +381,8 @@ against known services:
 
 **Stylesheet `@import` round-trips delay module scripts:** Deferred module scripts wait for pending stylesheets, so `@import "fonts.css"` in `style.css` delayed `app.js` past the `load` event and widened the e2e onboarding-skip race (`isVisible()` → `click()` vs. the async config apply that hides onboarding). Keep `@font-face` rules inlined in `style.css`; spec skip-clicks use a tolerant `click({ timeout: 3000 }).catch(() => {})`.
 
+**Per-tile `backdrop-filter` is scroll poison on touch:** each visible tile with `backdrop-filter: blur(20px)` forces the compositor to re-blur the moving backdrop every frame; scroll pacing drops from 60fps to ~30fps (p95 frame time 33-83ms vs 16.7ms). `components.css` drops the blur for `.tile` under `@media (hover: none), (pointer: coarse)` and keeps the tint; desktop keeps the glass. `e2e/specs/scroll-performance.spec.js` asserts mobile p95 < 25ms, and the card-design glass test asserts the pointer split. Do not reintroduce per-tile blur on touch.
+
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan

@@ -231,7 +231,8 @@ Responsive behavior:
 
 Layered glass, not stacked shadows. Depth is material: translucent beach-bone panes sit over a
 darkened beach photograph, blurred at 20px (header), 24px (dialogs,
-`blur(24px) saturate(160%)`), 16px (edit panel), 20px saturate 160% (tiles). Shadows exist only for
+`blur(24px) saturate(160%)`), 16px (edit panel), 20px saturate 160% (tiles on fine pointers; touch
+devices drop the per-tile blur for scroll pacing). Shadows exist only for
 things that genuinely float or lift — dialogs, hovered tiles, pressed buttons. There is no resting
 elevation on the grid; a tile at rest is a pane of glass, not a raised card.
 
@@ -313,6 +314,11 @@ it did not, invisible while the check is pending. Reachability is checked once p
 dot is never polled, refreshed, or animated — and it always carries its meaning as text
 (`title` + `aria-label`), never as colour alone.
 
+**Touch scroll rule.** On touch devices (`(hover: none), (pointer: coarse)`) the tile keeps its
+translucent tint but drops `backdrop-filter`. A per-tile blur makes the compositor re-blur the
+scrolling backdrop every frame and halves scroll pacing to ~30fps; the desktop look is unchanged.
+The tint alone still keeps the photographic ground faintly present.
+
 ### Dialogs
 
 Raised-surface glass (90% navy), 24px blur saturate 160%, 1px hairline, 20px radius, glass-pane
@@ -374,8 +380,8 @@ raises a persistent `.save-banner` (raised glass, danger hairline, retry) instea
 
 ### Don't:
 
-- **Don't** fill surfaces with opaque greys or remove the backdrop blur without the
-  reduced-transparency fallback — the ground should stay faintly present.
+- **Don't** fill surfaces with opaque greys or remove the backdrop blur outside the touch scroll
+  rule and the reduced-transparency fallback — the ground should stay faintly present.
 - **Don't** add resting drop shadows to tiles; they are glass at rest, and only lift on hover.
 - **Don't** use bounce or elastic easing anywhere but the pill-switch thumb (The One Bounce Rule).
 - **Don't** tint headings, borders, or icons in Tide Amber; if it is not actionable or active, it

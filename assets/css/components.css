@@ -232,6 +232,16 @@
   }
 }
 
+/* Touch devices: a backdrop-filter on every tile forces the compositor to
+   re-blur the scrolling backdrop each frame and drops scroll pacing to ~30fps.
+   Keep the tinted glass; drop the blur. Pointer:fine keeps the desktop look. */
+@media (hover: none), (pointer: coarse) {
+  .tile {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .tile:hover {
     background: var(--color-glass-bg-hover);
