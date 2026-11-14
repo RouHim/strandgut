@@ -1,3 +1,10 @@
+## [1.6.16](https://github.com/RouHim/strandgut/compare/v1.6.15...v1.6.16) (2026-11-14)
+
+
+### Bug Fixes
+
+* **ui:** drop per-tile backdrop blur on touch to restore 60fps scrolling ([e183bc1](https://github.com/RouHim/strandgut/commit/e183bc1996b580ea1122c533cc975db9d8c37889))
+
 ## [1.6.15](https://github.com/RouHim/strandgut/compare/v1.6.14...v1.6.15) (2026-11-12)
 
 ## [1.6.14](https://github.com/RouHim/strandgut/compare/v1.6.13...v1.6.14) (2026-11-11)
